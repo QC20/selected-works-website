@@ -1,4 +1,5 @@
-# inner-portfolio
+# Selected Works Website
+I've crafted this personal website with invaluable guidance from Henry Hefferman's original work, which I then expanded and tailored to reflect my vision for a personal website. I aimed for a vibe reminiscent of having multiple windows open simultaneously, creating a bustling desktop atmosphere that immerses you in my universe. I hope you enjoy exploring it. If you're interested in my work, have constructive criticism to share, or simply want to connect, feel free to reach out!
 
 Changes I have made:
 - major changes to the showcase folder
@@ -13,6 +14,35 @@ Changes I have made:
   - [ ] insert embeded projects 
 - [ ] Make fill out form work
 - Figure out how to deal with large files in the repo
+
+
+## How to setup this website locally
+
+### To setup a dev environment
+
+```bash
+# Clone the repository
+git clone <repository_url>
+
+# Install dependencies 
+npm i
+
+# Run the local dev server
+npm run dev
+```
+
+### To serve a production build
+
+```bash
+# Install dependencies if not already done
+npm i
+
+# Build for production
+npm run build
+
+# Serve the build using express
+npm start
+```
 
 
 
