@@ -1,0 +1,15 @@
+{
+    "short_name": "Antonin Picard",
+    "name": "Antonin Picard Portfolio Showcase 2023",
+    "icons": [
+        {
+            "src": "../src/assets/icons/showcaseIcon.png",
+            "sizes": "64x64 32x32 24x24 16x16",
+            "type": "image/png"
+        }
+    ],
+    "start_url": ".",
+    "display": "standalone",
+    "theme_color": "#000000",
+    "background_color": "#ffffff"
+}
