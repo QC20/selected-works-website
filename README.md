@@ -5,15 +5,15 @@ Changes I have made:
 - major changes to the showcase folder
 
 ### Things I need to improve:
-- [ ] Insert abroad schools
+- [x] Insert abroad schools
 - [ ] Insert micropolis game
 - [ ] Learn how to make projects open in different windows
-- [ ] insert projects pages
-  - [ ] insert creative projects
-  - [ ] insert music and art
-  - [ ] insert embeded projects 
+- [x] insert projects pages
+  - [x] insert creative projects
+  - [x] insert music and art
+  - [x] insert embeded projects 
 - [ ] Make fill out form work
-- Figure out how to deal with large files in the repo
+- [ ]Figure out how to deal with large files in the repo
 
 
 ## How to setup this website locally
@@ -22,7 +22,7 @@ Changes I have made:
 
 ```bash
 # Clone the repository
-git clone <repository_url>
+git clone https://github.com/QC20/selected-works-website.git
 
 # Install dependencies 
 npm i

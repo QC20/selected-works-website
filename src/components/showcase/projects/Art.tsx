@@ -16,6 +16,8 @@ import prototype  from '../../../assets/pictures/projects/art/Prototype.jpg';
 import prototype1  from '../../../assets/pictures/projects/art/Prototype1.jpg';
 import prototype2  from '../../../assets/pictures/projects/art/Prototype2.jpg';
 import prototype3  from '../../../assets/pictures/projects/art/Prototype3.jpg';
+// @ts-ignore
+import LDRParticleSim from '../../../assets/pictures/projects/art/LDRParticleSimulation.mp4';
 
 import ThisComputerApp from '../../applications/ThisComputer';
 
@@ -304,10 +306,57 @@ const ArtProjects: React.FC<ArtProjectsProps> = (props) => {
                 </div>
                 </div>
             <LineSplit /> 
+
+            <div className="text-block">
+                <br />
+                <h2> Light Sensitive Interactive Particle Simulator </h2>
+<br />
+<p>
+    Explore the mesmerizing world of particle simulation with this interactive program built using Processing. Watch as particles dance 
+    across the screen, their movements dictated by both your mouse's position and real-world sensor data from an Arduino board. 
+    In this demonstration, an LDR sensor takes center stage, but the possibilities are endless – you can seamlessly integrate various 
+    sensor inputs and tweak the code to suit your creative vision. 
+</p>
+<br/>
+<p>
+    Immerse yourself in the endless potential of this dynamic and 
+    captivating project! {' '} 
+    <br />
+    With seamless transitions between spoken and written responses, VoiceWhiz adapts to your device's display capabilities, 
+    ensuring a smooth user experience.   
+</p>
+
+                <br />
+                <div className="captioned-image">
+                <VideoAsset src={LDRParticleSim} /> 
+                    
+                    <p>
+                        <sub>
+                            <b>Image 1:</b> Image of {' '} 
+                                <a
+                                    href='https://github.com/QC20/VoiceWhiz'
+                                    target='_blank'
+                                    rel='noopener noreferrer'>
+                                    VoiceWhiz'
+                                </a>    
+                                    {' '}sleek design in its round 3D printed case.
+                        </sub>
+                    </p>
+                </div>
+                <p>
+                    Discover the dynamic fusion of Processing and Arduino at play in this project. Delve into how Processing orchestrates the captivating visual 
+                    simulation while Arduino seamlessly integrates real-world interaction through sensors like the LDR sensor showcased here. Experience firsthand 
+                    the synergy between software and hardware as this project pushes the boundaries of creative exploration.{' '}
+                </p>
+                </div>
+                <LineSplit />
+
+
+                </div>
         
 
 
-        </div>
+        
         
         
     );
