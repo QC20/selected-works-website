@@ -31,9 +31,9 @@ const Experience: React.FC<ExperienceProps> = (props) => {
                     <li>
                         <p>
                             <b>
-                                Developed a customer satisfaction survey system operating spanning multiple platforms and software applications, {' '}
+                                Developed a customer satisfaction survey system operating spanning across multiple platforms and software applications, {' '}
                             </b>
-                            utilized for approximately 16,000 resolved complaint cases annually. {' '}
+                                facilitating the resolution of approximately 16,000 complaint cases annually. {' '}
                         </p>
                     </li>
                     <li>
