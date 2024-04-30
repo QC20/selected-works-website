@@ -22,6 +22,8 @@ import eyeTracking2 from '../../../assets/pictures/projects/software/eyetracking
 import eyeTracking1 from '../../../assets/pictures/projects/software/eyetracking3.gif';
 import eyeTracking3 from '../../../assets/pictures/projects/software/eyetracking4.gif';
 
+import blimp from '../../../assets/pictures/projects/software/Blimps.jpg';
+
 export interface SoftwareProjectsProps {}
 export interface DesktopProps {}
 
@@ -227,41 +229,50 @@ const SoftwareProjects: React.FC<SoftwareProjectsProps> = (props) => {
             
             <LineSplit />
             <div className="text-block">
-                <h2>CircleGame</h2>
+                <h2>Generate 3D models with Python</h2>
                 <br />
                 <p>
-                    Un jeu HTML,CSS,JS disponible en extension chrome, en executable, en static, et en React.
+                This project showcases the generation of a visually captivating blimp-like 3D figure using a Python script. Rather than relying on traditional computer-aided 
+                design (CAD) software, the figure is constructed entirely through code, providing a novel and challenging approach to 3D modeling. Enjoy! {' '}
                 </p>
                 <br />
                 <div className="captioned-image">
-                    <VideoAsset src={computer} />
+                    <img src={blimp} style={{ width: '80%'}} alt="" />
                     <p style={styles.caption}>
                         <sub>
-                            <b>Image 1:</b> Scène Blender du site 3D.
-                            La scène de Blender a été rendue et exportée au format GLTF.
+                            <b>Image 1:</b> 3D model of the model in two different sizes.
                         </sub>
                     </p>
                 </div>
+                <p>
+                Dive into the exciting realm of 3D figure creation with our unconventional twist {'-'} a Python script that crafts a blimp-inspired shape, breaking away from
+                conventional CAD software. This project boldly ventures into the frontier of computational modeling, showcasing the endless possibilities of code-driven creativity. 
+                Immerse yourself in the captivating fusion of mathematics, computer science, and imagination as you run this script. Witness the emergence of a mesmerizing 
+                blimp-like figure, a testament to the boundless exploration in the world of computational 3D modeling. {' '}
                 <br />
-                <h3>Liens:</h3>
+                This approach bears resemblance to the philosophy of OpenSCAD, where code serves as the primary tool for designing 3D models. Just like OpenSCAD, our project
+                emphasizes the power of code in shaping digital creations, offering a dynamic and flexible alternative to traditional CAD software. {' '}
+                </p> 
+                <br />
+                <h3>Links:</h3>
                 <ul>
                     <li>
                         <a
                             rel="noreferrer"
                             target="_blank"
-                            href="https://github.com/antoninpicard/Circle-Game"
+                            href="https://github.com/QC20/3D-Blimp"
                         >
                             <p>
-                                <b>[GitHub]</b> - CircleGame Repo
+                                <b>GitHub Repo</b> - Blimp-Like 3D Figure Generation with Python Script
                             </p>
                         </a>
                     </li>
-                </ul>
+                </ul> 
 
-
-                
-                
             </div>
+            <LineSplit /> 
+            
+
             <ResumeDownload />
         </div>
     );
