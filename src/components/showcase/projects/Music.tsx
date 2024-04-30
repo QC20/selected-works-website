@@ -18,8 +18,6 @@ import meDJing2 from '../../../../src/assets/pictures/meDJing2.jpg';
 // @ts-ignore
 import lifeJourney from '../../../assets/pictures/projects/art/lifes-journey.mp4';
 
-
-import houseProject from '../../../assets/pictures/projects/audio/houseProject.png';
 import MusicNote from '../../../assets/icons/MusicNote.gif'
 import cdSpin from '../../../assets/pictures/cdSpin.gif';
 
