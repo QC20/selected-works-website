@@ -154,14 +154,16 @@ const Experience: React.FC<ExperienceProps> = (props) => {
                 <div style={styles.header}>
                     <div style={styles.headerRow}>
                         <h3>UX/UI Designer</h3>
-                        <div style={{ display: 'flex', flexDirection: 'column' }}>
-                            <h4>Yngre Læger, Lægeforeningen</h4>      
+                              
                             <b>
                                 <p>January 2017 ~ November 2020</p>
                             </b>
                         </div>
                     </div>
+                   
                 </div>
+                <div style={{ display: 'flex', flexDirection: 'column', fontWeight: 'normal'  }}>
+                            <h4>Yngre Læger, Lægeforeningen</h4> 
             </div>
             
             <div className="text-block">
@@ -207,9 +209,10 @@ const Experience: React.FC<ExperienceProps> = (props) => {
                             </b>
                         </div>
                     </div>
-                    <div style={{ display: 'flex', flexDirection: 'column', fontWeight: 'normal'  }}>
-                            <h4>Human-Centered Computing Research Section, DIKU</h4> 
+                    
                 </div>
+                <div style={{ display: 'flex', flexDirection: 'column', fontWeight: 'normal'  }}>
+                            <h4>Human-Centered Computing Research Section, DIKU</h4> 
             </div>
             
             <div className="text-block">
@@ -239,14 +242,15 @@ const Experience: React.FC<ExperienceProps> = (props) => {
                 <div style={styles.header}>
                     <div style={styles.headerRow}>
                         <h3>DIS, Study Abroad in Scandinavia</h3>
-                        <div style={{ display: 'flex', flexDirection: 'column' }}>
-                            <h4>Video & Graphic Design</h4>      
+   
                             <b>
                                 <p>January 2015 ~ August 2017</p>
                             </b>
                         </div>
                     </div>
                 </div>
+                <div style={{ display: 'flex', flexDirection: 'column', fontWeight: 'normal'  }}>
+                            <h4>Video & Graphic Design</h4> 
             </div>
             
             <div className="text-block">
@@ -285,16 +289,19 @@ const Experience: React.FC<ExperienceProps> = (props) => {
                     <div style={styles.headerRow}>
                         <h1>Education</h1>
                     </div>
+                    <br /><br></br>
                     <div style={styles.headerRow}>
                         <h3>Master of Science in IT & Cognition</h3>
-                        <div style={{ display: 'flex', flexDirection: 'column' }}>
-                            <h4>University of Copenhagen</h4>   
+                       
                             <b>
                                 <p>2019 ~ 2022</p>
                             </b>
                         </div>
                     </div>
+                    
                 </div>
+                <div style={{ display: 'flex', flexDirection: 'column', fontWeight: 'normal'  }}>
+                            <h4>University of Copenhagen</h4> 
             </div>
             <div className="text-block">
                 <ul>
@@ -306,7 +313,7 @@ const Experience: React.FC<ExperienceProps> = (props) => {
                         target="_blank"
                         href="https://studies.ku.dk/masters/it-and-cognition/profile-and-career/"
                         >
-                        IT and Cognition{' '}
+                        IT and Cognition
                         </a>
                         {' '}is a very exclusive program for a small group of talented and focused students who wish to excel in 
                             developing advanced cognitive technologies. {' '}
@@ -328,14 +335,15 @@ const Experience: React.FC<ExperienceProps> = (props) => {
                 <div style={styles.header}>
                     <div style={styles.headerRow}>
                         <h3>Bachelor of Arts in Communication & IT</h3>
-                        <div style={{ display: 'flex', flexDirection: 'column' }}>
-                            <h4>University of Copenhagen</h4>      
+      
                             <b>
                                 <p>2014 ~ 2018</p>
                             </b>
                         </div>
                     </div>
                 </div>
+                <div style={{ display: 'flex', flexDirection: 'column', fontWeight: 'normal'  }}>
+                            <h4>University of Copenhagen</h4> 
             </div>
             <div className="text-block">
                 <ul>
@@ -379,14 +387,12 @@ const Experience: React.FC<ExperienceProps> = (props) => {
                 <div style={styles.header}>
                     <div style={styles.headerRow}>
                         <h3>IT University of Copenhagen</h3>
-                        <div style={{ display: 'flex', flexDirection: 'column' }}>
-                            <h4>University of Copenhagen</h4>
+     
                             <b>
                                 <p>2019 and 2022</p>
                             </b>
                         </div>
                     </div>
-                </div>
             </div>
             <div className="text-block">
                 <ul>
@@ -407,14 +413,12 @@ const Experience: React.FC<ExperienceProps> = (props) => {
                 <div style={styles.header}>
                     <div style={styles.headerRow}>
                         <h3>Copenhagen Business School (CBS)</h3>
-                        <div style={{ display: 'flex', flexDirection: 'column' }}>
-                            <h4>University of Copenhagen</h4>
                             <b>
-                                <p>2021 ~ 2022</p>
+                                <p>2021 and 2022</p>
                             </b>
                         </div>
                     </div>
-                </div>
+
             </div>
             <div className="text-block">
                 <ul>
@@ -424,6 +428,7 @@ const Experience: React.FC<ExperienceProps> = (props) => {
                                 Courses: {' '}
                             </b>
                             <i>
+                                    Digital Entreperneurship, {' '}
                                 <a
                                     rel="noreferrer"
                                     target="_blank"
@@ -442,14 +447,11 @@ const Experience: React.FC<ExperienceProps> = (props) => {
                 <div style={styles.header}>
                     <div style={styles.headerRow}>
                         <h3>University of Amsterdam (UvA)</h3>
-                        <div style={{ display: 'flex', flexDirection: 'column' }}>
-                            <h4>University of Copenhagen</h4>
                             <b>
                                 <p>2015 ~ 2016</p>
                             </b>
                         </div>
                     </div>
-                </div>
             </div>
             <div className="text-block">
                 <ul>
