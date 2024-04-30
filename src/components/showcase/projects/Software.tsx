@@ -270,7 +270,6 @@ const SoftwareProjects: React.FC<SoftwareProjectsProps> = (props) => {
                 </ul> 
 
             </div>
-            <LineSplit /> 
             
 
             <ResumeDownload />

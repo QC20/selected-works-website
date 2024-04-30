@@ -15,6 +15,8 @@ import meDJing from '../../../assets/pictures/projects/art/MePlaying.mp4';
 import asciiMe from '../../../assets/audio/1-5mb.mp4';
 
 import meDJing2 from '../../../../src/assets/pictures/meDJing2.jpg';
+// @ts-ignore
+import lifeJourney from '../../../assets/pictures/projects/Music/lifes-journey.mp4';
 
 
 import houseProject from '../../../assets/pictures/projects/audio/houseProject.png';
@@ -238,16 +240,56 @@ const MusicProjects: React.FC<MusicProjectsProps> = (props) => {
             </ul>
             <LineSplit />
 
-            <div className="site-page-content">
-                {/* Existing content */}
+            <br />
+    
+            <h2 style={{ display: 'flex', alignItems: 'center', justifyContent: 'right' }}>
+    
+                {' '}
+                Life's a Journey - Interactive Vizualization
+                {' '}
+            </h2>
 
-                {/* New shortcut icon */}
-                <div style={{ textAlign: 'center' }}>
-                    <img src={shortcut} alt="Music Shortcut" width="50" />
-                    <p style={{ marginTop: '5px' }}>Music Shortcut</p>
+            <div style={{ display: 'flex', alignItems: 'center', flexDirection: 'row-reverse' }}>
+                <div style={{ flex: 1, marginLeft: 32 }}>
+                    <p> 
+                        Life's Journey is a small interactive game inspired by the original Game of Life. Step into a mesmerizing world where you can shape and witness the unfolding of 
+                        life itself. Immerse yourself in the captivating gameplay and experience the beauty of emergent patterns. {' '}
+                    </p>
                 </div>
 
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginRight: '-82px' }}>
+                    <div style={{ textAlign: 'center', width: '85%', marginLeft: '-75px' }}>
+                        <VideoAsset src={lifeJourney} /> 
+                    </div>
+                    
+                </div>
+                <p>
+                Immerse yourself in the captivating gameplay and experience the magic of cellular automata, revealing emergent patterns that mesmerize and inspire. 
+                Engage with dynamic landscapes and explore infinite possibilities, all powered by p5.js for a truly immersive visual experience. {' '}
+                </p>
             </div>
+            <br />
+            <h3>Link to Project:</h3>
+            <ul>
+                <li>
+                    <p>
+                        <a 
+                            rel="noreferrer" 
+                            target="_blank"
+                            href="https://github.com/QC20/game-of-life-simulation"
+                            >
+                            <p>
+                                <b>
+                                    Github repo
+                                </b>
+                                {' '} - go check out the code base to learn more! {' '}
+                            </p>
+                        </a>
+                    </p>
+                </li>
+            </ul>
+
+            <LineSplit />
 
         </div>
     );

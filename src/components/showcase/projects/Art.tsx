@@ -317,15 +317,6 @@ const ArtProjects: React.FC<ArtProjectsProps> = (props) => {
     In this demonstration, an LDR sensor takes center stage, but the possibilities are endless – you can seamlessly integrate various 
     sensor inputs and tweak the code to suit your creative vision. 
 </p>
-<br/>
-<p>
-    Immerse yourself in the endless potential of this dynamic and 
-    captivating project! {' '} 
-    <br />
-    With seamless transitions between spoken and written responses, VoiceWhiz adapts to your device's display capabilities, 
-    ensuring a smooth user experience.   
-</p>
-
                 <br />
                 <div className="captioned-image">
                 <VideoAsset src={LDRParticleSim} /> 
