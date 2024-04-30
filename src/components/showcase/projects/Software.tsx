@@ -219,21 +219,12 @@ const SoftwareProjects: React.FC<SoftwareProjectsProps> = (props) => {
                 </ul>  
             </div>
             <LineSplit />
-            
-            
-            
-            <LineSplit />
-
-            
-            
-            
-            <LineSplit />
             <div className="text-block">
                 <h2>Generate 3D models with Python</h2>
                 <br />
                 <p>
                 This project showcases the generation of a visually captivating blimp-like 3D figure using a Python script. Rather than relying on traditional computer-aided 
-                design (CAD) software, the figure is constructed entirely through code, providing a novel and challenging approach to 3D modeling. Enjoy! {' '}
+                design (CAD) software or using an in-between software like OpenCAD, the figure is constructed entirely through code, providing a novel and challenging approach to 3D modeling. Enjoy! {' '}
                 </p>
                 <br />
                 <div className="captioned-image">
@@ -249,9 +240,6 @@ const SoftwareProjects: React.FC<SoftwareProjectsProps> = (props) => {
                 conventional CAD software. This project boldly ventures into the frontier of computational modeling, showcasing the endless possibilities of code-driven creativity. 
                 Immerse yourself in the captivating fusion of mathematics, computer science, and imagination as you run this script. Witness the emergence of a mesmerizing 
                 blimp-like figure, a testament to the boundless exploration in the world of computational 3D modeling. {' '}
-                <br />
-                This approach bears resemblance to the philosophy of OpenSCAD, where code serves as the primary tool for designing 3D models. Just like OpenSCAD, our project
-                emphasizes the power of code in shaping digital creations, offering a dynamic and flexible alternative to traditional CAD software. {' '}
                 </p> 
                 <br />
                 <h3>Links:</h3>

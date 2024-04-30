@@ -18,7 +18,10 @@ const Home: React.FC<HomeProps> = (props) => {
                 <h2>HCI Developer | Usability Engineer | Prototyper</h2>
             </div>
             <div style={styles.buttons}>
-                <Link containerStyle={styles.link} to="about" text="ABOUT ME" />
+                <Link 
+                    containerStyle={styles.link} 
+                    to="about" 
+                    text="ABOUT ME" />
                 <Link
                     containerStyle={styles.link}
                     to="experience"
@@ -36,7 +39,6 @@ const Home: React.FC<HomeProps> = (props) => {
                 />
             </div>
             <div style={styles.forHireContainer} onMouseDown={goToContact}>
-                {/* <img src={forhire} alt="" /> */}
             </div>
         </div>
     );

@@ -7,6 +7,8 @@ export interface ExperienceProps {}
 
 const Experience: React.FC<ExperienceProps> = (props) => {
     return (
+
+        
         <div className="site-page-content">
             <ResumeDownload />
             {/* First Education Section */}
@@ -14,16 +16,20 @@ const Experience: React.FC<ExperienceProps> = (props) => {
                 <div style={styles.header}>
                     <div style={styles.headerRow}>
                         <h1>Work Experience</h1>
+                        
                     </div>
+                    <br /><br></br>
                     <div style={styles.headerRow}>
-                        <h3>UI Specialist & Developer</h3>
-                        <div style={{ display: 'flex', flexDirection: 'column' }}>
-                            <h4>The Danish Ministry of Taxation</h4>   
-                            <b>
-                                <p> Februrary 2023 ~ present</p>
-                            </b>
-                        </div>
-                    </div>
+                    <h3>UI Specialist & Developer</h3>
+   
+        <b>
+            <p>Februrary 2023 ~ present</p>
+        </b>
+        
+    </div>
+    <h4 style={{ fontWeight: 'normal' }}>The Danish Ministry of Taxation</h4>
+    <div style={{ display: 'flex', flexDirection: 'column' }}>
+</div>
                 </div>
             </div>
             <div className="text-block">
@@ -59,14 +65,16 @@ const Experience: React.FC<ExperienceProps> = (props) => {
                 <div style={styles.header}>
                     <div style={styles.headerRow}>
                         <h3>UX Developer</h3>
-                        <div style={{ display: 'flex', flexDirection: 'column' }}>
-                            <h4>Odeno A/S</h4>      
+                           
                             <b>
                                 <p>June 2022 ~ January 2023</p>
                             </b>
                         </div>
                     </div>
+                    
                 </div>
+                <div style={{ display: 'flex', flexDirection: 'column', fontWeight: 'normal'  }}>
+                            <h4>Odeno A/S</h4>   
             </div>
             
             <div className="text-block">
@@ -96,14 +104,18 @@ const Experience: React.FC<ExperienceProps> = (props) => {
                 <div style={styles.header}>
                     <div style={styles.headerRow}>
                         <h3>HCI M.Sc. Researcher</h3>
-                        <div style={{ display: 'flex', flexDirection: 'column' }}>
-                            <h4>Human-Centred Computing Section, DIKU</h4>      
+                             
                             <b>
                                 <p>December 2020 ~ June 2022</p>
                             </b>
                         </div>
                     </div>
+                    
+                            
                 </div>
+                <div style={{ display: 'flex', flexDirection: 'column', fontWeight: 'normal'  }}>
+                            <h4>Human-Centered Computing Research Section, DIKU</h4> 
+                
             </div>
             
             <div className="text-block">
@@ -122,9 +134,9 @@ const Experience: React.FC<ExperienceProps> = (props) => {
                             <b>
                                 Applied NLP and ML techniques on large datasets, {' '}
                             </b>
-                            conducting sentiment analysis, topic modeling, and named entity recognition on extensive text data. 
-                            Utilized machine learning algorithms to extract key themes, sentiment patterns, and identify important entities, 
-                            providing actionable insights for decision-making and strategic planning. {' '}
+                                conducting sentiment analysis, topic modeling, and named entity recognition on extensive text data. 
+                                Utilized machine learning algorithms to extract key themes, sentiment patterns, and identify important entities, 
+                                providing actionable insights for decision-making and strategic planning. {' '}
                         </p>
                     </li>
                     <li>
@@ -138,7 +150,6 @@ const Experience: React.FC<ExperienceProps> = (props) => {
                     </li>
                 </ul>
             </div>
-            
             <div style={styles.headerContainer}>
                 <div style={styles.header}>
                     <div style={styles.headerRow}>
@@ -184,21 +195,20 @@ const Experience: React.FC<ExperienceProps> = (props) => {
                     </li>
                 </ul>
             </div>
-            
-
 
 
             <div style={styles.headerContainer}>
                 <div style={styles.header}>
                     <div style={styles.headerRow}>
                         <h3>HCI B.A. Student Researcher</h3>
-                        <div style={{ display: 'flex', flexDirection: 'column' }}>
-                            <h4>Human-Centered Computing Research Section, DIKU</h4>      
+                          
                             <b>
                                 <p>May 2018 2017 ~ November 2018</p>
                             </b>
                         </div>
                     </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', fontWeight: 'normal'  }}>
+                            <h4>Human-Centered Computing Research Section, DIKU</h4> 
                 </div>
             </div>
             

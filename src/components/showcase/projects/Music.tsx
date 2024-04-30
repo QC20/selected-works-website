@@ -21,7 +21,7 @@ import lifeJourney from '../../../assets/pictures/projects/art/lifes-journey.mp4
 import MusicNote from '../../../assets/icons/MusicNote.gif'
 import cdSpin from '../../../assets/pictures/cdSpin.gif';
 
-import { MusicPlayer } from '../../general';
+import { Link, MusicPlayer } from '../../general';
 import { styles } from '../../os/DragIndicator';
 import LineSplit from '../LineSplit'
 import ResumeDownload from '../ResumeDownload';
@@ -240,52 +240,71 @@ const MusicProjects: React.FC<MusicProjectsProps> = (props) => {
 
             <br />
     
-            <h2 style={{ display: 'flex', alignItems: 'center', justifyContent: 'right' }}>
-    
-                {' '}
-                Life's a Journey - Interactive Vizualization
-                {' '}
-            </h2>
 
-            <div style={{ display: 'flex', alignItems: 'center', flexDirection: 'row-reverse' }}>
-                <div style={{ flex: 1, marginLeft: 32 }}>
-                    <p> 
-                        Life's Journey is a small interactive game inspired by the original Game of Life. Step into a mesmerizing world where you can shape and witness the unfolding of 
-                        life itself. Immerse yourself in the captivating gameplay and experience the beauty of emergent patterns. {' '}
-                    </p>
-                </div>
 
-                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginRight: '-82px' }}>
-                    <div style={{ textAlign: 'center', width: '85%', marginLeft: '-75px' }}>
-                        <VideoAsset src={lifeJourney} /> 
-                    </div>
+<div className="text-block">
+                <br />
+                <h2>Life's a Journey - Interactive Visualization </h2>
+                <br />
+                <p> 
+            Life's Journey is a small interactive game inspired by the original Game of Life. Step into a mesmerizing world where you can shape and witness the unfolding of life itself. Immerse yourself in the captivating gameplay and experience the beauty of emergent patterns. {' '}
+        </p>
+        <p>
+            Immerse yourself in the captivating gameplay and experience the magic of cellular automata, revealing emergent patterns that mesmerize and inspire. Engage with dynamic landscapes and explore infinite possibilities, all powered by p5.js for a truly immersive visual experience. {' '}
+        </p>
+                <br />
+                <div className="captioned-image" style={{ width: '80%' }}>
+                    <VideoAsset src={lifeJourney}  /> 
                     
+                    <p>
+                        <sub>
+                            <b>Image 1:</b> Image of {' '} 
+                                <a
+                                    href='https://github.com/QC20/VoiceWhiz'
+                                    target='_blank'
+                                    rel='noopener noreferrer'>
+                                    VoiceWhiz'
+                                </a>    
+                                    {' '}sleek design in its round 3D printed case.
+                        </sub>
+                    </p>
                 </div>
                 <p>
-                Immerse yourself in the captivating gameplay and experience the magic of cellular automata, revealing emergent patterns that mesmerize and inspire. 
-                Engage with dynamic landscapes and explore infinite possibilities, all powered by p5.js for a truly immersive visual experience. {' '}
-                </p>
-            </div>
-            <br />
-            <h3>Link to Project:</h3>
-            <ul>
+                Experience an engaging interpretation of the Game of Life project crafted in p5.js. Navigate through the grid using arrow keys and 
+                customize cell colors with a simple keystroke (press 'C'). Dive in as the game launches automatically, presenting a grid of cells 
+                for interaction. Click to bring cells to life, and observe their evolution based on predefined rules. Relax and immerse yourself in 
+                the captivating patterns that emerge. Here are the basic principles guiding cell interaction: {' '}
+                <br></br><br />
                 <li>
-                    <p>
-                        <a 
-                            rel="noreferrer" 
+                    Cells with fewer than two live neighbors perish due to underpopulation.
+                </li>
+                <li>
+                    Cells with two or three live neighbors persist into the next generation.
+                </li>
+                <li>
+                    Cells with more than three live neighbors succumb to overpopulation.
+                </li>
+                <li>
+                    Dead cells with precisely three live neighbors spring to life through reproduction.
+                </li>
+                </p>
+
+                <br />
+                <h3>Link to Project:</h3>
+                <ul>
+                    <li>
+                        <a
+                            rel="noreferrer"
                             target="_blank"
                             href="https://github.com/QC20/game-of-life-simulation"
-                            >
+                        >
                             <p>
-                                <b>
-                                    Github repo
-                                </b>
-                                {' '} - go check out the code base to learn more! {' '}
+                                <b>P5.js Game of Life Simulation</b> - Life's a Journey {' '}
                             </p>
                         </a>
-                    </p>
-                </li>
-            </ul>
+                    </li>
+                </ul>        
+            </div>
 
             <LineSplit />
 
