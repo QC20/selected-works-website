@@ -16,7 +16,7 @@ import asciiMe from '../../../assets/audio/1-5mb.mp4';
 
 import meDJing2 from '../../../../src/assets/pictures/meDJing2.jpg';
 // @ts-ignore
-import lifeJourney from '../../../assets/pictures/projects/Music/lifes-journey.mp4';
+import lifeJourney from '../../../assets/pictures/projects/art/lifes-journey.mp4';
 
 
 import houseProject from '../../../assets/pictures/projects/audio/houseProject.png';
