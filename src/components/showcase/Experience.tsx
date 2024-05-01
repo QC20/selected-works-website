@@ -46,7 +46,7 @@ const Experience: React.FC<ExperienceProps> = (props) => {
                         <p>
                             <b>
                                 Designed a fully automated solution for retrieving documents for case processing/information gathering from 
-                                the Motor Vehicle Agency and Traffic Authority, {' '}
+                                the Motor Vehicle Agency (Motorstyrelsen) and Traffic Authority (Færdselsstyrelsen), {' '}
                             </b>
                             impacting approximately 5000 cases annually with a 6% reduction in overall case processing time. {' '}
                         </p>
@@ -342,7 +342,7 @@ const Experience: React.FC<ExperienceProps> = (props) => {
                         </div>
                     </div>
                 </div>
-                <div style={{ display: 'flex', flexDirection: 'column', fontWeight: 'normal'  }}>
+                <div style={{ display: 'flex', flexDirection: 'column', fontWeight: ''  }}>
                             <h4>University of Copenhagen</h4> 
             </div>
             <div className="text-block">

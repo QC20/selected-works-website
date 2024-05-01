@@ -46,7 +46,16 @@ const MusicProjects: React.FC<MusicProjectsProps> = (props) => {
             
             <div className="text-block">
                 <p>
-                    text goes here
+                I have dedicated this section to my artistic endeavors, where I explore the realms of music, sound, and visual arts. I am deeply engrossed 
+                in having artistic outlets, whether they are analog or digital. I don't want to limit myself to any one canvas. This perspective has 
+                inspired me to explore a variety of mediums. For instance, I deeply appreciate the tactile experience and rich color spectrum achievable 
+                through oil painting, as well as the flexibility of the medium. I can leave my painting for three days, and when I resume working on it, 
+                it's as if I was never away. {' '}
+                </p>
+                <p>
+                Similarly, the computer screen presents itself as the canvas we might spend the most time looking at in our lives. Therefore, 
+                experimenting with this medium is a natural progression, especially because it allows for entirely new ways of incorporating 
+                interactive elements and exploring the realm of interaction design. {' '}
                 </p>
                 <br />
             </div>
@@ -58,17 +67,25 @@ const MusicProjects: React.FC<MusicProjectsProps> = (props) => {
                 <div style={{ flex: 1, marginRight: 32 }}>
                     <p> 
                         Music has always been my passion. From the melodies to the lyrics, and from the intricate production techniques to the cultural impact it carries, 
-                        every aspect has fascinated me. My journey began at the age of 15 when I purchased my first Technics 1210 turntables. 
-                        <p>This marked the beginning of my 
-                        fascination with physical media and my exploration into DJing, event planning, and hosting. By the time I was 19, I had joined the DJ collective, {' '}
+                        every aspect fascinates me. My journey began at the age of 15 when I purchased my first set of {' '}
+                        <a
+                                href='https://www.technics.com/global/home/sl1200.html'
+                                target='_blank'
+                                rel='noopener noreferrer'>
+                                    Technics 1210
+                                </a>      
+                                {' '}turntables. 
+                        <p>
+                            This marked the beginning of my 
+                            fascination with physical media and my exploration into DJing, music production, and exhibiting it to people at venues. By the time I was 19, I had joined the DJ collective, {' '}
                         <a
                                 href='https://www.facebook.com/dubkultur'
                                 target='_blank'
                                 rel='noopener noreferrer'>
                                     Dubkultur
                                 </a>     
-                        , and for roughly 5 years, we organized and performed at events across Copenhagen. This experience kept me constantly engaged with the latest sounds and 
-                        developments in the music scene. It also sparked my interest in music production, as I sought to capture the raw, grassroots essence by creating, producing, 
+                        , and for about 5 years, we organized and performed at events across Copenhagen. This experience kept me constantly engaged with the latest sounds and 
+                        developments in the music scene. It also sparked my interest in music production, as I sought to capture the raw, DIY essence by creating, producing, 
                         publishing, and performing my own tracks. {' '}
                     </p></p>
                 </div>
@@ -79,13 +96,7 @@ const MusicProjects: React.FC<MusicProjectsProps> = (props) => {
                     </div>{/* Adjusted width */}
                     <p>
                         <sub>
-                            <b>Image 2:</b> Me turning knobs at Bolsjefabrikken, Copenhagen. {' '}
-                            <a
-                                href='https://github.com/QC20/DIY-Arduino-Controller/tree/main/Code%20Examples'
-                                target='_blank'
-                                rel='noopener noreferrer'>
-                                    here.
-                                </a>               
+                            <b>Image 2:</b> Me turning knobs at Bolsjefabrikken, Copenhagen. {' '}          
                         </sub>
                     </p>
                 </div>
@@ -93,15 +104,15 @@ const MusicProjects: React.FC<MusicProjectsProps> = (props) => {
             </div>
 
             <p>
-                Being immersed in music and sound not only brings me immense joy and thrills but also fosters invaluable friendships. It's like a journey filled with endless adventures! 
+            Music and sound immerse me in joy and thrills.
                 Through this passion, I've delved into a multitude of digital audio workstations (DAWs), exploring the realms of {' '}
                     <a href="https://www.reasonstudios.com/" target="_blank" rel="noopener noreferrer">Reason</a>, {' '}
                     <a href="https://www.apple.com/logic-pro/" target="_blank" rel="noopener noreferrer">Logic</a>, and {' '}
                     <a href="https://www.ableton.com/" target="_blank" rel="noopener noreferrer">Ableton</a>. {' '}
-                But it doesn't stop there – it's led me to experiment with visual art expressions and graphic design, expanding my creative horizons even further.
+                But it doesn't stop there – it led me to experiment with visual art expressions and graphic design, expanding my creative horizons even further.
             </p>
             <p>
-                From a young age, it's taught me the ins and outs of orchestrating unforgettable parties and managing a crew of activists, ensuring every event runs like a well-oiled machine. It's not just a hobby; it's a lifestyle that continuously shapes and enriches my journey.
+            From a young age, I've learned the intricacies of organizing memorable events and leading teams of activists. It's more than just a hobby; it's a lifestyle that continually shapes and enriches my journey.
             </p>
 
             <br />
@@ -134,11 +145,9 @@ const MusicProjects: React.FC<MusicProjectsProps> = (props) => {
             <br />
             <p>
             Besides spinning tunes and creating beats, I still make appearances on stage from time to time, 
-            although not as frequently as before. But don't worry, I've prepared something special just for you. {' '}
+            although not as frequently as previously. But don't worry, I've prepared something special just for you. {' '}
             </p>
             <p>
-                Imagine this: recent live mixes, carefully recorded for your enjoyment. Some are pure vinyl, while others blend analog and digital sounds. 
-                It's a glimpse into what drives me, and it's all here waiting for you. {' '}
             </p>
             <br />
             <MusicPlayer
@@ -175,15 +184,8 @@ const MusicProjects: React.FC<MusicProjectsProps> = (props) => {
                 </p>
             </div>
             <p>
-                Being immersed in music and sound not only brings me immense joy and thrills but also fosters invaluable friendships. It's like a journey filled with endless adventures! 
-                Through this passion, I've delved into a multitude of digital audio workstations (DAWs), exploring the realms of {' '}
-                    <a href="https://www.reasonstudios.com/" target="_blank" rel="noopener noreferrer">Reason</a>, {' '}
-                    <a href="https://www.apple.com/logic-pro/" target="_blank" rel="noopener noreferrer">Logic</a>, and {' '}
-                    <a href="https://www.ableton.com/" target="_blank" rel="noopener noreferrer">Ableton</a>. {' '}
-                But it doesn't stop there – it's led me to experiment with visual art expressions and graphic design, expanding my creative horizons even further.
-            </p>
-            <p>
-                From a young age, it's taught me the ins and outs of orchestrating unforgettable parties and managing a crew of activists, ensuring every event runs like a well-oiled machine. It's not just a hobby; it's a lifestyle that continuously shapes and enriches my journey.
+                If you've found this section interesting and would like to learn more, collaborate, or simply chat about records, 
+                feel free to reach out. {' '}
             </p>
 
             <br />
@@ -191,16 +193,13 @@ const MusicProjects: React.FC<MusicProjectsProps> = (props) => {
             <br />
     
             <h2 style={{ display: 'flex', alignItems: 'center', justifyContent: 'right' }}>
-    
-                {' '}
                 Interactive ASCII Visionarium
-                {' '}
             </h2>
 
             <div style={{ display: 'flex', alignItems: 'center', flexDirection: 'row-reverse' }}>
                 <div style={{ flex: 1, marginLeft: 32 }}>
                     <p> 
-                    AsciiVision is a captivating creative coding venture that blends human-computer interaction with artistic flair. By tapping into your 
+                    AsciiVision is a captivating creative coding venture that blends interaction design with artistic flair. By tapping into your 
                     device's webcam via the Camera API, AsciiVision seamlessly bridges the gap between the tangible and the digital realms. 
                     Using JavaScript wizardry, it transforms each pixel's luminosity into a unique ASCII character, providing a dynamic interpretation 
                     of the live video feed. This fusion of human-computer interactivity and creative coding delivers an immersive and exhilarating journey 
