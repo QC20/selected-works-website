@@ -1,14 +1,20 @@
 /* eslint-disable jsx-a11y/alt-text */
 /* eslint-disable react/jsx-no-comment-textnodes */
-import React from 'react';
+import React, { useState } from 'react';
 import ResumeDownload from '../ResumeDownload';
+import Window from '../../os/Window';
+import DosPlayer from '../../dos/DosPlayer';
+
+
+
+
 
 export interface paperPropss {}
 
 const PapersProjects: React.FC<paperPropss> = (props) => {
     return (
         <div className="site-page-content">
-            <ResumeDownload />
+
             {/* First Work Experience */}
             <div style={styles.headerContainer}>
                 <div style={styles.header}>
@@ -16,16 +22,25 @@ const PapersProjects: React.FC<paperPropss> = (props) => {
                         <h1>Academic Publications</h1>
                         
                     </div>
-                    <br /><br></br>
+                    <br></br>
                         <p>
-                        Welcome to my academic journey, where my passion for unraveling the complexities of human-computer interaction (HCI) shines through in every published paper. Delve into a collection of scholarly works showcased on this page, each meticulously crafted and rigorously reviewed.
+                        Welcome to my academic journey, where my passion for unraveling the complexities of human-computer interaction (HCI) shines 
+                        through in every published paper. Delve into a collection of scholarly works showcased on this page, each meticulously crafted 
+                        and rigorously reviewed. {' '}
+                        </p>
+                      <br></br>
+                        <p>
+                        Among them, you'll discover contributions to premier conferences such as ACM GROUP, ACM CUI, and the highly esteemed ACM CHI. 
+                        This isn't just about dry academia; it's about pushing boundaries, sparking conversations, and shaping the future of HCI. {' '}
                         </p>
                         <p>
-                        Among them, you'll discover contributions to premier conferences such as ACM GROUP, ACM CUI, and the highly esteemed ACM CHI. This isn't just about dry academia; it's about pushing boundaries, sparking conversations, and shaping the future of HCI.
+                        Each paper represents a significant endeavor in advancing knowledge within various domains, including HCI, cognitive science, 
+                        and computer science. Dive into these academic publications to explore recent research contributions and insights into topics 
+                        ranging from user experience design and computational complexity, to novel interface design, showcasing recent research 
+                        contributions that are the culmination of dedication, collaboration, and innovative thinking.  {' '}
                         </p>
-                        <p>
-                        Each paper represents a significant endeavor in advancing knowledge within various domains, including HCI, cognitive science, and computer science. Dive into these academic publications to explore recent research contributions and insights into topics ranging from user experience design and computational complexity, to novel interface design, showcasing recent research contributions that are the culmination of dedication, collaboration, and innovative thinking. 
-                        </p>
+                        <br /><br></br>
+                        <ResumeDownload />
                     <br /><br></br>
                     <div style={styles.headerRow}>
                         <h3>UI Specialist & Developer</h3>
@@ -40,7 +55,7 @@ const PapersProjects: React.FC<paperPropss> = (props) => {
                 <ul>
                     <li>
                         <p>
-                            <b>Developed a customer satisfaction survey system operating spanning across multiple platforms and software applications,</b> facilitating the resolution of approximately 16,000 complaint cases annually.
+                            
                         </p>
                     </li>
                     <li>
@@ -77,3 +92,5 @@ const styles: StyleSheetCSS = {
 };
 
 export default PapersProjects;
+
+

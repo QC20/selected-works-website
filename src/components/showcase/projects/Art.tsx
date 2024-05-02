@@ -46,6 +46,7 @@ const ArtProjects: React.FC<ArtProjectsProps> = (props) => {
                 </p>
             </div>
         <ResumeDownload />
+        <br></br>
             <div className="text-block">
                 <h2>DIY Arduino UNO Controller</h2>
                 

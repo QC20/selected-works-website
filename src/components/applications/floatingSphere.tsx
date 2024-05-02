@@ -2,9 +2,9 @@ import React from 'react';
 import DesktopShortcut from '../os/DesktopShortcut';
 import Window from '../os/Window';
 
-export interface ThisComputerProps extends WindowAppProps {}
+export interface floatingSphereProps extends WindowAppProps {}
 
-const ThisComputerApp: React.FC<ThisComputerProps> = (props) => {
+const floatingSphere: React.FC<floatingSphereProps> = (props) => {
     return (
         <Window
             top={20}
@@ -20,7 +20,7 @@ const ThisComputerApp: React.FC<ThisComputerProps> = (props) => {
             <div className="site-page">
                 <iframe
                     src="https://floating-sphere.vercel.app/"
-                    title="google"
+                    title="Floating Sphere"
                     width="100%"
                     height="100%"
                 />
@@ -37,4 +37,6 @@ const ThisComputerApp: React.FC<ThisComputerProps> = (props) => {
     );
 };
 
-export default ThisComputerApp;
+
+
+export default floatingSphere;

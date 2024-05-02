@@ -8,17 +8,25 @@ import computerSmall from './computerSmall.png';
 import myComputer from './myComputer.png';
 import showcaseIcon from './showcaseIcon.png';
 import doomIcon from './doomIcon.png';
-
 import credits from './credits.png';
 import volumeOn from './volumeOn.png';
 import volumeOff from './volumeOff.png';
 import trailIcon from './trailIcon.png';
+import Sphere from '../icons/sphere.png';
 import windowGameIcon from './windowGameIcon.png';
 import windowExplorerIcon from './windowExplorerIcon.png';
 import windowsStartIcon from './windowsStartIcon.png';
 import scrabbleIcon from './scrabbleIcon.png';
 import close from './close.png';
 import internetExplorerIcon from './internetExplorerIcon.png'
+import floatingSphere from '../../components/applications/floatingSphere';
+
+const getIconByName = (
+    iconName: IconName
+    // @ts-ignore
+): React.FC<React.SVGAttributes<SVGElement>> => icons[iconName];
+
+export type IconName = keyof typeof icons;
 
 const icons = {
     windowResize: windowResize,
@@ -39,13 +47,9 @@ const icons = {
     windowsStartIcon: windowsStartIcon,
     trailIcon: trailIcon,
     internetExplorerIcon: internetExplorerIcon,
+    floatingSphere: Sphere,
 };
 
-export type IconName = keyof typeof icons;
 
-const getIconByName = (
-    iconName: IconName
-    // @ts-ignore
-): React.FC<React.SVGAttributes<SVGElement>> => icons[iconName];
 
 export default getIconByName;

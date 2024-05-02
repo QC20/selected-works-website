@@ -11,6 +11,7 @@ import DesktopShortcut, { DesktopShortcutProps } from './DesktopShortcut';
 import Scrabble from '../applications/Scrabble';
 import { IconName } from '../../assets/icons';
 import Credits from '../applications/Credits';
+import floatingSphere from '../applications/floatingSphere';
 
 export interface DesktopProps {}
 
@@ -69,6 +70,14 @@ const APPLICATIONS: {
         shortcutIcon: 'credits',
         component: Credits,
     },
+    
+    floating: {
+        key: 'credits',
+        name: 'Floating Sphere',
+        shortcutIcon: 'floatingSphere',
+        component: floatingSphere,
+    },
+    
 
 };
 
@@ -109,7 +118,7 @@ const Desktop: React.FC<DesktopProps> = (props) => {
         });
 
         newShortcuts.forEach((shortcut) => {
-            if (shortcut.shortcutName === 'My Showcase') {
+            if (shortcut.shortcutName === "Jonas' Selected Works") {
                 shortcut.onOpen();
             }
         });

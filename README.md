@@ -8,13 +8,14 @@ Changes I have made:
 - [x] Insert abroad schools
 - [ ] Insert micropolis game
 - [ ] Learn how to make projects open in different windows
+  - [x] Make project website appear in windows on desktop
 - [x] insert projects pages
   - [x] insert creative projects
   - [x] insert music and art
   - [x] insert embedded projects 
 - [ ] Make fill out form work
 - [ ] Figure out how to deal with large files in the repo
-
+- [x] Add reseaech paper section
 
 ## How to setup this website locally
 
