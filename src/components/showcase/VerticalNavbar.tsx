@@ -1,12 +1,13 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from '../general';
-//import forHire from '../../assets/pictures/forHireGif.gif';
+import cdSpin from '../../assets/pictures/cdSpin.gif';
 import { useLocation, useNavigate } from 'react-router';
 
 export interface VerticalNavbarProps {}
 
 const VerticalNavbar: React.FC<VerticalNavbarProps> = (props) => {
     const location = useLocation();
+    const [experienceExpanded, setExperienceExpanded] = useState(false);
     const [projectsExpanded, setProjectsExpanded] = useState(false);
     const [isHome, setIsHome] = useState(false);
 
@@ -20,6 +21,11 @@ const VerticalNavbar: React.FC<VerticalNavbarProps> = (props) => {
             setProjectsExpanded(true);
         } else {
             setProjectsExpanded(false);
+        }
+        if (location.pathname.includes('/experience')) {
+            setExperienceExpanded(true);
+        } else {
+            setExperienceExpanded(false);
         }
         if (location.pathname === '/') {
             setIsHome(true);
@@ -41,10 +47,28 @@ const VerticalNavbar: React.FC<VerticalNavbarProps> = (props) => {
                 <Link containerStyle={styles.link} to="" text="HOME" />
                 <Link containerStyle={styles.link} to="about" text="ABOUT ME" />
                 <Link
-                    containerStyle={styles.link}
+                     containerStyle={Object.assign(
+                        {},
+                        styles.link,
+                        experienceExpanded && styles.expandedLink
+                    )}
                     to="experience"
                     text="EXPERIENCE"
                 />
+                {
+                    // if current path contains projects
+                    experienceExpanded && (
+                        <div style={styles.insetLinks}>
+                            <Link
+                                containerStyle={styles.insetLink}
+                                to="experience/papers"
+                                text="Research Papers"
+                            />
+                        </div>
+                    )
+                }
+
+
                 <Link
                     containerStyle={Object.assign(
                         {},
@@ -84,7 +108,7 @@ const VerticalNavbar: React.FC<VerticalNavbarProps> = (props) => {
             </div>
             <div style={styles.spacer} />
             <div style={styles.forHireContainer} onMouseDown={goToContact}>
-                {/* <img src={forHire} style={styles.image} alt="" /> */}
+                {/* <img src={cdSpin} style={styles.image} alt="" /> */}
             </div>
         </div>
     ) : (
