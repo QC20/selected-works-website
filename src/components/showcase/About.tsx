@@ -21,7 +21,8 @@ const About: React.FC<AboutProps> = (props) => {
             <br />
             <div className="text-block">
                 <p>
-                Passonate about coding and programming, I excel in a number of different disciplines related to Computer Sciencce. (ADD TEXT)
+                Driven by a passion for programming and innovative technologies, I thrive across various domains within Computer Science, always keeping the user's needs and 
+                desires at the forefront of my work. {' '}
                 </p>
                 <br />
                 <p>
@@ -29,7 +30,10 @@ const About: React.FC<AboutProps> = (props) => {
                     <Link to="/contact">this form</Link>, or send me an email at {' '}
                     <a href="mailto:jkj@di.ku.dk">
                         jkj@di.ku.dk
-                    </a>
+                    </a>. Feel free to also connect with me on {' '}
+                    <a href="https://www.linkedin.com/in/jonas-kjeldmand/">
+                        Linkedin
+                    </a>.
                 </p>
             </div>
             <ResumeDownload />
@@ -38,7 +42,9 @@ const About: React.FC<AboutProps> = (props) => {
                 <br />
                 <p>
                 In this section, allow me to share a glimpse of who I am. 
-                From my passions to my journey, I aim to provide you with a deeper understanding of the person behind the screen.
+                From my passions to my journey, I aim to provide you with a deeper understanding of the person behind the screen. My methodological grip has been honed by diverse 
+                experiences, from collaborative projects in academia to hands-on industry roles. Each encounter has contributed to my comprehensive understanding of programming and 
+                creative technologies, fostering a versatile skill set that enables me to navigate various domains within Computer Science with ease. {' '}
                 </p>
                 <br />
                 <div className="captioned-image">
