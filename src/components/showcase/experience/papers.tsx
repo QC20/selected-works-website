@@ -4,6 +4,9 @@ import React from 'react';
 import ResumeDownload from '../ResumeDownload';
 import Window from '../../os/Window';
 import DosPlayer from '../../dos/DosPlayer';
+import audioIcons from '../../../assets/pictures/audioIconsLoop.png';
+import voiceinteractionTask from '../../../assets/pictures/VoiceInteractionTask.png';
+import transfer from '../../../assets/pictures/transfer.png';
 
 interface paperProps {}
 
@@ -20,7 +23,7 @@ const PapersProjects: React.FC<paperProps> = (props) => {
                     <p>
                         Welcome to my academic journey, where my passion for unraveling the complexities of human-computer interaction (HCI) shines through in every published paper. Delve into a{' '}
                         <a rel="noreferrer" target="_blank" href="https://scholar.google.com/citations?user=DKHqqFMAAAAJ">collection of scholarly works</a>
-                        {' '}showcased on this page, each meticulously crafted and rigorously reviewed.
+                        {' '}showcased on this page, each meticulously crafted and rigorously reviewed. {' '}
                     </p>
                     <br />
                     <p>
@@ -29,9 +32,9 @@ const PapersProjects: React.FC<paperProps> = (props) => {
                     <p>
                         Each paper represents a significant endeavor in advancing knowledge within various domains, including HCI, cognitive science, and computer science. Dive into these academic publications to explore recent research contributions and insights into topics ranging from user experience design and computational complexity to novel interface design, showcasing recent research contributions that are the culmination of dedication, collaboration, and innovative thinking.
                     </p>
-                    <br />
+                    <br /><br></br>
                     <ResumeDownload />
-                    <br />
+                    <br /><br></br>
                     <div style={styles.headerRow}>
                         <h3>Exploring Audio Icons for Content-Based Navigation in Voice User Interfaces</h3> 
                     </div>
@@ -52,11 +55,46 @@ const PapersProjects: React.FC<paperProps> = (props) => {
             </div>
             <div className="text-block">
                 <ul>
+                <div className="captioned-image">
+                    <img src={audioIcons} style={{ width: '80%'}} alt="" />
+                    <p style={styles.caption}>
+                        <sub>
+                            <b>
+                                Image 1:{' '}
+                            </b> 
+                            Illustration showing the play sequence of the audio icons and how they loop back to the beginning. 
+                            The icons are used to highlight upcoming events in the video or important user action points. In total, the how-to video 
+                            contains 19 audio icons. The sequence is as follows: (1) dog bark, (2) car horn, (3) doorbell, (4) duck quack, (5) sheep bleat.
+                        </sub>
+                    </p>
+                </div>
                         <p><b>Abstract</b></p>
                         <p>
-                            Voice interaction is an increasingly popular technology, allowing users to control devices and applications without the need for physical interaction or ocular attention. Augmented voice playback control features, such as audio icons, have the potential to significantly improve voice navigation for instructional videos. This study evaluates audio icons for improving how-to video navigation in a Wizard-of-Oz-controlled setup with 24 participants assembling a wooden robot using a voice-controlled laptop. Results showed that audio icons helped participants complete the task faster, with fewer voice commands, and higher satisfaction. However, some usability challenges were observed. Significant differences in perceived usability were found between audio icons placed with visual points-of-action and the baseline, but not between the baseline and audio icons at 30-second intervals. These findings provide valuable insights for VUI system researchers and designers to advance the use of audio icons for improving voice interface navigation.
+                            Voice interaction is an increasingly popular technology, allowing users to control devices and applications without the need 
+                            for physical interaction or ocular attention. Augmented voice playback control features, such as audio icons, have the 
+                            potential to significantly improve voice navigation for instructional videos. This study evaluates audio icons for improving 
+                            how-to video navigation in a Wizard-of-Oz-controlled setup with 24 participants assembling a wooden robot using a 
+                            voice-controlled laptop. Results showed that audio icons helped participants complete the task faster, with fewer voice 
+                            commands, and higher satisfaction. However, some usability challenges were observed. Significant differences in perceived 
+                            usability were found between audio icons placed with visual points-of-action and the baseline, but not between the baseline 
+                            and audio icons at 30-second intervals. These findings provide valuable insights for VUI system researchers and designers to 
+                            advance the use of audio icons for improving voice interface navigation. {' '}
                         </p>
                 </ul>
+                <br></br>
+                <div className="captioned-image">
+                    <img src={voiceinteractionTask} style={{ width: '80%'}} alt="" />
+                    <p style={styles.caption}>
+                        <sub>
+                            <b>
+                                Image 2: {' '}
+                            </b> 
+                            The experiment has three stages: briefing, voice interaction task, and post-experiment interview. Participants were 
+                            given a tutorial at the briefing (plus an additional priming session for conditions 2 \& 3). The voice interaction task 
+                            included watching the how-to video and post-task questionnaires. The post-experiment interview concluded the study. {' '}
+                        </sub>
+                    </p>
+                </div>
             </div>
             <div style={styles.headerRow}>
                 <h3>Barriers to End-User Designers of Augmented Fabrication</h3>
@@ -64,6 +102,7 @@ const PapersProjects: React.FC<paperProps> = (props) => {
             <div>
                 <h4>Chandan Mahapatra, <u>Jonas Kjeldmand Jensen</u>, Michael McQuaid, Daniel Ashbrook</h4>
             </div>
+            
             <div>
                 <h5>Published in ACM CHI'19. 
                     <a 
@@ -74,6 +113,20 @@ const PapersProjects: React.FC<paperProps> = (props) => {
                             </a>.
                             </h5>
             </div>
+            <br /><br></br>
+            
+            <div className="captioned-image">
+                    <img src={transfer} style={{ width: '60%'}} alt="" />
+                    <p style={styles.caption}>
+                        <sub>
+                            <b>
+                                Image 3: {' '}
+                            </b> 
+                            Design flow for augmented fabrication. {' '}
+                        </sub>
+                    </p>
+                </div>
+            
             <div className="text-block">
                 <ul>
 
@@ -85,6 +138,7 @@ const PapersProjects: React.FC<paperProps> = (props) => {
 
                 </ul>
             </div>
+            <br /><br></br>
             <div style={styles.headerRow}>
                 <h3>Into Scandinavia: When Online Fatherhood Reflects Societal Infrastructures</h3>
             </div>

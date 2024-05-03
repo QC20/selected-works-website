@@ -9,6 +9,7 @@ import computerPassion from './../../assets/pictures/computerPassion.gif'
 import Cherry from './../../assets/pictures/Cherry.gif'
 import ComputerIcons from './../../assets/pictures/ComputerIcons.gif'
 
+
 export interface AboutProps {}
 
 const About: React.FC<AboutProps> = (props) => {
