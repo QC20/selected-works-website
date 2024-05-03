@@ -25,8 +25,16 @@ const PapersProjects: React.FC<paperPropss> = (props) => {
                     <br></br>
                         <p>
                         Welcome to my academic journey, where my passion for unraveling the complexities of human-computer interaction (HCI) shines 
-                        through in every published paper. Delve into a collection of scholarly works showcased on this page, each meticulously crafted 
-                        and rigorously reviewed. {' '}
+                        through in every published paper. Delve into a {' '}
+                        <a
+                        rel="noreferrer"
+                        target="_blank"
+                        href="https://scholar.google.com/citations?user=DKHqqFMAAAAJ"
+                        >
+                        collection of scholarly works
+                        </a>
+                        {' '}showcased on this page, each meticulously crafted 
+                        and rigorously reviewed.  {' '}
                         </p>
                       <br></br>
                         <p>
