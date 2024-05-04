@@ -87,21 +87,22 @@ const About: React.FC<AboutProps> = (props) => {
                         The ability to make screens interactive and visually engaging fascinated me, setting the stage for my passion for technology. {' '}
 
                         Upon carrying out my Bachelors in {' '}
-                            <Link to='https://studier.ku.dk/kandidat/kommunikation-og-it/'>Communication & IT</Link>
+                            <Link to='https://studier.ku.dk/kandidat/kommunikation-og-it/' target='_blank'>Communication & IT</Link>
                         , I was first time radicalized into the banner of Human-Computer Interaction and introduction to {' '}
-                            <Link to='https://di.ku.dk/english/research/groups/cscw/'>CSCW</Link> {' '}
+                            <Link to='https://di.ku.dk/english/research/groups/cscw/' target='_blank'>CSCW</Link> {' '}
                         through the supervision and co-authoring with {' '}
-                            <Link to='https://di.ku.dk/english/news/2024/professor-pernille-bjoern-recognized-as-distinguished-member-of-acm/'>Pernille Bjørn</Link> {' '}
+                            <Link to='https://di.ku.dk/english/news/2024/professor-pernille-bjoern-recognized-as-distinguished-member-of-acm/' target='_blank'>Pernille Bjørn</Link> {' '}
                         and my tenure at the . 
-                            <Link to='https://di.ku.dk/english/research/human-centred-computing/'>Human-Centred Computing section</Link> {' '}
-                        at DIKU. During this initial engagement with academia I was a part of  <Link to='https://www.femtech.dk/'>Femtech</Link>,
+                            <Link to='https://di.ku.dk/english/research/human-centred-computing/' target='_blank'>Human-Centred Computing section</Link> {' '}
+                        at DIKU. During this initial engagement with academia I was a part of  
+                            <Link to='https://www.femtech.dk/' target='_blank'>Femtech</Link>,
                         which is a pioneering initiative focused on fostering diversity and inclusion in technology.
                         From here I was introduced to HCI and interaction design, discovering the intricate balance between technology and human needs. 
                         Exploring topics such as user experience, usability, and interface design, I became passionate about creating technology that enhances 
                         human capabilities and enriches lives.
 
                         To further hone my technical skills and feed my interests, I pursued a M.Sc. in {' '}
-                            <Link to='https://studies.ku.dk/masters/it-and-cognition/profile-and-career/'>IT & Cognition</Link> {' '}
+                            <Link to='https://studies.ku.dk/masters/it-and-cognition/profile-and-career/' target='_blank'>IT & Cognition</Link> {' '}
                         to empower me to develop advanced cognitive tehcbologies, enabling me to gain deep knowledge of language, vision, and cognition, to design innovative information and 
                         communication technology (ICT) that mimics human cognitive processes and addresses complex cognitive phenomena such as memory, attention, and language.
 
@@ -137,7 +138,8 @@ const About: React.FC<AboutProps> = (props) => {
                     </a>.
                     Should you spot potential for collaboration or need assistance with your project, feel free to continue the conversation on 
                         <Link 
-                            to="https://www.linkedin.com/in/jonas-kjeldmand/">
+                            to="https://www.linkedin.com/in/jonas-kjeldmand/"
+                            target='_blank'>
                                 Linkedin
                         </Link>
                         .{' '}
