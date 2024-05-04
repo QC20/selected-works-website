@@ -39,10 +39,10 @@ const PapersProjects: React.FC<paperProps> = (props) => {
                         <h3>Exploring Audio Icons for Content-Based Navigation in Voice User Interfaces</h3> 
                     </div>
                     <div>
-                        <h4><u>Jonas Kjeldmand Jensen</u>, Daniel Ashbrook</h4>
+                        <h4><u>Jonas Kjeldmand Jensen</u>, and Daniel Ashbrook</h4>
                     </div>
                     <div>
-                        <h5>Published in ACM CUI'23. 
+                        <h5>Proceedings of the 5th International Conference on Conversational User Interfaces (2023). 
                             <a 
                                 rel="noreferrer" 
                                 target="_blank" 
@@ -80,7 +80,17 @@ const PapersProjects: React.FC<paperProps> = (props) => {
                             and audio icons at 30-second intervals. These findings provide valuable insights for VUI system researchers and designers to 
                             advance the use of audio icons for improving voice interface navigation. {' '}
                         </p>
+                       
                 </ul>
+                <p>
+                    <i>
+                        <b>
+                            Keywords: {' '}
+                        </b>
+                        Conversational interaction, Voice user interfaces How-to videos, Non-linear instructional video voice-based navigation, 
+                        Video navigation, Wizard-of-Oz
+                    </i>
+                </p>
                 <br></br>
                 <div className="captioned-image">
                     <img src={voiceinteractionTask} style={{ width: '80%'}} alt="" />
@@ -90,8 +100,8 @@ const PapersProjects: React.FC<paperProps> = (props) => {
                                 Image 2: {' '}
                             </b> 
                             The experiment has three stages: briefing, voice interaction task, and post-experiment interview. Participants were 
-                            given a tutorial at the briefing (plus an additional priming session for conditions 2 \& 3). The voice interaction task 
-                            included watching the how-to video and post-task questionnaires. The post-experiment interview concluded the study. {' '}
+                            given a tutorial at the briefing. The voice interaction task included watching the how-to video and post-task questionnaires. 
+                            The post-experiment interview concluded the study. {' '}
                         </sub>
                     </p>
                 </div>
@@ -100,11 +110,11 @@ const PapersProjects: React.FC<paperProps> = (props) => {
                 <h3>Barriers to End-User Designers of Augmented Fabrication</h3>
             </div>
             <div>
-                <h4>Chandan Mahapatra, <u>Jonas Kjeldmand Jensen</u>, Michael McQuaid, Daniel Ashbrook</h4>
+                <h4>Chandan Mahapatra, <u>Jonas Kjeldmand Jensen</u>, Michael McQuaid, and Daniel Ashbrook</h4>
             </div>
             
             <div>
-                <h5>Published in ACM CHI'19. 
+                <h5>Proceedings of the 2019 CHI Conference on Human Factors in Computing Systems. 
                     <a 
                         rel="noreferrer" 
                         target="_blank" 
@@ -137,16 +147,24 @@ const PapersProjects: React.FC<paperProps> = (props) => {
                         </p>
 
                 </ul>
+                <p>
+                    <i>
+                        <b>
+                            Keywords: {' '}
+                        </b>
+                        Augmented fabrication, 3D printing, 3D design, Usability design, Empirical studies in HCI
+                    </i>
+                </p>
             </div>
             <br /><br></br>
             <div style={styles.headerRow}>
                 <h3>Into Scandinavia: When Online Fatherhood Reflects Societal Infrastructures</h3>
             </div>
             <div>
-                <h4><u>Jonas Kjeldmand Jensen</u>, Tawfiq Ammari, Pernille Bjørn</h4>
+                <h4><u>Jonas Kjeldmand Jensen</u>, Tawfiq Ammari, and Pernille Bjørn</h4>
             </div>
             <div>
-                <h5>Published in ACM GROUP'18. 
+                <h5>Proceedings of the ACM on human-computer interaction 3 (GROUP) (2018). 
                     <a 
                         rel="noreferrer" 
                         target="_blank" 
@@ -164,6 +182,14 @@ const PapersProjects: React.FC<paperProps> = (props) => {
                         </p>
  
                 </ul>
+                <p>
+                    <i>
+                        <b>
+                            Keywords: {' '}
+                        </b>
+                        Human-centered computing, CSCW, Collaborative and social computing, Information interfaces and presentation (e.g., HCI), Fathers, Social media, Internet, parents, text tagging
+                    </i>
+                </p>
             </div>
         </div>
     );

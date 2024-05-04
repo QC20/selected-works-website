@@ -58,17 +58,14 @@ const About: React.FC<AboutProps> = (props) => {
                 </div>
 
                 <p>
-                    here I can write some stuff {' '}
-                    <a
-                        rel="noreferrer"
-                        target="_blank"
-                        href="https://www.linkedin.com/in/jonas-kjeldmand/"
-                    >
-                        connect on linkedin. {' '}
-                    </a>
-                   I can continue here {' '}
-                    <Link to="/projects/software">Projets IT</Link>.
-                </p>
+                        Outside of the software domain, I have many projects and hobbies that I enjoy practicing in my spare time. Among the more tangible things I do, I tinker with {' '}
+                            <Link to="/projects/art">physical computing</Link>{' '}
+                            as well as {' '}
+                            <Link to="/projects/art">software programming</Link> {' '} and {' '}
+                            <Link to="/projects/music">music & art</Link>.
+. 
+                        You can learn more about each on their respective pages under the '<Link to="/projects">Projects</Link>' tab on my website. Other hobbies I enjoy also enjoy is reading, hiking, and playing squash.
+                        </p>
                 <br />
             
                 <br />
@@ -83,14 +80,7 @@ const About: React.FC<AboutProps> = (props) => {
                     >
                         <h3><img src={ComputerIcons} width="9%" ></img>{' '}My passions</h3>
                         <br />
-                        <p>
-                        Outside of the software domain, I have many hobbies that I enjoy practicing in my free time. Among the more tangible hobbies, I have a passion for {' '}
-                            <Link to="/projects/art">embedded computing</Link>{' '}
-                            as well as {' '}
-                            <Link to="/projects/music">music & DJ'ing</Link> and {' '}
-                            <Link to="/projects/art">art & design</Link> (obviously). 
-                        You can learn more about each of them on their respective pages under the 'Projects and Hobbies' tab on my website. Other hobbies I enjoy also enjoy is hiking and playing squash.
-                        </p>
+
                         <br />
                         <p>
                         My journey into the realm of information technology started early. I remember spending countless hours on social sites, enhancing my bio with HTML coding. 
@@ -104,7 +94,9 @@ const About: React.FC<AboutProps> = (props) => {
                             <Link to='https://di.ku.dk/english/news/2024/professor-pernille-bjoern-recognized-as-distinguished-member-of-acm/'>Pernille Bjørn</Link> {' '}
                         and my tenure at the . 
                             <Link to='https://di.ku.dk/english/research/human-centred-computing/'>Human-Centred Computing section</Link> {' '}
-                        at DIKU. From here I was introduced to HCI and interaction design, discovering the intricate balance between technology and human needs. 
+                        at DIKU. During this initial engagement with academia I was a part of  <Link to='https://www.femtech.dk/'>Femtech</Link>,
+                        which is a pioneering initiative focused on fostering diversity and inclusion in technology.
+                        From here I was introduced to HCI and interaction design, discovering the intricate balance between technology and human needs. 
                         Exploring topics such as user experience, usability, and interface design, I became passionate about creating technology that enhances 
                         human capabilities and enriches lives.
 
@@ -143,6 +135,12 @@ const About: React.FC<AboutProps> = (props) => {
                     <a href="mailto:jkj@di.ku.dk">
                         jkj@di.ku.dk
                     </a>.
+                    Should you spot potential for collaboration or need assistance with your project, feel free to continue the conversation on 
+                        <Link 
+                            to="https://www.linkedin.com/in/jonas-kjeldmand/">
+                                Linkedin
+                        </Link>
+                        .{' '}
                 </p>
             </div>
         </div>

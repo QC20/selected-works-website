@@ -87,7 +87,7 @@ const SoftwareProjects: React.FC<SoftwareProjectsProps> = (props) => {
                 </p>
                 <p>
                     Next step in the project is to change out the microphone to a {' '}
-                        <Link to='https://files.seeedstudio.com/wiki/ReSpeaker_6-Mics_Circular_Array_kit_for_Raspberry_Pi/img/6-mic.jpg'>6-Way Circular hat</Link> {' '}
+                        <Link to='https://files.seeedstudio.com/wiki/ReSpeaker_6-Mics_Circular_Array_kit_for_Raspberry_Pi/img/6-mic.jpg' target='_blank'>6-Way Circular hat</Link> {' '}
                     to be able to pick up voice prompts even better. {' '}
                 </p>
                 <br />
