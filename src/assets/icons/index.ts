@@ -19,7 +19,6 @@ import windowsStartIcon from './windowsStartIcon.png';
 import scrabbleIcon from './scrabbleIcon.png';
 import close from './close.png';
 import internetExplorerIcon from './internetExplorerIcon.png'
-import floatingSphere from '../../components/applications/floatingSphere';
 
 const getIconByName = (
     iconName: IconName

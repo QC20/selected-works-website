@@ -3,10 +3,12 @@ import React, { useState } from 'react';
 import house from '../../../assets/audio/agressive_phonk.mp3';
 // @ts-ignore
 //import SoundCafeSessions from '../../../assets/audio/NChainzSoundCafeSession.mp3';
-import SoundCafeSessions from '../../../../src/assets/audio/TellThem.mp3';
+import SoundCafeSessions from '../../../../src/assets/audio/NChainzSoundCafeSession.mp3';
 // @ts-ignore
 //import QuantumSessions from '../../../assets/audio/NChainsQuantumSession.mp3';
-import QuantumSessions from '../../../../src/assets/audio/TellThem.mp3';
+import QuantumSessions from '../../../../src/assets/audio/NChainsQuantumSession.mp3';
+// @ts-ignore
+import ByensRadioMix from '../../../../src/assets/audio/ProaktiveSelektorByensRadioradiorip.mp3';
 // @ts-ignore
 import tellThem from '../../../../src/assets/audio/TellThem.mp3';
 // @ts-ignore
@@ -131,7 +133,7 @@ const MusicProjects: React.FC<MusicProjectsProps> = (props) => {
 
             <MusicPlayer
                 src={tellThem}
-                title="Tell Them - N-Chainz (formerly Proactive Selektor)"
+                title="Tell Them - N-Chainz (formerly Proaktive Selektor)"
                 subtitle="135 BPM Bass Music - An old track of mine from back in 2014"
                 currentSong={currentSong}
                 setCurrentSong={setCurrentSong}
@@ -145,7 +147,7 @@ const MusicProjects: React.FC<MusicProjectsProps> = (props) => {
             <br />
             <p>
             Besides spinning tunes and creating beats, I still make appearances on stage from time to time, 
-            although not as frequently as previously. But don't worry, I've prepared something special just for you. {' '}
+            although not as frequently as previously. Not to worry though, I've prepared a small selection of live mixes for your pleasure. {' '}
             </p>
             <p>
             </p>
@@ -162,6 +164,14 @@ const MusicProjects: React.FC<MusicProjectsProps> = (props) => {
                 src={SoundCafeSessions}
                 title="N-Chainz Live Vinyl DJ Set @ Soundtrack Cafe"
                 subtitle="Recorded Live 24.11.2023 - [140 Bass Music]"
+                currentSong={currentSong}
+                setCurrentSong={setCurrentSong}
+            />
+            <br />
+            <MusicPlayer
+                src={ByensRadioMix}
+                title="Byens Radio Pirate Radio Rip - Proaktiv Selektor (ca. 2013)"
+                subtitle="From back when pirate radio was still on the FM band - [140 Bass Music]"
                 currentSong={currentSong}
                 setCurrentSong={setCurrentSong}
             />
@@ -183,6 +193,7 @@ const MusicProjects: React.FC<MusicProjectsProps> = (props) => {
                     </sub>
                 </p>
             </div>
+            
             <p>
                 If you've found this section interesting and would like to learn more, collaborate, or simply chat about records, 
                 feel free to reach out. {' '}

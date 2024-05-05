@@ -132,11 +132,11 @@ const About: React.FC<AboutProps> = (props) => {
                 <br />
                 <p>
                     If you have any questions, I would love to hear them. You can ask them{' '}
-                    <Link to="/contact">here</Link>, or send me an email at{' '}
+                    <Link to="/contact">here</Link>, or send me an email at {' '}
                     <a href="mailto:jkj@di.ku.dk">
                         jkj@di.ku.dk
                     </a>.
-                    Should you spot potential for collaboration or need assistance with your project, feel free to continue the conversation on 
+                    Should you spot potential for collaboration or need assistance with your project, feel free to continue the conversation on {' '}
                         <Link 
                             to="https://www.linkedin.com/in/jonas-kjeldmand/"
                             target='_blank'>
