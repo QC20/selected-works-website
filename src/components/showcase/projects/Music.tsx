@@ -98,7 +98,7 @@ const MusicProjects: React.FC<MusicProjectsProps> = (props) => {
                     </div>{/* Adjusted width */}
                     <p>
                         <sub>
-                            <b>Image 2:</b> Me turning knobs at Bolsjefabrikken, Copenhagen. {' '}          
+                            <b>Image 1:</b> Me turning knobs at Bolsjefabrikken, Copenhagen. {' '}          
                         </sub>
                     </p>
                 </div>
@@ -181,7 +181,7 @@ const MusicProjects: React.FC<MusicProjectsProps> = (props) => {
                 <p style={styles.caption}>
                     <sub>
                         <b>
-                            Image 1: {' '}
+                            Image 2: {' '}
                         </b> 
                         Me spinning records at Soundtrack Cafe. Watch the entire recording {' '}
                             <a
@@ -262,20 +262,11 @@ const MusicProjects: React.FC<MusicProjectsProps> = (props) => {
         <p>
             Immerse yourself in the captivating gameplay and experience the magic of cellular automata, revealing emergent patterns that mesmerize and inspire. Engage with dynamic landscapes and explore infinite possibilities, all powered by p5.js for a truly immersive visual experience. {' '}
         </p>
-                <br />
-                <div className="captioned-image" style={{ width: '80%' }}>
+                <div className="captioned-image" style={{ width: '80%', marginTop: '-0px' }}>
                     <VideoAsset src={lifeJourney}  /> 
-                    
                     <p>
                         <sub>
-                            <b>Image 1:</b> Image of {' '} 
-                                <a
-                                    href='https://github.com/QC20/VoiceWhiz'
-                                    target='_blank'
-                                    rel='noopener noreferrer'>
-                                    VoiceWhiz'
-                                </a>    
-                                    {' '}sleek design in its round 3D printed case.
+                            <b>Image 3:</b> live demo of the visualization dynamically changing colors, smoothly navigating obstacles, and naturally regenerating. {' '} 
                         </sub>
                     </p>
                 </div>

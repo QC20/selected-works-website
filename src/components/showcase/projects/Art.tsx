@@ -313,10 +313,18 @@ const ArtProjects: React.FC<ArtProjectsProps> = (props) => {
                 <h2> Light Sensitive Interactive Particle Simulator </h2>
 <br />
 <p>
-    Explore the mesmerizing world of particle simulation with this interactive program built using Processing. Watch as particles dance 
-    across the screen, their movements dictated by both your mouse's position and real-world sensor data from an Arduino board. 
-    In this demonstration, an LDR sensor takes center stage, but the possibilities are endless – you can seamlessly integrate various 
-    sensor inputs and tweak the code to suit your creative vision. 
+    Explore the mesmerizing world of particle simulation with this interactive application built using the {' '} 
+        <Link 
+            to='https://processing.org/' 
+            target='_blank'>Processing framework</Link>
+            , mouse-input, and a {' '} 
+            <Link 
+            to='https://diyodemag.com/education/classroom_how_light_dependent_resistors_ldr_work_with_arduino_raspberry_pi' 
+            target='_blank'>light dependent resistor</Link>
+            {' '} (LDR). Watch as particles dance 
+            across the screen, their movements dictated by both your mouse's position and real-world sensor data from an Arduino board. 
+            In this demonstration, an LDR sensor takes center stage, but the possibilities are endless – you can seamlessly integrate various 
+            sensor inputs and tweak the code to suit your creative vision. 
 </p>
                 <br />
                 <div className="captioned-image">
@@ -324,21 +332,23 @@ const ArtProjects: React.FC<ArtProjectsProps> = (props) => {
                     
                     <p>
                         <sub>
-                            <b>Image 1:</b> Image of {' '} 
+                            <b>Image 10:</b> Live demo of the  {' '} 
                                 <a
-                                    href='https://github.com/QC20/VoiceWhiz'
+                                    href='https://github.com/QC20/Screensaver-LDR'
                                     target='_blank'
                                     rel='noopener noreferrer'>
-                                    VoiceWhiz'
+                                    LDR interactive screensaver
                                 </a>    
-                                    {' '}sleek design in its round 3D printed case.
+                                    {' '}reacting to the mouse placement and the sorrounding light.
                         </sub>
                     </p>
                 </div>
                 <p>
-                    Discover the dynamic fusion of Processing and Arduino at play in this project. Delve into how Processing orchestrates the captivating visual 
-                    simulation while Arduino seamlessly integrates real-world interaction through sensors like the LDR sensor showcased here. Experience firsthand 
-                    the synergy between software and hardware as this project pushes the boundaries of creative exploration.{' '}
+                In this project, deliberate user input, like mouse interactions, merges with the dynamic influence of ambient light. It's about blending 
+                control with environmental responsiveness, creating an interactive experience that blurs the line between user agency and natural influence. 
+                While we start with mouse and light, the project encourages exploration:  reacting to gyroscopic changes, responding to variations in sound 
+                intensity, or dynamically adapting to specific spoken words. These uncontrolled elements hold the potential to transform the user's journey, 
+                opening doors to new realms of exploration and creativity.{' '}
                 </p>
                 </div>
                 <LineSplit />
