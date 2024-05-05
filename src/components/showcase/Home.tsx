@@ -8,7 +8,7 @@ const Home: React.FC<HomeProps> = (props) => {
     const navigate = useNavigate();
 
     const goToContact = () => {
-        navigate('/contact');
+        navigate('/about');
     };
 
     return (

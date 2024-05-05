@@ -1,6 +1,4 @@
 import React from 'react';
-import printer from '../../assets/resume/printer.gif';
-import Resume from '../../assets/resume/CV_Jonas_Kjeldmand_Jensen.pdf';
 
 export interface ResumeDownloadProps {
     altText?: string;
@@ -9,8 +7,7 @@ export interface ResumeDownloadProps {
 const ResumeDownload: React.FC<ResumeDownloadProps> = ({ altText }) => {
     return (
 
-        <div style={styles.resumeContainer}>
-            
+        <div style={styles.resumeContainer}>   
         </div>
     );
 };
