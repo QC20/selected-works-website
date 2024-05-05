@@ -97,7 +97,7 @@ const ArtProjects: React.FC<ArtProjectsProps> = (props) => {
         </div>{/* Adjusted width */}
         <p>
             <sub>
-                <b>Image 2:</b> RGB light circling through its colors. Find other code examples {' '}
+                <b>Image 1:</b> RGB light circling through its colors. Find other code examples {' '}
                 <a
                     href='https://github.com/QC20/DIY-Arduino-Controller/tree/main/Code%20Examples'
                     target='_blank'
@@ -157,14 +157,14 @@ const ArtProjects: React.FC<ArtProjectsProps> = (props) => {
                     <img src={prototype} style={{ width: '100%' }}alt="" />
                     <p>
                         <sub>
-                            <b>Image 2:</b> Top view of the DIY setup. 
+                            <b>Image 3:</b> Top view of the DIY setup. {' '}
                                 <a 
                                     href={"https://github.com/QC20/DIY-Arduino-Controller/blob/main/Upload/img/DIY_arduino_wiring_with_legend.png"} 
                                     target="_blank" 
                                     rel="noopener noreferrer">
                                         Click here
                                         </a> 
-                                        to see schematic.
+                                        {' '}to see schematic.
                         </sub>
                     </p>
                 </div>
@@ -178,13 +178,7 @@ const ArtProjects: React.FC<ArtProjectsProps> = (props) => {
            <p>
                      
             <sub>
-                <b>Image 2:</b> Me turning knobs at Bolsjefabrikken, Copenhagen. {' '}
-                <a
-                    href='https://github.com/QC20/DIY-Arduino-Controller/tree/main/Code%20Examples'
-                    target='_blank'
-                    rel='noopener noreferrer'>
-                        here.
-                    </a>               
+                <b>Image 4:</b> Dev board showing the movement in the maze in real-time. {' '}            
             </sub>
         </p>
     </div>
@@ -218,7 +212,7 @@ const ArtProjects: React.FC<ArtProjectsProps> = (props) => {
                     <p>
                         <sub>
                         
-                    <b>Image 1:</b> Go ahead and check out a  {' '}
+                    <b>Image 5:</b> Go ahead and check out a  {' '}
                     <a 
                         href={"https://wokwi.com/projects/380777984099163137"} 
                         target="_blank" 
@@ -271,7 +265,7 @@ const ArtProjects: React.FC<ArtProjectsProps> = (props) => {
             <img src={prototype1} style={{ width: '100%' }} alt="" />
             <p>
                 <sub>
-                    <b>Image 1:</b> Fully enclosed Hapnav controller.  {' '}
+                    <b>Image 6:</b> Fully enclosed Hapnav controller.  {' '}
                 </sub>
             </p>
         </div>
@@ -283,7 +277,7 @@ const ArtProjects: React.FC<ArtProjectsProps> = (props) => {
         <img src={prototype2} style={{ width: '100%' }} alt="" />
             <p>
                 <sub>
-                    <b>Image 2:</b> Insides views of Hapnav controller.  {' '}
+                    <b>Image 7:</b> Insides views of Hapnav controller.  {' '}
                 </sub>
             </p>
         </div>
@@ -295,7 +289,7 @@ const ArtProjects: React.FC<ArtProjectsProps> = (props) => {
             <img src={prototype3} style={{ width: '100%' }} alt="" />
             <p>
                 <sub>
-                    <b>Image 3:</b> This is the minimal component version. {' '} 
+                    <b>Image 8:</b> This is the minimal component version. {' '} 
                 </sub>
             </p>
         </div>
@@ -332,7 +326,7 @@ const ArtProjects: React.FC<ArtProjectsProps> = (props) => {
                     
                     <p>
                         <sub>
-                            <b>Image 10:</b> Live demo of the  {' '} 
+                            <b>Image 9:</b> Live demo of the  {' '} 
                                 <a
                                     href='https://github.com/QC20/Screensaver-LDR'
                                     target='_blank'
