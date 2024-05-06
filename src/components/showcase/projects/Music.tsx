@@ -14,6 +14,8 @@ import tellThem from '../../../../src/assets/audio/TellThem.mp3';
 // @ts-ignore
 import meDJing from '../../../assets/pictures/projects/art/MePlaying.mp4';
 // @ts-ignore
+import MinenParty from '../../../../src/assets/pictures/2014-11-09-01-37.mp4';
+// @ts-ignore
 import asciiMe from '../../../assets/audio/1-5mb.mp4';
 
 import meDJing2 from '../../../../src/assets/pictures/meDJing2.jpg';
@@ -131,6 +133,7 @@ const MusicProjects: React.FC<MusicProjectsProps> = (props) => {
             </p>
             <br />
 
+
             <MusicPlayer
                 src={tellThem}
                 title="Tell Them - N-Chainz (formerly Proaktive Selektor)"
@@ -140,7 +143,6 @@ const MusicProjects: React.FC<MusicProjectsProps> = (props) => {
             />
 
             <br />
-            <br />
             
             <br />
             <h2>Recorded Mixes {' '} <img src={cdSpin} width="4%" ></img></h2>
@@ -148,8 +150,6 @@ const MusicProjects: React.FC<MusicProjectsProps> = (props) => {
             <p>
             Besides spinning tunes and creating beats, I still make appearances on stage from time to time, 
             although not as frequently as previously. Not to worry though, I've prepared a small selection of live mixes for your pleasure. {' '}
-            </p>
-            <p>
             </p>
             <br />
             <MusicPlayer
@@ -202,7 +202,7 @@ const MusicProjects: React.FC<MusicProjectsProps> = (props) => {
             <br />
             <LineSplit />
             <br />
-    
+            <br />
             <h2 style={{ display: 'flex', alignItems: 'center', justifyContent: 'right' }}>
                 Interactive ASCII Visionarium
             </h2>
@@ -253,7 +253,7 @@ const MusicProjects: React.FC<MusicProjectsProps> = (props) => {
 
 
 <div className="text-block">
-                <br />
+                
                 <h2>Life's a Journey - Interactive Visualization </h2>
                 <br />
                 <p> 
@@ -308,7 +308,51 @@ const MusicProjects: React.FC<MusicProjectsProps> = (props) => {
             </div>
 
             <LineSplit />
+            <br />
+            <br />
+            <h2 style={{ display: 'flex', alignItems: 'center', justifyContent: 'right' }}>
+                Interactive ASCII Visionarium
+            </h2>
 
+            <div style={{ display: 'flex', alignItems: 'center', flexDirection: 'row-reverse' }}>
+                <div style={{ flex: 1, marginLeft: 32 }}>
+                    <p> 
+                    AsciiVision is a captivating creative coding venture that blends interaction design with artistic flair. By tapping into your 
+                    device's webcam via the Camera API, AsciiVision seamlessly bridges the gap between the tangible and the digital realms. 
+                    Using JavaScript wizardry, it transforms each pixel's luminosity into a unique ASCII character, providing a dynamic interpretation 
+                    of the live video feed. This fusion of human-computer interactivity and creative coding delivers an immersive and exhilarating journey 
+                    for users. You can even invert the colors{' '}. 
+                    </p>
+                </div>
+
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginRight: '-82px' }}>
+                    <div style={{ textAlign: 'center', width: '85%', marginLeft: '-75px' }}>
+                        <VideoAsset src={asciiMe} /> 
+                    </div>
+                    
+                </div>
+                
+            </div>
+            <br />
+            <h3>Link to Project:</h3>
+            <ul>
+                <li>
+                    <p>
+                        <a 
+                            rel="noreferrer" 
+                            target="_blank"
+                            href="https://github.com/QC20/AsciiVision"
+                            >
+                            <p>
+                                <b>
+                                    Github repo
+                                </b>
+                                {' '} - go check out the code base to learn more! {' '}
+                            </p>
+                        </a>
+                    </p>
+                </li>
+            </ul>
         </div>
     );
 };
