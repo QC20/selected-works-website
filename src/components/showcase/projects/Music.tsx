@@ -309,50 +309,38 @@ const MusicProjects: React.FC<MusicProjectsProps> = (props) => {
 
             <LineSplit />
             <br />
+            <div className="text-block">
+                <br />
+                <h2> My oil Paintings </h2>
             <br />
-            <h2 style={{ display: 'flex', alignItems: 'center', justifyContent: 'right' }}>
-                Interactive ASCII Visionarium
-            </h2>
-
-            <div style={{ display: 'flex', alignItems: 'center', flexDirection: 'row-reverse' }}>
-                <div style={{ flex: 1, marginLeft: 32 }}>
-                    <p> 
-                    AsciiVision is a captivating creative coding venture that blends interaction design with artistic flair. By tapping into your 
-                    device's webcam via the Camera API, AsciiVision seamlessly bridges the gap between the tangible and the digital realms. 
-                    Using JavaScript wizardry, it transforms each pixel's luminosity into a unique ASCII character, providing a dynamic interpretation 
-                    of the live video feed. This fusion of human-computer interactivity and creative coding delivers an immersive and exhilarating journey 
-                    for users. You can even invert the colors{' '}. 
-                    </p>
-                </div>
-
-                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginRight: '-82px' }}>
-                    <div style={{ textAlign: 'center', width: '85%', marginLeft: '-75px' }}>
-                        <VideoAsset src={asciiMe} /> 
-                    </div>
+            <p>
+                 Lately, I have taken up real-world painting. I felt it was time to explore the tactile experience of oil painting. 
+                </p>
+                <br />
+                <div className="captioned-image">
+                <VideoAsset src={MinenParty} /> 
                     
-                </div>
-                
-            </div>
-            <br />
-            <h3>Link to Project:</h3>
-            <ul>
-                <li>
                     <p>
-                        <a 
-                            rel="noreferrer" 
-                            target="_blank"
-                            href="https://github.com/QC20/AsciiVision"
-                            >
-                            <p>
-                                <b>
-                                    Github repo
-                                </b>
-                                {' '} - go check out the code base to learn more! {' '}
-                            </p>
-                        </a>
+                        <sub>
+                            <b>Image 9:</b> Live demo of the  {' '} 
+                                <a
+                                    href='https://github.com/QC20/Screensaver-LDR'
+                                    target='_blank'
+                                    rel='noopener noreferrer'>
+                                    LDR interactive screensaver
+                                </a>    
+                                    {' '}reacting to the mouse placement and the sorrounding light.
+                        </sub>
                     </p>
-                </li>
-            </ul>
+                </div>
+                <p>
+                In this project, deliberate user input, like mouse interactions, merges with the dynamic influence of ambient light. It's about blending 
+                control with environmental responsiveness, creating an interactive experience that blurs the line between user agency and natural influence. 
+                While we start with mouse and light, the project encourages exploration:  reacting to gyroscopic changes, responding to variations in sound 
+                intensity, or dynamically adapting to specific spoken words. These uncontrolled elements hold the potential to transform the user's journey, 
+                opening doors to new realms of exploration and creativity.{' '}
+                </p>
+        </div>
         </div>
     );
 };
