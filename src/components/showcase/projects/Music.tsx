@@ -155,7 +155,7 @@ const MusicProjects: React.FC<MusicProjectsProps> = (props) => {
             <MusicPlayer
                 src={QuantumSessions}
                 title="N-Chainz Live DJ Set @ Quantum II"
-                subtitle="Recorded Live 25.02.2022 - [Dubstep | UK Garage | Footwork | Drum & Bass]"
+                subtitle="Recorded Live 25.02.2022 - [UK Garage | Techno | Juke/Footwork | Drum & Bass]"
                 currentSong={currentSong}
                 setCurrentSong={setCurrentSong}
             />
@@ -183,7 +183,7 @@ const MusicProjects: React.FC<MusicProjectsProps> = (props) => {
                         <b>
                             Image 2: {' '}
                         </b> 
-                        Me spinning records at Soundtrack Cafe. Watch the entire recording {' '}
+                        Me spinning records at Soundtrack Cafe (Balders Plads, Copenhagen). Watch the entire recording {' '}
                             <a
                                 href='https://www.youtube.com/watch?v=I8lCJ542q6s&t'
                                 target='_blank'
@@ -210,11 +210,17 @@ const MusicProjects: React.FC<MusicProjectsProps> = (props) => {
             <div style={{ display: 'flex', alignItems: 'center', flexDirection: 'row-reverse' }}>
                 <div style={{ flex: 1, marginLeft: 32 }}>
                     <p> 
-                    AsciiVision is a captivating creative coding venture that blends interaction design with artistic flair. By tapping into your 
-                    device's webcam via the Camera API, AsciiVision seamlessly bridges the gap between the tangible and the digital realms. 
-                    Using JavaScript wizardry, it transforms each pixel's luminosity into a unique ASCII character, providing a dynamic interpretation 
-                    of the live video feed. This fusion of human-computer interactivity and creative coding delivers an immersive and exhilarating journey 
-                    for users. You can even invert the colors{' '}. 
+                        AsciiVision is a captivating creative coding venture that blends interaction design with some type of artistic retro vibe. Drawing on 
+                        your gullibility to give me access to your device's webcam via the Camera API, AsciiVision seamlessly transforms the tangible into the digital. 
+                        Using JavaScript some wizardry, it transforms each pixel's luminosity into a unique{' '}
+                            <a
+                                href='https://en.wikipedia.org/wiki/ASCII'
+                                target='_blank'
+                                rel='noopener noreferrer'>
+                                    ASCII                                    
+                            </a>
+                                {' '}character, providing a dynamic interpretation of the live video feed. I invite my users to experience this immersive and exhilarating journey 
+                                delivered by this fusion of interactive computing and creative coding. You can even invert the colors. Have fun playing around :-) {' '} 
                     </p>
                 </div>
 
@@ -256,11 +262,13 @@ const MusicProjects: React.FC<MusicProjectsProps> = (props) => {
                 
                 <h2>Life's a Journey - Interactive Visualization </h2>
                 <br />
-                <p> 
-            Life's Journey is a small interactive game inspired by the original Game of Life. Step into a mesmerizing world where you can shape and witness the unfolding of life itself. Immerse yourself in the captivating gameplay and experience the beauty of emergent patterns. {' '}
+        <p> 
+            Life's Journey is a small interactive experience inspired by the classic Game of Life. Step into a mesmerizing world where you can shape and witness the unfolding 
+            of life itself. {' '}
         </p>
         <p>
-            Immerse yourself in the captivating gameplay and experience the magic of cellular automata, revealing emergent patterns that mesmerize and inspire. Engage with dynamic landscapes and explore infinite possibilities, all powered by p5.js for a truly immersive visual experience. {' '}
+            Immerse yourself in the captivating gameplay and experience the magic of cellular automata, revealing emergent patterns that mesmerize and inspire. 
+            Engage with dynamic landscapes and explore infinite possibilities, all powered by p5.js for a truly immersive visual experience. {' '}
         </p>
                 <div className="captioned-image" style={{ width: '80%', marginTop: '-0px' }}>
                     <VideoAsset src={lifeJourney}  /> 
@@ -271,10 +279,17 @@ const MusicProjects: React.FC<MusicProjectsProps> = (props) => {
                     </p>
                 </div>
                 <p>
-                Experience an engaging interpretation of the Game of Life project crafted in p5.js. Navigate through the grid using arrow keys and 
-                customize cell colors with a simple keystroke (press 'C'). Dive in as the game launches automatically, presenting a grid of cells 
-                for interaction. Click to bring cells to life, and observe their evolution based on predefined rules. Relax and immerse yourself in 
-                the captivating patterns that emerge. Here are the basic principles guiding cell interaction: {' '}
+                Indulge in this engaging interpretation of the Game of Life project crafted in{' '}
+                            <a
+                                href='https://p5js.org/'
+                                target='_blank'
+                                rel='noopener noreferrer'>
+                                    P5.js                                    
+                            </a>. 
+                        Navigate through the grid using your keyboard's arrow keys and 
+                        customize cell colors by pressing <b>C</b>. The rules a pretty simple. Every cell observes its surrounding neighbours to check whether 
+                        its living area is underpopulated, overpopulated or suitable to live in. The game launches from its initial state, presenting a grid of cells. 
+                        These are the basic principles guiding cell interaction: {' '}
                 <br></br><br />
                 <li>
                     Cells with fewer than two live neighbors perish due to underpopulation.
