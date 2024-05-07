@@ -14,7 +14,7 @@ import tellThem from '../../../../src/assets/audio/TellThem.mp3';
 // @ts-ignore
 import meDJing from '../../../assets/pictures/projects/art/MePlaying.mp4';
 // @ts-ignore
-import MinenParty from '../../../../src/assets/pictures/2014-11-09-01-37.mp4';
+import MinenParty from '../../../../src/assets/pictures/CROPPED-2014-11-09-01-37.mp4';
 // @ts-ignore
 import asciiMe from '../../../assets/audio/1-5mb.mp4';
 
@@ -329,7 +329,7 @@ const MusicProjects: React.FC<MusicProjectsProps> = (props) => {
                 <h2> My oil Paintings </h2>
             <br />
             <p>
-                 Lately, I have taken up real-world painting. I felt it was time to explore the tactile experience of oil painting. 
+                 text. 
                 </p>
                 <br />
                 <div className="captioned-image">
@@ -337,23 +337,19 @@ const MusicProjects: React.FC<MusicProjectsProps> = (props) => {
                     
                     <p>
                         <sub>
-                            <b>Image 9:</b> Live demo of the  {' '} 
+                            <b>Image 9:</b> text  {' '} 
                                 <a
                                     href='https://github.com/QC20/Screensaver-LDR'
                                     target='_blank'
                                     rel='noopener noreferrer'>
-                                    LDR interactive screensaver
+                                    text goes here
                                 </a>    
-                                    {' '}reacting to the mouse placement and the sorrounding light.
+                                    {' '}test.
                         </sub>
                     </p>
                 </div>
                 <p>
-                In this project, deliberate user input, like mouse interactions, merges with the dynamic influence of ambient light. It's about blending 
-                control with environmental responsiveness, creating an interactive experience that blurs the line between user agency and natural influence. 
-                While we start with mouse and light, the project encourages exploration:  reacting to gyroscopic changes, responding to variations in sound 
-                intensity, or dynamically adapting to specific spoken words. These uncontrolled elements hold the potential to transform the user's journey, 
-                opening doors to new realms of exploration and creativity.{' '}
+                hey.{' '}
                 </p>
         </div>
         </div>
