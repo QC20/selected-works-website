@@ -196,8 +196,8 @@ const ArtProjects: React.FC<ArtProjectsProps> = (props) => {
     <div style={{ flex: 1, marginLeft: '64px' }}>
         
     <p> 
-    At the heart of HapNav's gameplay lies a unique trial-and-error approach. As players embark on the journey, they decipher the shapes, bends, 
-    and twists of the map, progressively forming an intuitive and detailed mental image. {' '}
+    At the heart of HapNav's gameplay lies a unique trial-and-error approach. As players initiate the game, they must decipher the shapes, bends, 
+    and twists of the map, progressively forming an intuitive and detailed mental image of the map. {' '}
 
                 <p>
             <br />
@@ -315,8 +315,8 @@ const ArtProjects: React.FC<ArtProjectsProps> = (props) => {
             <Link 
             to='https://diyodemag.com/education/classroom_how_light_dependent_resistors_ldr_work_with_arduino_raspberry_pi' 
             target='_blank'>light dependent resistor</Link>
-            {' '} (LDR). Watch as particles dance 
-            across the screen, their movements dictated by both your mouse's position and real-world sensor data from an Arduino board. 
+            {' '} (LDR). 
+            Watch as particles dance across the screen, their movements dictated by both your mouse's position and real-world sensor data handled through an Arduino board. 
             In this demonstration, an LDR sensor takes center stage, but the possibilities are endless – you can seamlessly integrate various 
             sensor inputs and tweak the code to suit your creative vision. 
 </p>
@@ -340,8 +340,9 @@ const ArtProjects: React.FC<ArtProjectsProps> = (props) => {
                 <p>
                 In this project, deliberate user input, like mouse interactions, merges with the dynamic influence of ambient light. It's about blending 
                 control with environmental responsiveness, creating an interactive experience that blurs the line between user agency and natural influence. 
-                While we start with mouse and light, the project encourages exploration:  reacting to gyroscopic changes, responding to variations in sound 
-                intensity, or dynamically adapting to specific spoken words. These uncontrolled elements hold the potential to transform the user's journey, 
+                While we start with mouse and light, the project encourages exploration: How might we utilize gyroscopic positioning as user input? Instead 
+                of reacting to light, what if it responded to variations in sound intensity, or dynamically reacted to specific spoken words?
+                These uncontrolled elements hold the potential to transform the user's journey, 
                 opening doors to new realms of exploration and creativity.{' '}
                 </p>
                 </div>

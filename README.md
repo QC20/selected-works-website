@@ -1,6 +1,11 @@
 # Selected Works Website
 I've crafted this personal website with invaluable guidance from Henry Hefferman's original work, which I then expanded and tailored to reflect my vision for a personal website. I aimed for a Windows 95/98 OS vibe reminiscent of having multiple windows open simultaneously, creating a bustling desktop atmosphere that immerses you in my universe. I hope you enjoy exploring it. If you're interested in my work, have constructive criticism to share, or simply want to connect, feel free to reach out!
 
+<p align="center">
+  <img src="src\assets\pictures\landingPage.png" alt="Image of website's landing page">
+</p>
+
+
 Changes I have made:
 - major changes to the showcase folder
 
