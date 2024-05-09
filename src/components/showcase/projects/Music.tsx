@@ -17,6 +17,12 @@ import meDJing from '../../../assets/pictures/projects/art/MePlaying.mp4';
 import MinenParty from '../../../../src/assets/pictures/CROPPED-2014-11-09-01-37.mp4';
 // @ts-ignore
 import asciiMe from '../../../assets/audio/1-5mb.mp4';
+// @ts-ignore
+import PaintingPallets from '../../../assets/pictures/projects/art/PaintingPallets.mp4';
+
+import Painting1 from '../../../../src/assets/pictures/projects/art/Painting1.jpg';
+import Painting2 from '../../../../src/assets/pictures/projects/art/Painting2.jpg';
+import Painting3 from '../../../../src/assets/pictures/projects/art/Painting3.jpg';
 
 import meDJing2 from '../../../../src/assets/pictures/meDJing2.jpg';
 // @ts-ignore
@@ -272,9 +278,16 @@ const MusicProjects: React.FC<MusicProjectsProps> = (props) => {
         </p>
                 <div className="captioned-image" style={{ width: '80%', marginTop: '-0px' }}>
                     <VideoAsset src={lifeJourney}  /> 
-                    <p>
+                    <p> 
                         <sub>
-                            <b>Image 3:</b> live demo of the visualization dynamically changing colors, smoothly navigating obstacles, and naturally regenerating. {' '} 
+                            <b>Image 3:</b> live{' '} 
+                                <a
+                                    href='https://qc20.github.io/game-of-life-simulation/'
+                                    target='_blank'
+                                    rel='noopener noreferrer'>
+                                        demo of the visualization                                  
+                                </a>
+                            {' '} dynamically changing colors, smoothly navigating obstacles, and naturally regenerating. {' '} 
                         </sub>
                     </p>
                 </div>
@@ -326,33 +339,56 @@ const MusicProjects: React.FC<MusicProjectsProps> = (props) => {
             <br />
             <div className="text-block">
                 <br />
-                <h2> My oil Paintings </h2>
-            <br />
-            <p>
-                 text. 
-                </p>
+                <h2 style={{ display: 'flex', alignItems: 'center', justifyContent: 'right' }}>
+                My Oil Paintings
+            </h2>
+            
                 <br />
-                <div className="captioned-image">
-                <VideoAsset src={MinenParty} /> 
+                <div style={{ display: 'flex', alignItems: 'center', flexDirection: 'row-reverse' }}>
+                <div style={{ flex: 1, marginLeft: 32 }}>
                     
-                    <p>
-                        <sub>
-                            <b>Image 9:</b> text  {' '} 
-                                <a
-                                    href='https://github.com/QC20/Screensaver-LDR'
-                                    target='_blank'
-                                    rel='noopener noreferrer'>
-                                    text goes here
-                                </a>    
-                                    {' '}test.
-                        </sub>
-                    </p>
+                <p> 
+                A more recent activity I've been picking up is oil painting. What really excites me about this endeavor is that I have no prior 
+                experience whatsoever. Actually, growing up left-handed and with handwriting that was more or less intelligible, I guess I was 
+                somewhat deterred from drawing, painting, or doing anything by hand.{' '}
+            <br /><br></br>
+
+                However, in 2021, I started to pick up my first supplies and first clean canvas. Having no idea what I was doing or how to even begin 
+                learning, I decided to just throw myself into it and hope something beautiful would spawn out of it. Moreover, I think it was a deliberate 
+                decision of mine to not seek any type of help or teaching about techniques or styles. The reason for this was purely based on the idea 
+                that I wanted to see what I would be able to create purely based on my own intuition and creativity.{' '}
+      
+            <br /> <br></br>
+
+        What excites and inspires me when conceptualizing a new canvas is starting from an initial feeling, exploring uncharted techniques, experimenting 
+        with new texture designs, or using paint products I haven’t tried before. I persist until something I like emerges, and then I continue from there. 
+        Overall, a significant takeaway from oil painting is the opportunity to refine and practice skills I initially lacked proficiency or experience in. {' '}
+
+        <br /> <br></br>
+    <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', marginRight: '0px' }}>
+        <div style={{ textAlign: 'center', width: '50%', marginRight: '10px' }}>
+            <img src={Painting2} style={{ width: '100%' }} alt="" /> 
+        </div>
+        <div style={{ textAlign: 'center', width: '50%', marginLeft: '10px' }}>
+            <img src={Painting3} style={{ width: '100%' }} alt="" /> 
+        </div>
+    </div>
+</p>
+
+                    
+                    
                 </div>
-                <p>
-                hey.{' '}
-                </p>
+
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginRight: '-82px', marginTop: '-60px' }}>
+                    <div style={{ textAlign: 'center', width: '85%', marginLeft: '-75px' }}>
+                        <VideoAsset src={PaintingPallets} /> 
+                    </div>
+            </div>
+           
+            </div>
+            </div>
         </div>
-        </div>
+        
     );
 };
 
