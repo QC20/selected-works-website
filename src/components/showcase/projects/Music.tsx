@@ -384,9 +384,11 @@ const MusicProjects: React.FC<MusicProjectsProps> = (props) => {
                         <VideoAsset src={PaintingPallets} /> 
                     </div>
             </div>
-           
+            
             </div>
             </div>
+            <br />
+            <LineSplit />
         </div>
         
     );
