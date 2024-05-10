@@ -298,7 +298,7 @@ const MusicProjects: React.FC<MusicProjectsProps> = () => {
         <div className="captioned-image" style={{ width: '80%', marginTop: '-0px' }}>
     <iframe
         src="https://qc20.github.io/game-of-life-simulation/"
-        style={{ width: '100%', height: '600px', border: 'none' }}
+        style={{ width: '800px', height: '400px', border: 'none' }}
         title="Game of Life Simulation"
     ></iframe>
     <p>
