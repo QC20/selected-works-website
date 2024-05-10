@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+/* eslint-disable jsx-a11y/alt-text */
+import React, { useState, useRef, useEffect } from 'react';
 // @ts-ignore
 import house from '../../../assets/audio/agressive_phonk.mp3';
 // @ts-ignore
@@ -30,6 +31,7 @@ import lifeJourney from '../../../assets/pictures/projects/art/lifes-journey.mp4
 
 import MusicNote from '../../../assets/icons/MusicNote.gif'
 import cdSpin from '../../../assets/pictures/cdSpin.gif';
+import paintBrush from '../../../assets/pictures/projects/art/paint-brush.gif';
 
 import { Link, MusicPlayer } from '../../general';
 import { styles } from '../../os/DragIndicator';
@@ -37,18 +39,30 @@ import LineSplit from '../LineSplit'
 import ResumeDownload from '../ResumeDownload';
 import VideoAsset from '../../general/VideoAsset';
 
-
 import Window from '../../os/Window';
-
 import shortcut from '../../../../src/assets/pictures/projects/audio/shortcut.gif'; 
 
-export interface MusicProjectsProps {}
+interface MusicProjectsProps {}
 
-const MusicProjects: React.FC<MusicProjectsProps> = (props) => {
-    const [currentSong, setCurrentSong] = useState<string>('');
+const MusicProjects: React.FC<MusicProjectsProps> = () => {
+    const [currentSong, setCurrentSong] = useState('');
+
+    useEffect(() => {
+        const handleKeyDown = (event: MessageEvent) => {
+            if (event.data.type === 'keydown' && (event.data.key === 'ArrowUp' || event.data.key === 'ArrowDown' || event.data.key === 'ArrowLeft' || event.data.key === 'ArrowRight')) {
+                event.preventDefault();
+            }
+        };
+
+        window.addEventListener('message', handleKeyDown);
+
+        return () => {
+            window.removeEventListener('message', handleKeyDown);
+        };
+    }, []);
 
     return (
-        <div className="site-page-content">
+            <div className="site-page-content">
             <h1>Arts & Design</h1>
             <h3>My creations</h3>
             <br />
@@ -100,7 +114,7 @@ const MusicProjects: React.FC<MusicProjectsProps> = (props) => {
                     </p></p>
                 </div>
 
-                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginTop: '-10px' }}>
                     <div style={{ textAlign: 'center' }}>
                     <img src={meDJing2} style={{ width: '100%' }} alt="" /> 
                     </div>{/* Adjusted width */}
@@ -230,7 +244,7 @@ const MusicProjects: React.FC<MusicProjectsProps> = (props) => {
                     </p>
                 </div>
 
-                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginRight: '-82px' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginRight: '-82px', marginTop: '-20px' }}>
                     <div style={{ textAlign: 'center', width: '85%', marginLeft: '-75px' }}>
                         <VideoAsset src={asciiMe} /> 
                     </div>
@@ -269,28 +283,39 @@ const MusicProjects: React.FC<MusicProjectsProps> = (props) => {
                 <h2>Life's a Journey - Interactive Visualization </h2>
                 <br />
         <p> 
-            Life's Journey is a small interactive experience inspired by the classic Game of Life. Step into a mesmerizing world where you can shape and witness the unfolding 
-            of life itself. {' '}
+            Life's Journey is a small interactive experience inspired by the {' '} 
+                            <a
+                                href='https://en.wikipedia.org/wiki/Conway%27s_Game_of_Life'
+                                target='_blank'
+                                rel='noopener noreferrer'>
+                                    classic Game of Life                                   
+                            </a>. Step into a mesmerizing world where you can shape and witness the unfolding of life itself. {' '}
         </p>
         <p>
             Immerse yourself in the captivating gameplay and experience the magic of cellular automata, revealing emergent patterns that mesmerize and inspire. 
             Engage with dynamic landscapes and explore infinite possibilities, all powered by p5.js for a truly immersive visual experience. {' '}
         </p>
-                <div className="captioned-image" style={{ width: '80%', marginTop: '-0px' }}>
-                    <VideoAsset src={lifeJourney}  /> 
-                    <p> 
-                        <sub>
-                            <b>Image 3:</b> live{' '} 
-                                <a
-                                    href='https://qc20.github.io/game-of-life-simulation/'
-                                    target='_blank'
-                                    rel='noopener noreferrer'>
-                                        demo of the visualization                                  
-                                </a>
-                            {' '} dynamically changing colors, smoothly navigating obstacles, and naturally regenerating. {' '} 
-                        </sub>
-                    </p>
-                </div>
+        <div className="captioned-image" style={{ width: '80%', marginTop: '-0px' }}>
+    <iframe
+        src="https://qc20.github.io/game-of-life-simulation/"
+        style={{ width: '100%', height: '600px', border: 'none' }}
+        title="Game of Life Simulation"
+    ></iframe>
+    <p>
+        <sub>
+            <b>Image 3:</b> live{' '}
+            <a
+                href='https://qc20.github.io/game-of-life-simulation/'
+                target='_blank'
+                rel='noopener noreferrer'>
+                demo of the visualization
+            </a>{' '}
+            dynamically changing colors, smoothly navigating obstacles, and naturally regenerating. <br />
+            Press the image and start playing! Use the arrow keys to navigate and press <b>C</b> to change color. {' '}
+        </sub>
+    </p>
+</div>
+
                 <p>
                 Indulge in this engaging interpretation of the Game of Life project crafted in{' '}
                             <a
@@ -338,12 +363,13 @@ const MusicProjects: React.FC<MusicProjectsProps> = (props) => {
             <LineSplit />
             <br />
             <div className="text-block">
-                <br />
-                <h2 style={{ display: 'flex', alignItems: 'center', justifyContent: 'right' }}>
-                My Oil Paintings
+            <h2 style={{ display: 'flex', alignItems: 'center', justifyContent: 'right' }}>
+                <img src={paintBrush} width="15%" style={{ marginRight: '40px' }} />
+                    {' '}
+                    {' '} My Oil Paintings {' '}
             </h2>
+
             
-                <br />
                 <div style={{ display: 'flex', alignItems: 'center', flexDirection: 'row-reverse' }}>
                 <div style={{ flex: 1, marginLeft: 32 }}>
                     
@@ -379,7 +405,7 @@ const MusicProjects: React.FC<MusicProjectsProps> = (props) => {
                     
                 </div>
 
-                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginRight: '-82px', marginTop: '-60px' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginRight: '-82px', marginTop: '-85px' }}>
                     <div style={{ textAlign: 'center', width: '85%', marginLeft: '-75px' }}>
                         <VideoAsset src={PaintingPallets} /> 
                     </div>
@@ -389,6 +415,17 @@ const MusicProjects: React.FC<MusicProjectsProps> = (props) => {
             </div>
             <br />
             <LineSplit />
+            <br />
+            {/* Your existing JSX content */}
+            <iframe
+    src="https://qc20.github.io/game-of-life-simulation/"
+    style={{ width: '800px', height: '600px', border: 'none' }}
+    title="Game of Life Simulation"
+></iframe>
+
+
+<br /> <br></br>
+<LineSplit />
         </div>
         
     );

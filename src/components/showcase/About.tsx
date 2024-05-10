@@ -94,7 +94,7 @@ const About: React.FC<AboutProps> = (props) => {
                             <Link to='https://di.ku.dk/english/news/2024/professor-pernille-bjoern-recognized-as-distinguished-member-of-acm/' target='_blank'>Pernille Bjørn</Link> {' '}
                         and my tenure at the . 
                             <Link to='https://di.ku.dk/english/research/human-centred-computing/' target='_blank'>Human-Centred Computing section</Link> {' '}
-                        at DIKU. During this initial engagement with academia I was a part of  
+                        at DIKU. During this initial engagement with academia I was a part of  {' '}
                             <Link to='https://www.femtech.dk/' target='_blank'>Femtech</Link>,
                         which is a pioneering initiative focused on fostering diversity and inclusion in technology.
                         From here I was introduced to HCI and interaction design, discovering the intricate balance between technology and human needs. 
