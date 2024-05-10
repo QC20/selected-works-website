@@ -283,7 +283,7 @@ const MusicProjects: React.FC<MusicProjectsProps> = () => {
                 <h2>Life's a Journey - Interactive Visualization </h2>
                 <br />
         <p> 
-            Life's Journey is a small interactive experience inspired by the {' '} 
+            Life's Journey is a small interactive experience inspired by Jon Conway's {' '} 
                             <a
                                 href='https://en.wikipedia.org/wiki/Conway%27s_Game_of_Life'
                                 target='_blank'
@@ -416,16 +416,7 @@ const MusicProjects: React.FC<MusicProjectsProps> = () => {
             <br />
             <LineSplit />
             <br />
-            {/* Your existing JSX content */}
-            <iframe
-    src="https://qc20.github.io/game-of-life-simulation/"
-    style={{ width: '800px', height: '600px', border: 'none' }}
-    title="Game of Life Simulation"
-></iframe>
 
-
-<br /> <br></br>
-<LineSplit />
         </div>
         
     );
