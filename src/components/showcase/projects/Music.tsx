@@ -359,6 +359,68 @@ const MusicProjects: React.FC<MusicProjectsProps> = () => {
                     </li>
                 </ul>        
             </div>
+            <LineSplit />
+            <br />
+
+
+
+            <div className="text-block">
+                
+                <h2>Non-Cartesian Etch-A-Sketch</h2>
+                <br />
+        <p> 
+            Have a look and play around with Non-Cartesian Etch-A-Sketch! This innovative take on the {' '} 
+                            <a
+                                href='https://en.wikipedia.org/wiki/Etch_A_Sketch'
+                                target='_blank'
+                                rel='noopener noreferrer'>
+                                    classic toy                                   
+                            </a>{' '}offers a fresh approach to drawing, letting users break free from the constraints of traditional grids. 
+                                With intuitive controls and endless possibilities, it's an invitation to explore and experiment,
+                                where lines and shapes take on unique forms. {' '}
+        </p>
+        <div className="captioned-image" style={{ width: '80%', marginTop: '-0px' }}>
+    <iframe
+        src="https://qc20.github.io/non-cartesian-etch-a-sketch/src/index.html"
+        style={{ width: '1200px', height: '500px', border: 'none' }}
+        title="Game of Life Simulation"
+    ></iframe>
+    <p>
+        <sub>
+            <b>Image 4:</b> Go ahead and try the {' '}
+            <a
+                href='https://qc20.github.io/non-cartesian-etch-a-sketch/src/index.html'
+                target='_blank'
+                rel='noopener noreferrer'>
+                Etch-A-Sketch yourself
+            </a>{' '}right here in the browser! Press the toy to activate it. Control its movement with the arrow keys. Spin it around its own 
+                axis by pressing Z or X. To erase your drawing, simply pull on the toy. {' '}
+        </sub>
+    </p>
+</div>
+    <p>
+        With its unique navigation using angles and rad<i>ii</i> instead of traditional <i>x-</i> and <i>y-</i>coordinates, the Non-Cartesian Etch-A-Sketch offers a 
+        delightful puzzle for users to explore. This unconventional concept challenges traditional drawing interfaces, inviting users into a 
+        realm where creativity flourishes and boundaries dissolve. Embrace this non-traditional map, and let your imagination free with 
+        the{' '}
+        
+            <a
+                href='https://github.com/QC20/non-cartesian-etch-a-sketch'
+                target='_blank'
+                rel='noopener noreferrer'>
+                Non-Cartesian Etch-A-Sketch                      
+            </a>
+            . If you create something cool, feel free to screenshot it and{' '}
+            <a
+                href="mailto:jkj@di.ku.dk">
+                share it
+            </a>
+            {' '}with me!
+    </p>
+    <br />
+</div>
+
+
 
             <LineSplit />
             <br />
@@ -413,10 +475,8 @@ const MusicProjects: React.FC<MusicProjectsProps> = () => {
             
             </div>
             </div>
-            <br />
-            <LineSplit />
-            <br />
 
+        
         </div>
         
     );
