@@ -27,9 +27,21 @@ const About: React.FC<AboutProps> = (props) => {
                 </p>
                 <br />
                 <p>
-                    Well, you've made it this far. I suppose that must mean some of the content on my selected works website has caught your eye. I hope you'll enjoy it. 
-                    Maybe you've even taken some time to try clicking on some of the icons on the desktop behind this window. Doom is a great game, you know. Well, in any 
-                    case, I hope you enjoy your time here and if you have any questions or comments, you can contact me using{' '}
+                    Well, you've made it this far. I suppose that must mean some of the content on my selected works website has caught your eye. I hope you'll enjoy it.
+                    And yes, everything you see here is made my me from the bottom up, including the
+                    <a
+                            rel="noreferrer"
+                            target="_blank"
+                            href="https://github.com/QC20/selected-works-website"
+                            >
+                            website itself
+                    </a>. Everthing is open source and reproducible, so feel free to
+                    copy and 'steal' whatever you fancy for your own projects. Just make sure to drop me a mention will you? {' '}
+                    Maybe you've even taken some time to try clicking on some of the icons on the desktop behind this window. Doom is a great game, you know. 
+
+                </p>    
+                <p>    
+                    Well, in any case, I hope you enjoy your time here and if you have any questions or comments, you can contact me using{' '}
                     <Link to="/contact">this form</Link>, or send me an email at {' '}
                     <a href="mailto:jkj@di.ku.dk">
                         jkj@di.ku.dk
@@ -65,9 +77,9 @@ const About: React.FC<AboutProps> = (props) => {
                             <Link to="/projects/art">physical computing</Link>{' '}
                             as well as {' '}
                             <Link to="/projects/art">software programming</Link> {' '} and {' '}
-                            <Link to="/projects/music">music & art</Link>.
+                            <Link to="/projects/music">music & art</Link>
 . 
-                        You can learn more about each on their respective pages under the '<Link to="/projects">Projects</Link>' tab on my website. Other hobbies I enjoy 
+                        . You can learn more about each on their respective pages under the '<Link to="/projects">Projects</Link>' tab on my website. Other hobbies I enjoy 
                         also enjoy is reading, hiking, and playing squash.
                         </p>
                 <br />
