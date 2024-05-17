@@ -402,8 +402,22 @@ const Experience: React.FC<ExperienceProps> = (props) => {
                             <b>
                                 Courses: {' '}
                             </b>
-                            <i>
-                                Co-Design, Designing Interactions {' '}
+                                <i>
+                                    <a
+                                        rel="noreferrer"
+                                        target="_blank"
+                                        href="https://learnit.itu.dk/local/coursebase/view.php?ciid=897"
+                                        >
+                                        Co-Design
+                                    </a>
+                                        ,{' '}
+                                    <a
+                                        rel="noreferrer"
+                                        target="_blank"
+                                        href="https://learnit.itu.dk/local/coursebase/view.php?ciid=1352"
+                                        >
+                                        Designing Interactions{' '}
+                                    </a>
                             </i>
                         </p>
                     </li>
@@ -428,8 +442,15 @@ const Experience: React.FC<ExperienceProps> = (props) => {
                             <b>
                                 Courses: {' '}
                             </b>
-                            <i>
-                                    Digital Entreperneurship, {' '}
+                            <i> 
+                                <a
+                                    rel="noreferrer"
+                                    target="_blank"
+                                    href="https://kursuskatalog.cbs.dk/2021-2022/KAN-CBUSV2022U.aspx"
+                                    >
+                                    Digital Entreperneurship
+                                </a>
+                                    ,{' '}
                                 <a
                                     rel="noreferrer"
                                     target="_blank"
@@ -460,7 +481,24 @@ const Experience: React.FC<ExperienceProps> = (props) => {
                         <p>
                            <b>Courses: {' '}</b>
                             <i>
-                                Computational Complexity, Communication Science (II & III), Urban Planning Studies {' '}
+                                <a
+                                    rel="noreferrer"
+                                    target="_blank"
+                                    href="https://staff.science.uva.nl/r.dehaan/complexity2024/"
+                                    >
+                                    Computational Complexity
+                                </a>
+                                    ,{' '}
+                                    Communication Science (II & III),
+                                <a
+                                    rel="noreferrer"
+                                    target="_blank"
+                                    href="https://www.uva.nl/shared-content/programmas/en/masters/urban-and-regional-planning/urban-and-regional-planning.html"
+                                    >
+                                    Urban Planning Studies {' '}
+                                </a>
+                            
+                                  
                             </i>
                         </p>
                     </li>
