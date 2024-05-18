@@ -489,7 +489,7 @@ const Experience: React.FC<ExperienceProps> = (props) => {
                                     Computational Complexity
                                 </a>
                                     ,{' '}
-                                    Communication Science (II & III),
+                                    Communication Science (II & III),{' '}
                                 <a
                                     rel="noreferrer"
                                     target="_blank"
