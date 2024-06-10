@@ -6,22 +6,6 @@ I've crafted this personal website with invaluable guidance from Henry Hefferman
 </p>
 
 
-Changes I have made:
-- major changes to the showcase folder
-
-### Things I need to improve:
-- [x] Insert abroad schools
-- [ ] Insert micropolis game
-- [ ] Learn how to make projects open in different windows
-  - [x] Make project website appear in windows on desktop
-- [x] insert projects pages
-  - [x] insert creative projects
-  - [x] insert music and art
-  - [x] insert embedded projects 
-- [ ] Make fill out form work
-- [ ] Figure out how to deal with large files in the repo
-- [x] Add reseaech paper section
-
 ## How to setup this website locally
 
 ### To setup a dev environment
@@ -50,6 +34,28 @@ npm run build
 npm start
 ```
 
+### Things I need to improve:
+- [x] Insert abroad schools
+- [ ] Insert micropolis game
+- [ ] Learn how to make projects open in different windows
+  - [x] Make project website appear in windows on desktop
+- [x] insert projects pages
+  - [x] insert creative projects
+  - [x] insert music and art
+  - [x] insert embedded projects 
+- [ ] Make fill out form work
+- [ ] Figure out how to deal with large files in the repo
+- [x] Add reseaech paper section
+
+## To-Do's
+
+- insert hyperlink for DIKU in 'My Passions'
+- Switch around the experience for DIS in Exp. (check if it is correctly done in CV)
+- write that you can close down the current window and it actually works as a real OS
+- Make reasearch paper images smaller in size so they'll be quicker to load in.
+  - same goes for all the stuff used in the projects.
+  - Make a GIF of the landing page instead of a still image. 
+  - The carthesian thingy will not erase. Please fix. 
 
 
 
