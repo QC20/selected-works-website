@@ -48,8 +48,6 @@ npm start
 - [x] Add reseaech paper section
 
 ## To-Do's
-
-- insert hyperlink for DIKU in 'My Passions'
 - Switch around the experience for DIS in Exp. (check if it is correctly done in CV)
 - write that you can close down the current window and it actually works as a real OS
 - Make reasearch paper images smaller in size so they'll be quicker to load in.

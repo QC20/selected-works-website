@@ -26,6 +26,9 @@ const Experience: React.FC<ExperienceProps> = (props) => {
         <b>
             <p>Februrary 2023 ~ present</p>
         </b>
+        <b>
+            <p>Full-time on-premise</p>
+        </b>
         
     </div>
     <h4 style={{ fontWeight: 'normal' }}>The Danish Ministry of Taxation</h4>
@@ -242,7 +245,7 @@ const Experience: React.FC<ExperienceProps> = (props) => {
             <div style={styles.headerContainer}>
                 <div style={styles.header}>
                     <div style={styles.headerRow}>
-                        <h3>DIS, Study Abroad in Scandinavia</h3>
+                        <h3>Student Video & Graphic Designer</h3>
    
                             <b>
                                 <p>January 2015 ~ August 2017</p>
@@ -251,7 +254,7 @@ const Experience: React.FC<ExperienceProps> = (props) => {
                     </div>
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', fontWeight: 'normal'  }}>
-                            <h4>Video & Graphic Design</h4> 
+                            <h4>DIS, Study Abroad in Scandinavia</h4> 
             </div>
             
             <div className="text-block">
@@ -325,8 +328,8 @@ const Experience: React.FC<ExperienceProps> = (props) => {
                             <b>
                                 Courses: {' '}
                                 </b> 
-                            <i> Cognitive Science, Scientific Programming, Vision & Image Programming, Natural Language Processing, Data Science, 
-                                Machine Learning & Deep learning, Human-Centred Computing {' '}
+                            <i> Artificial Intelligence & Cognitive Modelling; Scientific Programming; Vision & Image Programming; Natural Language Processing; Data Science; 
+                                Machine Learning & Deep learning; Advanced Human-Centred Computing {' '}
                             </i>
                         </p>
                     </li>
@@ -369,8 +372,8 @@ const Experience: React.FC<ExperienceProps> = (props) => {
                             <b>
                                 Courses: {' '}
                             </b>
-                            <i> Computer Science, Communication Theory, Empirical Research Methods, Interaction Design, Design Projects, Analysis, 
-                                Design & Regulation of IT-Infrastructure, IT Project Management & Requirement Specification {' '}
+                            <i> Computer Science; Communication Theory; Empirical Research Methods; Interaction Design; Digital Innovation; Analysis, 
+                                Design & Regulation of IT-Infrastructure; IT Project Management & Requirement Specification {' '}
                             </i>
                         </p>
                     </li>
