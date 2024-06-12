@@ -144,7 +144,8 @@ const About: React.FC<AboutProps> = (props) => {
                     interactive elements, moving images, GIFs, redirects, and games for your enjoyment. So, please take the time to learn something new and get inspired. 
                     Everything on here is shared through open source and is 100% reproducible, should you get the urge to try some of the designs yourself. Happy exploring!{' '}
                 
-                    Don't forget to try some of the other app shortcuts on the desktop as well. 
+                    Don't forget to try some of the other app shortcuts on the desktop as well. I've made the website to emulate the classic MS95 OS as much as possible, 
+                    meaning that all element you see are interactive and all buttons work. Go ahead and see for yourself. 
                     If you like it, feel free to let me know. {' '}
                         
                     {' '}
