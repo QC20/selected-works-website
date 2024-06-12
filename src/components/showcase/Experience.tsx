@@ -26,9 +26,6 @@ const Experience: React.FC<ExperienceProps> = (props) => {
         <b>
             <p>Februrary 2023 ~ present</p>
         </b>
-        <b>
-            <p>Full-time on-premise</p>
-        </b>
         
     </div>
     <h4 style={{ fontWeight: 'normal' }}>The Danish Ministry of Taxation</h4>

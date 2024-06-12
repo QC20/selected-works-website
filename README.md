@@ -52,6 +52,7 @@ npm start
   - same goes for all the stuff used in the projects.
   - Make a GIF of the landing page instead of a still image. 
   - The carthesian thingy will not erase. Please fix. 
+- Make a new favicon for the website
 
 
 
