@@ -48,7 +48,6 @@ npm start
 - [x] Add reseaech paper section
 
 ## To-Do's
-- write that you can close down the current window and it actually works as a real OS
 - Make reasearch paper images smaller in size so they'll be quicker to load in.
   - same goes for all the stuff used in the projects.
   - Make a GIF of the landing page instead of a still image. 
