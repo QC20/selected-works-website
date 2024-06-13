@@ -312,15 +312,8 @@ const ArtProjects: React.FC<ArtProjectsProps> = (props) => {
             </p>
         </div>
     </div>
-    
 </div>
 
-
-
-                </div>
-
-                
-                </div>
                 <h3>Link to Project:</h3>
                 <ul>
                     <li>
@@ -352,6 +345,8 @@ const ArtProjects: React.FC<ArtProjectsProps> = (props) => {
                         </a>
                     </li>
                 </ul>  
+                </div>
+                </div>
             <LineSplit /> 
 
             <div className="text-block">
