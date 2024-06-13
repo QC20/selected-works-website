@@ -123,10 +123,28 @@ const ArtProjects: React.FC<ArtProjectsProps> = (props) => {
                                     rel="noopener noreferrer">
                                         Click here
                                         </a> 
-                                        to see schematic.
+                                        {' '}to see schematic.
                         </sub>
                     </p>
                 </div>
+                <h3>Link to Project:</h3>
+                <ul>
+                    <li>
+                        <p>
+                            <a 
+                                rel="noreferrer"
+                                target="_blank"
+                                href="https://github.com/QC20/DIY-Arduino-Controller/tree/main"
+                                >
+                                <p>
+                                    <b>
+                                        Link to github repo
+                                    </b>
+                                </p>
+                            </a>
+                        </p>
+                    </li>
+                </ul>  
             <LineSplit />
             <br />
             <h2>HapNav: Haptic game for the blind</h2>
@@ -159,7 +177,7 @@ const ArtProjects: React.FC<ArtProjectsProps> = (props) => {
                         <sub>
                             <b>Image 3:</b> Top view of the DIY setup. {' '}
                                 <a 
-                                    href={"https://github.com/QC20/DIY-Arduino-Controller/blob/main/Upload/img/DIY_arduino_wiring_with_legend.png"} 
+                                    href={"https://github.com/QC20/Haptic-Game-For-The-Blind/tree/master/Controller-Designs"} 
                                     target="_blank" 
                                     rel="noopener noreferrer">
                                         Click here
@@ -294,12 +312,46 @@ const ArtProjects: React.FC<ArtProjectsProps> = (props) => {
             </p>
         </div>
     </div>
+    
 </div>
 
 
 
                 </div>
+
+                
                 </div>
+                <h3>Link to Project:</h3>
+                <ul>
+                    <li>
+                        <p>
+                            <a 
+                                rel="noreferrer"
+                                target="_blank"
+                                href="https://github.com/QC20/Haptic-Game-For-The-Blind"
+                                >
+                                <p>
+                                    <b>
+                                        Link to github repo
+                                    </b>
+                                </p>
+                            </a>
+                        </p>
+                    </li>
+                    <li>
+                        <a
+                            rel="noreferrer"
+                            target="_blank"
+                            href="https://github.com/QC20/Haptic-Game-For-The-Blind/tree/master/Controller-Designs"
+                            >
+                            <p>
+                                <b>
+                                    Controller designs
+                                </b> 
+                            </p>
+                        </a>
+                    </li>
+                </ul>  
             <LineSplit /> 
 
             <div className="text-block">

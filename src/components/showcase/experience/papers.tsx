@@ -82,15 +82,7 @@ const PapersProjects: React.FC<paperProps> = (props) => {
                         </p>
                        
                 </ul>
-                <p>
-                    <i>
-                        <b>
-                            Keywords: {' '}
-                        </b>
-                        Conversational interaction, Voice user interfaces How-to videos, Non-linear instructional video voice-based navigation, 
-                        Video navigation, Wizard-of-Oz
-                    </i>
-                </p>
+                
                 <br></br>
                 <div className="captioned-image">
                     <img src={voiceinteractionTask} style={{ width: '80%'}} alt="" />
@@ -105,6 +97,15 @@ const PapersProjects: React.FC<paperProps> = (props) => {
                         </sub>
                     </p>
                 </div>
+                <p>
+                    <i>
+                        <b>
+                            Keywords: {' '}
+                        </b>
+                        Conversational interaction, Voice user interfaces How-to videos, Non-linear instructional video voice-based navigation, 
+                        Video navigation, Wizard-of-Oz
+                    </i>
+                </p>
             </div>
             <div style={styles.headerRow}>
                 <h3>Barriers to End-User Designers of Augmented Fabrication</h3>
