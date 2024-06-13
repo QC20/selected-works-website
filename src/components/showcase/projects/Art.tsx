@@ -345,8 +345,7 @@ const ArtProjects: React.FC<ArtProjectsProps> = (props) => {
                         </a>
                     </li>
                 </ul>  
-                </div>
-                </div>
+
             <LineSplit /> 
 
             <div className="text-block">
@@ -398,7 +397,8 @@ const ArtProjects: React.FC<ArtProjectsProps> = (props) => {
 
                 </div>
         
-
+                </div>
+                </div>
 
         
         
