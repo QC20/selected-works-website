@@ -420,6 +420,24 @@ const MusicProjects: React.FC<MusicProjectsProps> = () => {
     <br />
 </div>
 
+            <LineSplit />
+
+
+            <div className="text-block">
+                
+                <h2>Crashing Squares</h2>
+                <br />
+        <p> 
+            tba {' '} 
+        </p>
+        <div className="captioned-image" style={{ width: '80%', marginTop: '-0px' }}>
+    <iframe
+        src="https://qc20.github.io/Crashing-Squares-Website/"
+        style={{ width: '1200px', height: '500px', border: 'none' }}
+        title="Game of Life Simulation"
+    ></iframe>
+    </br>
+</div>
 
 
             <LineSplit />
