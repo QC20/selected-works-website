@@ -436,7 +436,7 @@ const MusicProjects: React.FC<MusicProjectsProps> = () => {
         style={{ width: '1200px', height: '500px', border: 'none' }}
         title="Game of Life Simulation"
     ></iframe>
-    </br>
+    <br />
 </div>
 
 
