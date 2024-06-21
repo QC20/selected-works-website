@@ -428,17 +428,28 @@ const MusicProjects: React.FC<MusicProjectsProps> = () => {
                 <h2>Crashing Squares</h2>
                 <br />
         <p> 
-            tba {' '} 
+            Oh boy!{' '} 
+            <a
+                href='https://brm.io/matter-js/'
+                target='_blank'
+                rel='noopener noreferrer'>
+                matter.js                      
+            </a>{' '}is the bee's knees. You can do tons of great things with this nifty bite-size physics engine that lets you toss shapes and sprites around in simulated
+            realities. For this design, I created a set of shapes and sizes that fall from the sky, which you can throw around using your mouse.
         </p>
         <div className="captioned-image" style={{ width: '80%', marginTop: '-0px' }}>
-    <iframe
-        src="https://qc20.github.io/Crashing-Squares-Website/"
-        style={{ width: '1200px', height: '500px', border: 'none' }}
-        title="Game of Life Simulation"
-    ></iframe>
-    <br />
-</div>
+            <iframe
+                src="https://qc20.github.io/Crashing-Squares-Website/"
+                style={{ width: '1200px', height: '500px', border: 'none' }}
+                title="Game of Life Simulation">
+            </iframe>
+    <p>
+        I imagine this design can be used as a striking and expressive landing page for your website, with minimal text and only a few links to make the design stand out. 
+        In my stripped-down example, I've included a small interactive button with a link to my LinkedIn profile to underline how you might include a very subtle redirect. 
+        For a fun twist, swap the geometric shapes with bouncing SVGs or images to make your design pop!
+    </p>
 
+</div>
 
             <LineSplit />
             <br />
