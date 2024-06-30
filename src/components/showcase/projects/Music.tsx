@@ -272,11 +272,78 @@ const MusicProjects: React.FC<MusicProjectsProps> = () => {
                     </p>
                 </li>
             </ul>
-            <LineSplit />
 
             <br />
-    
 
+            <LineSplit />
+            <br />
+
+
+
+            <div className="text-block">
+                
+                <h2>Selected Creative Web Dev Work</h2>
+                <br />
+        <p> 
+             So I have made this entire website comprised of nothing but{' '} 
+                            <a
+                                href='https://qc20.github.io/Horizontal-Scroll-Website/'
+                                target='_blank'
+                                rel='noopener noreferrer'>
+                                    Black and White Visualizations                                  
+                            </a>. I suggest you go and explore it if you want to get a feel of what interests me web development-wise. {' '}
+        </p>
+        <br />
+        <div className="captioned-image" style={{ width: '80%', marginTop: '-0px' }}>
+    <iframe
+        src="https://qc20.github.io/Horizontal-Scroll-Website/"
+        style={{ width: '1200px', height: '500px', border: 'none' }}
+        title="Game of Life Simulation"
+    ></iframe>
+</div>
+<br />
+    <p>
+        While I continue to add to it, I believe you can understand where I am heading and the type of creative and artistic explorations that excite me. 
+        So, yeah, this serves as a small promo for some of my selected web development work featured on my portfolio website. Enjoy.{' '}
+    </p>
+    <br />
+</div>
+
+            <LineSplit />
+
+
+            <div className="text-block">
+                
+                <h2>Crashing Squares</h2>
+                <br />
+        <p> 
+            Oh boy!{' '} 
+            <a
+                href='https://brm.io/matter-js/'
+                target='_blank'
+                rel='noopener noreferrer'>
+                matter.js                      
+            </a>{' '}is the bee's knees. You can do tons of great things with this nifty bite-size physics engine that lets you toss shapes and sprites around in simulated
+            realities. For this design, I created a set of shapes and sizes that fall from the sky, which you can throw around using your mouse.
+        </p>
+        <br /> <br></br>
+        <div className="captioned-image" style={{ width: '80%', marginTop: '-0px' }}>
+            <iframe
+                src="https://qc20.github.io/Crashing-Squares-Website/"
+                style={{ width: '1200px', height: '500px', border: 'none' }}
+                title="Game of Life Simulation">
+            </iframe>
+            <br /> <br></br>
+    <p>
+        I imagine this design can be used as a striking and expressive landing page for your website, with minimal text and only a few links to make the design stand out. 
+        In my stripped-down example, I've included a small interactive button with a link to my LinkedIn profile to underline how you might include a very subtle redirect. 
+        For a fun twist, swap the geometric shapes with bouncing SVGs or images to make your design pop!
+    </p>
+
+</div>
+
+    
+<br />
 
 <div className="text-block">
                 
@@ -359,71 +426,6 @@ const MusicProjects: React.FC<MusicProjectsProps> = () => {
                     </li>
                 </ul>        
             </div>
-            <LineSplit />
-            <br />
-
-
-
-            <div className="text-block">
-                
-                <h2>Selected Web Work</h2>
-                <br />
-        <p> 
-             So I have made this entire website comprised of nothing but{' '} 
-                            <a
-                                href='https://qc20.github.io/Horizontal-Scroll-Website/'
-                                target='_blank'
-                                rel='noopener noreferrer'>
-                                    Black and White Visualizations                                  
-                            </a>. I suggest you go and explore it if you want to get a feel of what interests me web development-wise. {' '}
-        </p>
-        <div className="captioned-image" style={{ width: '80%', marginTop: '-0px' }}>
-    <iframe
-        src="https://qc20.github.io/Horizontal-Scroll-Website/"
-        style={{ width: '1200px', height: '500px', border: 'none' }}
-        title="Game of Life Simulation"
-    ></iframe>
-</div>
-<br /> <br></br>
-    <p>
-        While I continuesly add to I still feel you can understand where I am going and what type of creative artistic explorations that excites me.
-        So, yeah this is a small promo for some of my selected web dev work within my selected works website, huh. Enjoy. {' '}
-    </p>
-    <br />
-</div>
-
-            <LineSplit />
-
-
-            <div className="text-block">
-                
-                <h2>Crashing Squares</h2>
-                <br />
-        <p> 
-            Oh boy!{' '} 
-            <a
-                href='https://brm.io/matter-js/'
-                target='_blank'
-                rel='noopener noreferrer'>
-                matter.js                      
-            </a>{' '}is the bee's knees. You can do tons of great things with this nifty bite-size physics engine that lets you toss shapes and sprites around in simulated
-            realities. For this design, I created a set of shapes and sizes that fall from the sky, which you can throw around using your mouse.
-        </p>
-        <br /> <br></br>
-        <div className="captioned-image" style={{ width: '80%', marginTop: '-0px' }}>
-            <iframe
-                src="https://qc20.github.io/Crashing-Squares-Website/"
-                style={{ width: '1200px', height: '500px', border: 'none' }}
-                title="Game of Life Simulation">
-            </iframe>
-            <br /> <br></br>
-    <p>
-        I imagine this design can be used as a striking and expressive landing page for your website, with minimal text and only a few links to make the design stand out. 
-        In my stripped-down example, I've included a small interactive button with a link to my LinkedIn profile to underline how you might include a very subtle redirect. 
-        For a fun twist, swap the geometric shapes with bouncing SVGs or images to make your design pop!
-    </p>
-
-</div>
 
             <LineSplit />
             <br />
