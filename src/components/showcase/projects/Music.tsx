@@ -301,7 +301,7 @@ const MusicProjects: React.FC<MusicProjectsProps> = () => {
         title="Game of Life Simulation"
     ></iframe>
 </div>
-<br />
+<br></br>
     <p>
         While I continue to add to it, I believe you can understand where I am heading and the type of creative and artistic explorations that excite me. 
         So, yeah, this serves as a small promo for some of my selected web development work featured on my portfolio website. Enjoy.{' '}
@@ -309,7 +309,7 @@ const MusicProjects: React.FC<MusicProjectsProps> = () => {
     <br />
 </div>
 
-            <LineSplit />
+<LineSplit />
 
 
             <div className="text-block">
@@ -342,6 +342,7 @@ const MusicProjects: React.FC<MusicProjectsProps> = () => {
 
 </div>
 
+<LineSplit />
     
 <br />
 
