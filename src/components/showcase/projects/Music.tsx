@@ -334,13 +334,14 @@ const MusicProjects: React.FC<MusicProjectsProps> = () => {
                 title="Game of Life Simulation">
             </iframe>
             <br /> <br></br>
+        </div>
     <p>
         I imagine this design can be used as a striking and expressive landing page for your website, with minimal text and only a few links to make the design stand out. 
         In my stripped-down example, I've included a small interactive button with a link to my LinkedIn profile to underline how you might include a very subtle redirect. 
         For a fun twist, swap the geometric shapes with bouncing SVGs or images to make your design pop!
     </p>
 
-</div>
+
 
 <LineSplit />
     
