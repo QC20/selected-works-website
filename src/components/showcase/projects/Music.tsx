@@ -366,56 +366,28 @@ const MusicProjects: React.FC<MusicProjectsProps> = () => {
 
             <div className="text-block">
                 
-                <h2>Non-Cartesian Etch-A-Sketch</h2>
+                <h2>Selected Web Work</h2>
                 <br />
         <p> 
-            Have a look and play around with Non-Cartesian Etch-A-Sketch! This innovative take on the {' '} 
+             So I have made this entire website comprised of nothing but{' '} 
                             <a
-                                href='https://en.wikipedia.org/wiki/Etch_A_Sketch'
+                                href='https://qc20.github.io/Horizontal-Scroll-Website/'
                                 target='_blank'
                                 rel='noopener noreferrer'>
-                                    classic toy                                   
-                            </a>{' '}offers a fresh approach to drawing, letting users break free from the constraints of traditional grids. 
-                                With intuitive controls and endless possibilities, it's an invitation to explore and experiment,
-                                where lines and shapes take on unique forms. {' '}
+                                    Black and White Visualizations                                  
+                            </a>. I suggest you go and explore it if you want to get a feel of what interests me web development-wise. {' '}
         </p>
         <div className="captioned-image" style={{ width: '80%', marginTop: '-0px' }}>
     <iframe
-        src="https://qc20.github.io/non-cartesian-etch-a-sketch/src/index.html"
+        src="https://qc20.github.io/Horizontal-Scroll-Website/"
         style={{ width: '1200px', height: '500px', border: 'none' }}
         title="Game of Life Simulation"
     ></iframe>
-    <p>
-        <sub>
-            <b>Image 4:</b> Go ahead and try the {' '}
-            <a
-                href='https://qc20.github.io/non-cartesian-etch-a-sketch/src/index.html'
-                target='_blank'
-                rel='noopener noreferrer'>
-                Etch-A-Sketch yourself
-            </a>{' '}right here in the browser! Press the toy to activate it. Control its movement with the arrow keys. Spin it around its own 
-                axis by pressing Z or X. To erase your drawing, simply pull on the toy. {' '}
-        </sub>
-    </p>
 </div>
+<br /> <br></br>
     <p>
-        With its unique navigation using angles and rad<i>ii</i> instead of traditional <i>x-</i> and <i>y-</i>coordinates, the Non-Cartesian Etch-A-Sketch offers a 
-        delightful puzzle for users to explore. This unconventional concept challenges traditional drawing interfaces, inviting users into a 
-        realm where creativity flourishes and boundaries dissolve. Embrace this non-traditional map, and let your imagination free with 
-        the{' '}
-        
-            <a
-                href='https://github.com/QC20/non-cartesian-etch-a-sketch'
-                target='_blank'
-                rel='noopener noreferrer'>
-                Non-Cartesian Etch-A-Sketch                      
-            </a>
-            . If you create something cool, feel free to screenshot it and{' '}
-            <a
-                href="mailto:jkj@di.ku.dk">
-                share it
-            </a>
-            {' '}with me!
+        While I continuesly add to I still feel you can understand where I am going and what type of creative artistic explorations that excites me.
+        So, yeah this is a small promo for some of my selected web dev work within my selected works website, huh. Enjoy. {' '}
     </p>
     <br />
 </div>
@@ -437,12 +409,14 @@ const MusicProjects: React.FC<MusicProjectsProps> = () => {
             </a>{' '}is the bee's knees. You can do tons of great things with this nifty bite-size physics engine that lets you toss shapes and sprites around in simulated
             realities. For this design, I created a set of shapes and sizes that fall from the sky, which you can throw around using your mouse.
         </p>
+        <br /> <br></br>
         <div className="captioned-image" style={{ width: '80%', marginTop: '-0px' }}>
             <iframe
                 src="https://qc20.github.io/Crashing-Squares-Website/"
                 style={{ width: '1200px', height: '500px', border: 'none' }}
                 title="Game of Life Simulation">
             </iframe>
+            <br /> <br></br>
     <p>
         I imagine this design can be used as a striking and expressive landing page for your website, with minimal text and only a few links to make the design stand out. 
         In my stripped-down example, I've included a small interactive button with a link to my LinkedIn profile to underline how you might include a very subtle redirect. 
