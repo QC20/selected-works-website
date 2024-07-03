@@ -287,7 +287,7 @@ const MusicProjects: React.FC<MusicProjectsProps> = () => {
         <p> 
              So I have made this entire website comprised of nothing but{' '} 
                             <a
-                                href='https://qc20.github.io/Horizontal-Scroll-Website/'
+                                href='https://qc20.github.io/Scroll./'
                                 target='_blank'
                                 rel='noopener noreferrer'>
                                     Black and White Visualizations                                  
@@ -296,7 +296,7 @@ const MusicProjects: React.FC<MusicProjectsProps> = () => {
         <br />
         <div className="captioned-image" style={{ width: '80%', marginTop: '-0px' }}>
     <iframe
-        src="https://qc20.github.io/Horizontal-Scroll-Website/"
+        src="https://qc20.github.io/Scroll./"
         style={{ width: '1200px', height: '500px', border: 'none' }}
         title="Game of Life Simulation"
     ></iframe>
@@ -304,6 +304,15 @@ const MusicProjects: React.FC<MusicProjectsProps> = () => {
 <br></br>
     <p>
         While I continue to add to it, I believe you can understand where I am heading and the type of creative and artistic explorations that excite me. 
+        Truth be told, I host yet another collection of web development projects on this other 
+        <a
+                                href='https://creative-technologist-showcase.vercel.app/'
+                                target='_blank'
+                                rel='noopener noreferrer'>
+                                    website                                  
+        </a>. 
+        It's waaay less glossy and ready for the public's discerning gaze, though I still like it because it's more playful and 
+        does━if I should say so myself━contain some pretty interesting and novel design ideas.
         So, yeah, this serves as a small promo for some of my selected web development work featured on my portfolio website. Enjoy.{' '}
     </p>
     <br />
