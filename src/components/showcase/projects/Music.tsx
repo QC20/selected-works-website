@@ -291,7 +291,12 @@ const MusicProjects: React.FC<MusicProjectsProps> = () => {
                                 target='_blank'
                                 rel='noopener noreferrer'>
                                     Black and White Visualizations                                  
-                            </a>. I suggest you go and explore it if you want to get a feel of what interests me web development-wise. {' '}
+                            </a>. 
+        I suggest you go and explore it if you want to get a feel of what interests me web development-wise. They are all my designs, 
+        but I have made them all open-source. If any of them has caught your eye, feel free to{' '}
+            <a href="mailto:jkj@di.ku.dk">
+                reach out
+            </a>. 
         </p>
         <br />
         <div className="captioned-image" style={{ width: '80%', marginTop: '-0px' }}>
