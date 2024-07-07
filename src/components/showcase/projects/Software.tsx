@@ -285,7 +285,7 @@ const SoftwareProjects: React.FC<SoftwareProjectsProps> = (props) => {
           </p>
         </div>
         <p>
-          Dive into the exciting realm of 3D figure creation with our
+          Explore the exciting world of 3D figure creation with our
           unconventional twist {"-"} a Python script that crafts a
           blimp-inspired shape, breaking away from conventional CAD software.
           This project boldly ventures into the frontier of computational

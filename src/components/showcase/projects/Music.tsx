@@ -79,18 +79,18 @@ const MusicProjects: React.FC<MusicProjectsProps> = () => {
           explore the realms of music, sound, and visual arts. I am deeply
           engrossed in having artistic outlets, whether they are analog or
           digital. I don't want to limit myself to any one canvas. This
-          perspective has inspired me to explore a variety of mediums. For
+          perspective has inspired me to explore a variety of instruments. For
           instance, I deeply appreciate the tactile experience and rich color
           spectrum achievable through oil painting, as well as the flexibility
           of the medium. I can leave my painting for three days, and when I
           resume working on it, it's as if I was never away.{" "}
         </p>
         <p>
-          Similarly, the computer screen presents itself as the canvas we might
-          spend the most time looking at in our lives. Therefore, experimenting
-          with this medium is a natural progression, especially because it
-          allows for entirely new ways of incorporating interactive elements and
-          exploring the realm of interaction design.{" "}
+          In a similar fashion, the computer screen presents itself as the
+          canvas we collectively spend the most time looking at in our lives.
+          Therefore, experimenting with this interface is a natural progression,
+          especially because it allows for entirely new ways of incorporating
+          responsive elements and exploring interaction design.{" "}
         </p>
         <br />
       </div>

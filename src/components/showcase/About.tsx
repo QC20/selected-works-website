@@ -21,7 +21,7 @@ const About: React.FC<AboutProps> = (props) => {
     // add on resize listener
     <div className="site-page-content">
       {/* <img src={me} style={styles.topImage} alt="" /> */}
-      <h1 style={{ marginLeft: -16 }}>Welcome to my digital realm</h1>
+      <h1 style={{ marginLeft: -16 }}>Welcome to my digital self</h1>
       <h3>
         <img src={sparkles} width="4%" alt="" /> Hi there, I'm Jonas 👋{" "}
         <img src={sparkles} width="4%" alt="" />
@@ -116,7 +116,7 @@ const About: React.FC<AboutProps> = (props) => {
 
             <br />
             <p>
-              My journey into the realm of information technology started early.
+              My journey into the world of information technology started early.
               I remember spending countless hours on social sites, enhancing my
               bio with HTML coding. The ability to make screens interactive and
               visually engaging fascinated me, setting the stage for my passion

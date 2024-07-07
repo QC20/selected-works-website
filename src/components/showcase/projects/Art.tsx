@@ -34,25 +34,24 @@ const ArtProjects: React.FC<ArtProjectsProps> = (props) => {
       <br />
       <div className="text-block">
         <p>
-          Welcome to the realm of physical computing! Here, you'll embark on a
-          journey through projects that merge hardware and software, bringing
-          digital creations to life in the tangible world. Whether it's
-          tinkering with microcontrollers, sensors, or actuators, each project
-          in this section embodies the fusion of electronics and programming.
-          Just like the software projects, everything showcased here is open for
-          exploration and replication, adhering to the spirit of open-source
-          hardware.
+          Welcome to the world of physical computing! Here, you'll engage with
+          projects that merge hardware and software, bringing digital creations
+          to life in the tangible world. Whether it's tinkering with
+          microcontrollers, sensors, or actuators, each project in this section
+          embodies the fusion of electronics and programming. Just like the
+          software projects, everything showcased here is open for exploration
+          and replication, adhering to the spirit of open-source hardware.
         </p>
         <br />
         <p>
-          Dive into a world where circuits come alive, where sensors detect the
-          environment, and where code interacts with the physical realm. From
-          robotics and automation to interactive installations, these projects
-          showcase my passion for bridging the gap between bits and atoms. While
-          the projects here may involve wires and circuits instead of pixels and
-          code, they are equally immersive and captivating. So roll up your
-          sleeves, grab your soldering iron, and join me on an adventure into
-          the fascinating realm of physical computing!
+          Explore a world where circuits come alive, where sensors detect the
+          environment, and where code interacts with the physical environment.
+          From robotics and automation to interactive installations, these
+          projects showcase my passion for bridging the gap between bits and
+          atoms. While the projects here may involve wires and circuits instead
+          of pixels and code, they are equally immersive and captivating. So
+          roll up your sleeves, grab your soldering iron, and join me on an
+          adventure into the fascinating world of physical computing!
         </p>
       </div>
       <ResumeDownload />
