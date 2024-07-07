@@ -56,7 +56,7 @@ const ArtProjects: React.FC<ArtProjectsProps> = (props) => {
         </p>
       </div>
       <ResumeDownload />
-      <br />
+      <br></br>
 
       <h2>HapNav: Haptic game for the blind</h2>
       <br />
