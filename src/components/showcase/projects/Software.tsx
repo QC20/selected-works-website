@@ -47,8 +47,8 @@ const SoftwareProjects: React.FC<SoftwareProjectsProps> = (props) => {
         everything from data science and machine learning to creative coding,
         web development, and UX/UI design. While I also delve into physical
         computing, you'll find those projects in a{" "}
-        <a href="/projects/art">dedicated section</a>. Dive in and explore the
-        intersection of technology and creativity!
+        <a href="/projects/art">dedicated section</a>. Immerse yourself and
+        explore the intersection of technology and creativity!
       </p>
       <br />
       <ResumeDownload />
@@ -56,7 +56,12 @@ const SoftwareProjects: React.FC<SoftwareProjectsProps> = (props) => {
       <div className="text-block">
         <br />
         <h2>
-          <img src={imAlwaysThisKind} width="18%"></img> VoiceWhiz{" "}
+          <img
+            src={imAlwaysThisKind}
+            width="18%"
+            alt="Jonas Kjeldmand Jensen"
+          ></img>{" "}
+          VoiceWhiz{" "}
         </h2>
         <br />
         <p>
