@@ -70,7 +70,7 @@ const MusicProjects: React.FC<MusicProjectsProps> = () => {
   return (
     <div className="site-page-content">
       <h1>Arts & Design</h1>
-      <h3>My creations</h3>
+      <h3>My creations - for the sake of just because..</h3>
       <br />
 
       <div className="text-block">

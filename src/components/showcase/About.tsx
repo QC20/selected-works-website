@@ -32,14 +32,20 @@ const About: React.FC<AboutProps> = (props) => {
           Driven by a passion for programming and interfacing with innovative
           technologies, I thrive across various domains within Computer Science,
           always keeping the user's needs and desires at the forefront of my
-          work.{" "}
+          work. Alright, I guess that covers the elevator pitch. Now, let's get
+          real. I've designed this website in direct opposition to most
+          contemporary design conventions because I believe it creates a more
+          engaging user experience. While other sites rush to deliver everything
+          within 5 seconds and under 2 clicks, this site will reward those who
+          are curious enough to explore (the hyperlink rabit hole do indeed go
+          deep).{" "}
         </p>
         <br />
         <p>
           Well, you've made it this far. I suppose that must mean some of the
           content on my selected works website has caught your eye. I hope
           you'll enjoy it. And yes, everything you see here is made my me from
-          the bottom up, including the
+          the bottom up, including the{" "}
           <a
             rel="noreferrer"
             target="_blank"
@@ -79,7 +85,12 @@ const About: React.FC<AboutProps> = (props) => {
         </p>
         <br />
         <div className="captioned-image">
-          <img src={me} style={styles.image} alt="" />
+          <img
+            src={me}
+            style={styles.image}
+            title="My haircut tends to vary with the seasons"
+            alt="Jonas Kjeldmand Jensen"
+          />
           <p>
             <sub>
               <b>Image 1:</b> Me hard at work at UCPH's creative maker space :)
@@ -185,7 +196,11 @@ const About: React.FC<AboutProps> = (props) => {
             </p>
           </div>
           <div style={styles.verticalImage}>
-            <img src={meNow} style={styles.image} alt="" />
+            <img
+              src={meNow}
+              style={styles.image}
+              alt="Jonas Kjeldmand Jensen"
+            />
             <p>
               <sub>
                 <b>Image 2:</b> Me not working particularly hard, April 2024

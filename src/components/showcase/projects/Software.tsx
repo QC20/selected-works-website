@@ -75,7 +75,11 @@ const SoftwareProjects: React.FC<SoftwareProjectsProps> = (props) => {
         </p>
         <br />
         <div className="captioned-image">
-          <img src={rasPiCase} style={{ width: "75%" }} alt="" />
+          <img
+            src={rasPiCase}
+            style={{ width: "75%" }}
+            alt="Jonas Kjeldmand Jensen Voice User Interface (VUI / CUI)ß"
+          />
 
           <p>
             <sub>
@@ -168,12 +172,20 @@ const SoftwareProjects: React.FC<SoftwareProjectsProps> = (props) => {
             }}
           >
             <div style={{ marginBottom: "-15px" }}>
-              <img src={eyeTracking2} style={{ width: "60%" }} />
+              <img
+                src={eyeTracking2}
+                style={{ width: "60%" }}
+                alt="Jonas Kjeldmand Jensen"
+              />
             </div>
 
             <div>
               <div style={{ display: "flex", alignItems: "right" }}>
-                <img src={eyeTracking1} style={{ width: "140%" }} />
+                <img
+                  src={eyeTracking1}
+                  style={{ width: "140%" }}
+                  alt="Jonas Kjeldmand Jensen"
+                />
               </div>
             </div>
           </div>
