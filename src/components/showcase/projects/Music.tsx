@@ -101,7 +101,7 @@ const MusicProjects: React.FC<MusicProjectsProps> = () => {
                                 {' '}turntables. 
                         <p>
                             This marked the beginning of my 
-                            fascination with physical media and my exploration into DJing, music production, and exhibiting it to people at venues. By the time I was 19, I had joined the DJ collective, {' '}
+                            fascination with physical media and my exploration into DJing, music production, and exhibiting it to people at venues. By the time I was 21, I had joined the DJ collective, {' '}
                         <a
                                 href='https://www.facebook.com/dubkultur'
                                 target='_blank'
@@ -133,7 +133,7 @@ const MusicProjects: React.FC<MusicProjectsProps> = () => {
                     <a href="https://www.reasonstudios.com/" target="_blank" rel="noopener noreferrer">Reason</a>, {' '}
                     <a href="https://www.apple.com/logic-pro/" target="_blank" rel="noopener noreferrer">Logic</a>, and {' '}
                     <a href="https://www.ableton.com/" target="_blank" rel="noopener noreferrer">Ableton</a>. {' '}
-                But it doesn't stop there – it led me to experiment with visual art expressions and graphic design, expanding my creative horizons even further.
+                Learning music production inspired me to explore other creative fields. I began experimenting with visual art and graphic design, broadening my creative skills beyond audio.
             </p>
             <p>
             From a young age, I've learned the intricacies of organizing memorable events and leading teams of activists. It's more than just a hobby; it's a lifestyle that continually shapes and enriches my journey.
