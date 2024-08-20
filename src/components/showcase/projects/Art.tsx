@@ -21,6 +21,9 @@ import LDRParticleSim from "../../../assets/pictures/projects/art/LDRParticleSim
 
 import ThisComputerApp from "../../applications/ThisComputer";
 
+import TromnoStartScreen from "../../../assets/pictures/projects/software/Tromino_StartScreen1.jpg";
+import TrominoVidDemo from "../../../assets/pictures/projects/software/Tromino-In-Game(Compressed).mp4";
+
 import { styles } from "../../os/DragIndicator";
 import VideoAsset from "../../general/VideoAsset";
 
@@ -301,6 +304,68 @@ const ArtProjects: React.FC<ArtProjectsProps> = (props) => {
             </a>
           </li>
         </ul>
+
+        <LineSplit />
+        <br></br>
+
+      <h2>Tromino: A Tetris-like game run on a LCD1602 screen</h2>
+      <br />
+
+      <div style={{ display: "flex", alignItems: "center" }}>
+        <div style={{ flex: 1, marginRight: 32 }}>
+          <p>
+          Taking something that wasn't supposed to be fun and hacking a game onto it to give it a new function not originally intended is a great pleasure of mine. In this project, I've taken a humble LCD1602 screen - a display you'll usually encounter as a clock or as an interface for controlling some mundane machine - and transformed it into a pocket-sized gaming device. By hooking it up to an Arduino Uno microcontroller, I've enabled this simple display to host a captivating game you can play using its onboard buttons.{" "}
+            <p>
+              <br />
+              This game, which I've dubbed "Tromino," is a unique twist on the classic Tetris. Instead of the familiar four-block tetrominos, Tromino uses three-block pieces called trominos. These L-shaped or straight-line shapes add an interesting challenge to the gameplay, forcing players to think differently about how they fit pieces together.
+The game logic follows the core principles of Tetris but with some adaptations to suit the limited 16x2 display. Trominos fall from the top of the screen, and players must rotate and position them to create solid lines across the bottom. When a line is completed, it disappears, and the player scores points. The game progressively speeds up as you play, increasing the challenge and excitement.{" "}
+            </p>
+            <p>
+            What makes this project particularly intriguing is how it pushes the boundaries of what's possible with such limited hardware. The 16x2 LCD screen, typically used for simple text displays, now becomes a dynamic playground. The onboard buttons, usually meant for menu navigation, are repurposed as game controls. It's a testament to the idea that with a bit of creativity and coding, you can breathe new life into seemingly basic electronics.
+This project not only showcases the versatility of Arduino and LCD screens but also demonstrates how we can reimagine and repurpose everyday technology. It's a perfect blend of nostalgia for classic games and the maker spirit of creating something unique and unexpected.{" "}
+            </p>
+            <br></br>
+            <br />
+            <div className="captioned-image">
+              <img src={TromnoStartScreen} style={{ width: "100%" }} alt="" />
+              <p>
+                <sub>
+                  <b>Image X:</b> Top view Tromino start screen showing a welcome message and my alias.{" "}
+                  <a
+                    href={
+                      "https://github.com/QC20/Haptic-Game-For-The-Blind/tree/master/Controller-Designs"
+                    }
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    Click here
+                  </a>{" "}
+                  to see schematic.
+                </sub>
+              </p>
+            </div>
+          </p>
+        </div>
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            marginRight: "0px",
+            marginTop: "-75px",
+          }}
+        >
+          <div style={{ textAlign: "center", width: "85%", marginLeft: "0px" }}>
+            <VideoAsset src={TrominoVidDemo} />
+          </div>
+          <p>
+            <sub>
+              <b>Image X:</b> Top view of the Tromino case showing the game run in real-time.{" "}
+            </sub>
+          </p>
+        </div>
+      </div>
+
 
         <LineSplit />
         <br />
