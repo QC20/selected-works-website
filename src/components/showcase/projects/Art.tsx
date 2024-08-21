@@ -317,7 +317,27 @@ const ArtProjects: React.FC<ArtProjectsProps> = (props) => {
           Taking something that wasn't supposed to be fun and hacking a game onto it to give it a new function not originally intended is a great pleasure of mine. In this project, I've taken a humble LCD1602 screen - a display you'll usually encounter as a clock or as an interface for controlling some mundane machine - and transformed it into a pocket-sized gaming device. By hooking it up to an Arduino Uno microcontroller, I've enabled this simple display to host a captivating game you can play using its onboard buttons.{" "}
             <p>
               <br />
-              This game, which I've dubbed "Tromino," is a unique twist on the classic Tetris. Instead of the familiar four-block tetrominos, Tromino uses three-block pieces called trominos. These L-shaped or straight-line shapes add an interesting challenge to the gameplay, forcing players to think differently about how they fit pieces together.
+              This game, which I've dubbed "Tromino," is a unique twist on the classic Tetris. Instead of the familiar four-block 
+              <a 
+              href={
+                "https://en.wikipedia.org/wiki/Tetromino"
+              }
+              target="_blank"
+              rel="noopener nreferrer"
+              >
+              tetrominos
+              </a>
+                , 
+                <a
+                href={
+                  "https://en.wikipedia.org/wiki/Tromino"
+                }
+                target="_blank"
+                rel="noopener noreferrer"
+                >
+                  Tromino
+                </a>
+                {" "}uses three-block pieces called trominos. These L-shaped or straight-line shapes add an interesting challenge to the gameplay, forcing players to think differently about how they fit pieces together.
 The game logic follows the core principles of Tetris but with some adaptations to suit the limited 16x2 display. Trominos fall from the top of the screen, and players must rotate and position them to create solid lines across the bottom. When a line is completed, it disappears, and the player scores points. The game progressively speeds up as you play, increasing the challenge and excitement.{" "}
             </p>
             <p>
@@ -365,6 +385,74 @@ This project not only showcases the versatility of Arduino and LCD screens but a
           </p>
         </div>
       </div>
+
+
+
+      <div style={{ display: "flex" }}>
+          {/* First Instance */}
+          <div style={{ flex: 1, marginRight: 16 }}>
+            <div className="captioned-image">
+              <img src={prototype1} style={{ width: "100%" }} alt="" />
+              <p>
+                <sub>
+                  <b>Image 6:</b> Fully enclosed Hapnav controller.{" "}
+                </sub>
+              </p>
+            </div>
+          </div>
+
+          {/* Second Instance */}
+          <div style={{ flex: 1, marginRight: 16 }}>
+            <div className="captioned-image">
+              <img src={prototype2} style={{ width: "100%" }} alt="" />
+              <p>
+                <sub>
+                  <b>Image 7:</b> Insides views of Hapnav controller.{" "}
+                </sub>
+              </p>
+            </div>
+          </div>
+
+          {/* Third Instance */}
+          <div style={{ flex: 1 }}>
+            <div className="captioned-image">
+              <img src={prototype3} style={{ width: "100%" }} alt="" />
+              <p>
+                <sub>
+                  <b>Image 8:</b> This is the minimal component version.{" "}
+                </sub>
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <h3>Link to Project:</h3>
+        <ul>
+          <li>
+            <p>
+              <a
+                rel="noreferrer"
+                target="_blank"
+                href="https://github.com/QC20/Haptic-Game-For-The-Blind"
+              >
+                <p>
+                  <b>Link to github repo</b>
+                </p>
+              </a>
+            </p>
+          </li>
+          <li>
+            <a
+              rel="noreferrer"
+              target="_blank"
+              href="https://github.com/QC20/Haptic-Game-For-The-Blind/tree/master/Controller-Designs"
+            >
+              <p>
+                <b>Controller designs</b>
+              </p>
+            </a>
+          </li>
+        </ul>
 
 
         <LineSplit />
