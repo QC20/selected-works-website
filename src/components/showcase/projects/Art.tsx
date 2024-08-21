@@ -22,6 +22,8 @@ import LDRParticleSim from "../../../assets/pictures/projects/art/LDRParticleSim
 import ThisComputerApp from "../../applications/ThisComputer";
 
 import TromnoStartScreen from "../../../assets/pictures/projects/software/Tromino_StartScreen1.jpg";
+import TromnoInGame from "../../../assets/pictures/projects/software/Tromino_InGame.jpg";
+import TromnoGameOver from "../../../assets/pictures/projects/software/Tromino_GameOver.jpg";
 import TrominoVidDemo from "../../../assets/pictures/projects/software/Tromino-In-Game(Compressed).mp4";
 
 import { styles } from "../../os/DragIndicator";
