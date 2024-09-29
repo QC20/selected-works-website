@@ -35,17 +35,11 @@ npm start
 ```
 
 ### Things I need to improve:
-- [x] Insert abroad schools
 - [ ] Insert micropolis game
-- [ ] Learn how to make projects open in different windows
-  - [x] Make project website appear in windows on desktop
-- [x] insert projects pages
-  - [x] insert creative projects
-  - [x] insert music and art
-  - [x] insert embedded projects 
-- [ ] Make fill out form work
-- [ ] Figure out how to deal with large files in the repo
-- [x] Add reseaech paper section
+- [ ] Figure out how to make projects open in different windows
+- [ ] Make fill out form work (and send to your own fill-out form)
+- [ ] Figure out how to deal with large files in the repo (currently it is fixed by having <50mb files)
+- [ ] Switch out ThreeJS project on desktop with some other interesting and interactive web dev app you've made
 
 ## To-Do's
 - Make reasearch paper images smaller in size so they'll be quicker to load in.

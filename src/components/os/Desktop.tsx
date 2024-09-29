@@ -73,7 +73,7 @@ const APPLICATIONS: {
     
     floating: {
         key: 'credits',
-        name: 'Floating Sphere',
+        name: 'Interactive Attractor',
         shortcutIcon: 'floatingSphere',
         component: floatingSphere,
     },
