@@ -20,10 +20,15 @@ import prototype3 from "../../../assets/pictures/projects/art/Prototype3.jpg";
 import LDRParticleSim from "../../../assets/pictures/projects/art/LDRParticleSimulation.mp4";
 
 import ThisComputerApp from "../../applications/ThisComputer";
-
+// @ts-ignore
 import TromnoStartScreen from "../../../assets/pictures/projects/software/Tromino_StartScreen1.jpg";
+// @ts-ignore
+import TromnoStartScreen2 from "../../../assets/pictures/projects/software/Tromino_StartScreen2.jpg";
+// @ts-ignore
 import TromnoInGame from "../../../assets/pictures/projects/software/Tromino_InGame.jpg";
+// @ts-ignore
 import TromnoGameOver from "../../../assets/pictures/projects/software/Tromino_GameOver.jpg";
+// @ts-ignore
 import TrominoVidDemo from "../../../assets/pictures/projects/software/Tromino-In-Game(Compressed).mp4";
 
 import { styles } from "../../os/DragIndicator";
@@ -87,6 +92,7 @@ const ArtProjects: React.FC<ArtProjectsProps> = (props) => {
               develop a unique two-dimensional perception of the virtual
               environment.{" "}
             </p>
+            <br />
             <p>
               Utilizing analogical metaphors, HapNav immerses players in a
               stylized world, encouraging intuitive navigation and mental
@@ -100,7 +106,7 @@ const ArtProjects: React.FC<ArtProjectsProps> = (props) => {
               <img src={prototype} style={{ width: "100%" }} alt="" />
               <p>
                 <sub>
-                  <b>Image 3:</b> Top view of the DIY setup.{" "}
+                  <b>Image 1:</b> Top view of the DIY setup.{" "}
                   <a
                     href={
                       "https://github.com/QC20/Haptic-Game-For-The-Blind/tree/master/Controller-Designs"
@@ -130,7 +136,7 @@ const ArtProjects: React.FC<ArtProjectsProps> = (props) => {
           </div>
           <p>
             <sub>
-              <b>Image 4:</b> Dev board showing the movement in the maze in
+              <b>Image 2:</b> Dev board showing the movement in the maze in
               real-time.{" "}
             </sub>
           </p>
@@ -176,7 +182,7 @@ const ArtProjects: React.FC<ArtProjectsProps> = (props) => {
               <img src={HapNavDemo} style={{ width: "90%" }} alt="" />
               <p>
                 <sub>
-                  <b>Image 5:</b> Go ahead and check out a{" "}
+                  <b>Image 3:</b> Go ahead and check out a{" "}
                   <a
                     href={"https://wokwi.com/projects/380777984099163137"}
                     target="_blank"
@@ -227,6 +233,7 @@ const ArtProjects: React.FC<ArtProjectsProps> = (props) => {
           I've tailored designs to accommodate both standard ESP-32s and popular
           devboard ESP-32s like the LiLyGo TTGO T-Display 16 MB ESP32.
         </p>
+        <br />
         <p>
           Furthermore, for those considering adding a screen down the road, I've
           included code for seamlessly integrating either an ST7789 or ILI9341
@@ -234,6 +241,7 @@ const ArtProjects: React.FC<ArtProjectsProps> = (props) => {
           comprehensive list of all the necessary parts required to recreate
           HapNav from scratch.
         </p>
+        <br />
         <p>
           I wholeheartedly encourage anyone intrigued by HapNav to dive in,
           explore, and embark on their own journey of building, expanding, and
@@ -248,7 +256,7 @@ const ArtProjects: React.FC<ArtProjectsProps> = (props) => {
               <img src={prototype1} style={{ width: "100%" }} alt="" />
               <p>
                 <sub>
-                  <b>Image 6:</b> Fully enclosed Hapnav controller.{" "}
+                  <b>Image 5:</b> Fully enclosed Hapnav controller.{" "}
                 </sub>
               </p>
             </div>
@@ -260,7 +268,7 @@ const ArtProjects: React.FC<ArtProjectsProps> = (props) => {
               <img src={prototype2} style={{ width: "100%" }} alt="" />
               <p>
                 <sub>
-                  <b>Image 7:</b> Insides views of Hapnav controller.{" "}
+                  <b>Image 6:</b> Insides views of Hapnav controller.{" "}
                 </sub>
               </p>
             </div>
@@ -272,7 +280,7 @@ const ArtProjects: React.FC<ArtProjectsProps> = (props) => {
               <img src={prototype3} style={{ width: "100%" }} alt="" />
               <p>
                 <sub>
-                  <b>Image 8:</b> This is the minimal component version.{" "}
+                  <b>Image 7:</b> This is the minimal component version.{" "}
                 </sub>
               </p>
             </div>
@@ -308,120 +316,152 @@ const ArtProjects: React.FC<ArtProjectsProps> = (props) => {
         </ul>
 
         <LineSplit />
+        {/* Tromino STARTS HERE */}
         <br></br>
 
-      <h2>Tromino: A Tetris-like game run on a LCD1602 screen</h2>
-      <br />
+        <h2>Tromino: A Tetris-like game run on a LCD1602 screen</h2>
+        <br />
 
-      <div style={{ display: "flex", alignItems: "center" }}>
-        <div style={{ flex: 1, marginRight: 32 }}>
-          <p>
-          Taking something that wasn't supposed to be fun and hacking a game onto it to give it a new function not originally intended is a great pleasure of mine. In this project, I've taken a humble LCD1602 screen - a display you'll usually encounter as a clock or as an interface for controlling some mundane machine - and transformed it into a pocket-sized gaming device. By hooking it up to an Arduino Uno microcontroller, I've enabled this simple display to host a captivating game you can play using its onboard buttons.{" "}
+        <div style={{ display: "flex", alignItems: "center" }}>
+          <div style={{ flex: 1, marginRight: 8 }}>
             <p>
-              <br />
-              This game, which I've dubbed "Tromino," is a unique twist on the classic Tetris. Instead of the familiar four-block 
-              <a 
-              href={
-                "https://en.wikipedia.org/wiki/Tetromino"
-              }
-              target="_blank"
-              rel="noopener nreferrer"
-              >
-              tetrominos
-              </a>
-                , 
+              Taking something that wasn't supposed to be fun and hacking a game
+              onto it to give it a new function not originally intended is a
+              great pleasure of mine. In this project, I've taken the humble{" "}
+              
+              <a
+                  href={"http://wiki.sunfounder.cc/index.php?title=LCD1602_Module"}
+                  target="_blank"
+                  rel="noopener nreferrer noreferrer"
+                >
+                   LCD1602 screen
+                </a>
+              {" "}- a display you'll usually encounter as a clock or
+              as an interface for controlling some mundane machine - and
+              transformed it into a pocket-sized gaming device. By hooking it up
+              to an Arduino Uno microcontroller, I've enabled this simple
+              display to host a captivating game you can play using its onboard
+              buttons.{" "}
+              <p>
+                <br />
+                This game, which I've dubbed "Tromino," is a unique twist on the
+                classic Tetris. Instead of the familiar four-block{" "}
                 <a
-                href={
-                  "https://en.wikipedia.org/wiki/Tromino"
-                }
-                target="_blank"
-                rel="noopener noreferrer"
+                  href={"https://en.wikipedia.org/wiki/Tetromino"}
+                  target="_blank"
+                  rel="noopener nreferrer noreferrer"
+                >
+                  tetrominos
+                </a>
+                ,{" "}
+                <a
+                  href={"https://en.wikipedia.org/wiki/Tromino"}
+                  target="_blank"
+                  rel="noopener noreferrer"
                 >
                   Tromino
-                </a>
-                {" "}uses three-block pieces called trominos. These L-shaped or straight-line shapes add an interesting challenge to the gameplay, forcing players to think differently about how they fit pieces together.
-The game logic follows the core principles of Tetris but with some adaptations to suit the limited 16x2 display. Trominos fall from the top of the screen, and players must rotate and position them to create solid lines across the bottom. When a line is completed, it disappears, and the player scores points. The game progressively speeds up as you play, increasing the challenge and excitement.{" "}
+                </a>{" "}
+                uses three-block pieces called trominos. These L-shaped or
+                straight-line shapes add an interesting challenge to the
+                gameplay, forcing players to think differently about how they
+                fit pieces together. The game logic follows the core principles
+                of Tetris but with some adaptations to suit the limited 16x2
+                display. Trominos fall from the top of the screen, and players
+                must rotate and position them to create solid lines across the
+                bottom. When a line is completed, it disappears, and the player
+                scores points. The game progressively speeds up as you play,
+                increasing the challenge and excitement.{" "}
+              </p>
+              <br />
+              <p>
+                What makes this project particularly intriguing is how it pushes
+                the boundaries of what's possible with such limited hardware.
+                The 16x2 LCD screen, typically used for simple text displays,
+                now becomes a dynamic playground. The onboard buttons, usually
+                meant for menu navigation, are repurposed as game controls. It's
+                a testament to the idea that with a bit of creativity and
+                coding, you can breathe new life into seemingly basic
+                electronics. This project not only showcases the versatility of
+                Arduino and LCD screens but also demonstrates how we can
+                reimagine and repurpose everyday technology. It's a perfect
+                blend of nostalgia for classic games and the maker spirit of
+                creating something unique and unexpected.{" "}
+              </p>
+              <br />
             </p>
+          </div>
+          <div
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              marginRight: "0px",
+              marginTop: "-75px",
+            }}
+          >
+            <div
+              style={{
+                textAlign: "center",
+                width: "85%",
+                marginLeft: "0px",
+                marginTop: "20%",
+              }}
+            >
+              <VideoAsset src={TrominoVidDemo} />
+            </div>
             <p>
-            What makes this project particularly intriguing is how it pushes the boundaries of what's possible with such limited hardware. The 16x2 LCD screen, typically used for simple text displays, now becomes a dynamic playground. The onboard buttons, usually meant for menu navigation, are repurposed as game controls. It's a testament to the idea that with a bit of creativity and coding, you can breathe new life into seemingly basic electronics.
-This project not only showcases the versatility of Arduino and LCD screens but also demonstrates how we can reimagine and repurpose everyday technology. It's a perfect blend of nostalgia for classic games and the maker spirit of creating something unique and unexpected.{" "}
+              <div
+                style={{
+                  display: "flex",
+                  flexDirection: "column",
+                  alignItems: "center",
+                }}
+              >
+                <div>
+                  <b>Image 8: </b> Top view of the Tromino case showing
+                  {/* Add a space after the colon */}
+                </div>
+                <div style={{ marginLeft: "4.5em" }}>
+                  the game run in real-time.
+                </div>
+              </div>
+              <br />
             </p>
-            <br></br>
-            <br />
-            <div className="captioned-image">
-              <img src={TromnoStartScreen} style={{ width: "100%" }} alt="" />
-              <p>
-                <sub>
-                  <b>Image X:</b> Top view Tromino start screen showing a welcome message and my alias.{" "}
-                  <a
-                    href={
-                      "https://github.com/QC20/Haptic-Game-For-The-Blind/tree/master/Controller-Designs"
-                    }
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
-                    Click here
-                  </a>{" "}
-                  to see schematic.
-                </sub>
-              </p>
-            </div>
-          </p>
-        </div>
-        <div
-          style={{
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "center",
-            marginRight: "0px",
-            marginTop: "-75px",
-          }}
-        >
-          <div style={{ textAlign: "center", width: "85%", marginLeft: "0px" }}>
-            <VideoAsset src={TrominoVidDemo} />
           </div>
-          <p>
-            <sub>
-              <b>Image X:</b> Top view of the Tromino case showing the game run in real-time.{" "}
-            </sub>
-          </p>
         </div>
-      </div>
-
-
-
-      <div style={{ display: "flex" }}>
-          {/* First Instance */}
+        <br />
+        <div style={{ display: "flex" }}>
+          {/* First Tromino image */}
           <div style={{ flex: 1, marginRight: 16 }}>
             <div className="captioned-image">
-              <img src={prototype1} style={{ width: "100%" }} alt="" />
+              <img src={TromnoStartScreen2} style={{ width: "100%" }} alt="" />
               <p>
                 <sub>
-                  <b>Image 6:</b> Fully enclosed Hapnav controller.{" "}
+                  <b>Image 9:</b> Zoomed-out Tromino controller.{" "}
                 </sub>
               </p>
             </div>
           </div>
 
-          {/* Second Instance */}
+          {/* Second Tromino image */}
           <div style={{ flex: 1, marginRight: 16 }}>
             <div className="captioned-image">
-              <img src={prototype2} style={{ width: "100%" }} alt="" />
+              <img src={TromnoInGame} style={{ width: "100%" }} alt="" />
               <p>
                 <sub>
-                  <b>Image 7:</b> Insides views of Hapnav controller.{" "}
+                  <b>Image 10:</b> Tromino Gameplay window.{" "}
                 </sub>
               </p>
             </div>
           </div>
 
-          {/* Third Instance */}
+          {/* Third Tromino image */}
           <div style={{ flex: 1 }}>
             <div className="captioned-image">
-              <img src={prototype3} style={{ width: "100%" }} alt="" />
+              <img src={TromnoGameOver} style={{ width: "100%" }} alt="" />
               <p>
                 <sub>
-                  <b>Image 8:</b> This is the minimal component version.{" "}
+                  <b>Image 11:</b> Tromino 'Game Over' and score window.{" "}
                 </sub>
               </p>
             </div>
@@ -435,7 +475,7 @@ This project not only showcases the versatility of Arduino and LCD screens but a
               <a
                 rel="noreferrer"
                 target="_blank"
-                href="https://github.com/QC20/Haptic-Game-For-The-Blind"
+                href="https://github.com/QC20/Tromino"
               >
                 <p>
                   <b>Link to github repo</b>
@@ -447,7 +487,7 @@ This project not only showcases the versatility of Arduino and LCD screens but a
             <a
               rel="noreferrer"
               target="_blank"
-              href="https://github.com/QC20/Haptic-Game-For-The-Blind/tree/master/Controller-Designs"
+              href="https://github.com/QC20/Tromino/tree/main/STL"
             >
               <p>
                 <b>Controller designs</b>
@@ -455,7 +495,6 @@ This project not only showcases the versatility of Arduino and LCD screens but a
             </a>
           </li>
         </ul>
-
 
         <LineSplit />
         <br />
@@ -548,7 +587,7 @@ This project not only showcases the versatility of Arduino and LCD screens but a
               {/* Adjusted width */}
               <p>
                 <sub>
-                  <b>Image 1:</b> RGB light circling through its colors. Find
+                  <b>Image 12:</b> RGB light circling through its colors. Find
                   other code examples{" "}
                   <a
                     href="https://github.com/QC20/DIY-Arduino-Controller/tree/main/Code%20Examples"
@@ -567,7 +606,7 @@ This project not only showcases the versatility of Arduino and LCD screens but a
             <img src={diyArduinoSetup2} style={{ width: "100%" }} alt="" />
             <p>
               <sub>
-                <b>Image 2:</b> Top view of the DIY setup.
+                <b>Image 13:</b> Top view of the DIY setup.
                 <a
                   href={
                     "https://github.com/QC20/DIY-Arduino-Controller/blob/main/Upload/img/DIY_arduino_wiring_with_legend.png"
@@ -629,7 +668,7 @@ This project not only showcases the versatility of Arduino and LCD screens but a
 
               <p>
                 <sub>
-                  <b>Image 9:</b> Live demo of the{" "}
+                  <b>Image 14:</b> Live demo of the{" "}
                   <a
                     href="https://github.com/QC20/Screensaver-LDR"
                     target="_blank"

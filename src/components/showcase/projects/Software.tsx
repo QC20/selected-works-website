@@ -28,13 +28,6 @@ export interface SoftwareProjectsProps {}
 export interface DesktopProps {}
 
 const SoftwareProjects: React.FC<SoftwareProjectsProps> = (props) => {
-<<<<<<< HEAD
-    return (
-        <div className="site-page-content">
-            <h1>Coding and Programming</h1>
-            <h3>Software Proejcts on regular PCs or single-board computers</h3>
-            <br />
-=======
   return (
     <div className="site-page-content">
       <h1>Coding and Programming</h1>
@@ -161,7 +154,6 @@ const SoftwareProjects: React.FC<SoftwareProjectsProps> = (props) => {
           }}
         >
           <div style={{ flex: 1, marginLeft: "-170px" }}>
->>>>>>> 7344e9d9fd7edf73ad653737477c50b67927ba67
             <p>
               Ever wondered how music or white/pink noise shapes your reading
               experience? Imagine yourself diving into news articles or delving

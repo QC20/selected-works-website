@@ -19,7 +19,7 @@ const floatingSphere: React.FC<floatingSphereProps> = (props) => {
         >
             <div className="site-page">
                 <iframe
-                    src="https://floating-sphere.vercel.app/"
+                    src="https://qc20.github.io/Attractor/"
                     title="Floating Sphere"
                     width="100%"
                     height="100%"
