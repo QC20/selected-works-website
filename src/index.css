@@ -401,18 +401,26 @@ input:active {
     color: white;
 }
 
-
-/* Scrollbar stuff */
+/* Scrollbar container */
 body *::-webkit-scrollbar {
-    width: 17.6px;  /* 16px + 10% */
-    height: 17.6px; /* 16px + 10% */
+    width: 16px;
+    height: 16px;
 }
 
 /* Thumb styling */
 body *::-webkit-scrollbar-thumb {
     background: silver;
-    border: 1px solid #000; /* Dark border to match original style */
-    box-shadow: inset 1px 1px #dfdfdf, inset -1px -1px gray; /* Similar shadow */
+    border: 1px solid #000;
+    box-shadow: inset 1px 1px #dfdfdf, inset -1px -1px gray;
+}
+
+body *::-webkit-scrollbar-thumb:hover {
+    background: #d4d0c8;
+}
+
+body *::-webkit-scrollbar-thumb:active {
+    background: #b0b0b0;
+    box-shadow: inset -1px -1px #dfdfdf, inset 1px 1px gray;
 }
 
 /* Track styling */
@@ -420,18 +428,28 @@ body *::-webkit-scrollbar-track {
     background-image: url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgLTAuNSAyIDIiIHNoYXBlLXJlbmRlcmluZz0iY3Jpc3BFZGdlcyI+CjxtZXRhZGF0YT5NYWRlIHdpdGggUGl4ZWxzIHRvIFN2ZyBodHRwczovL2NvZGVwZW4uaW8vc2hzaGF3L3Blbi9YYnh2Tmo8L21ldGFkYXRhPgo8cGF0aCBzdHJva2U9IiNjMGMwYzAiIGQ9Ik0wIDBoMU0xIDFoMSIgLz4KPC9zdmc+");
     background-position: 0 0;
     background-repeat: repeat;
-    background-size: 3.3px; /* 3px + 10% */
+    background-size: 2px;
+    background-color: #c0c0c0;
 }
 
 /* Button styles */
 body *::-webkit-scrollbar-button {
     background-repeat: no-repeat;
-    background-size: 17.6px; /* 16px + 10% */
-    background-color: silver; /* Background color for buttons */
+    background-size: 16px;
+    background-color: silver;
     border: 1px solid;
-    border-color: silver #000 #000 silver; /* Matches original border */
-    width: 17.6px;  /* 16px + 10% */
-    height: 17.6px; /* 16px + 10% */
+    border-color: #dfdfdf #808080 #808080 #dfdfdf;
+    width: 16px;
+    height: 16px;
+}
+
+body *::-webkit-scrollbar-button:hover {
+    background-color: #d4d0c8;
+}
+
+body *::-webkit-scrollbar-button:active {
+    border-color: #808080 #dfdfdf #dfdfdf #808080;
+    background-color: #b0b0b0;
 }
 
 /* Vertical Decrement Button (Up Arrow) */
