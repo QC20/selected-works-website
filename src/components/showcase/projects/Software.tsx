@@ -219,20 +219,13 @@ const SoftwareProjects: React.FC<SoftwareProjectsProps> = (props) => {
           for all the basics you need to know – it's a solid recommendation to
           level up your understanding.{" "}
         </p>
+        <br />
         <div className="captioned-image">
           <img src={eyeTrackingStudy} style={{ width: "75%" }} alt="" />
 
           <p>
             <sub>
-              <b>Image 2:</b> Setup overview of eye tracking works{" "}
-              <a
-                href="https://github.com/QC20/VoiceWhiz"
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                VoiceWhiz'
-              </a>{" "}
-              sleek design in its round 3D printed case.
+              <b>Image 2:</b> Overview of the eye-tracking setup and its functionality, highlighting the equipment and process used for tracking eye movements.
             </sub>
           </p>
         </div>
