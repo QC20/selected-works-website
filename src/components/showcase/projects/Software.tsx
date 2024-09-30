@@ -31,7 +31,7 @@ const SoftwareProjects: React.FC<SoftwareProjectsProps> = (props) => {
   return (
     <div className="site-page-content">
       <h1>Coding and Programming</h1>
-      <h3>Projets</h3>
+      <h3>Projects</h3>
       <br />
       <p>
         Welcome to my projects section, where you'll discover a range of
