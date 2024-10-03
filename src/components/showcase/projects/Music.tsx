@@ -351,7 +351,7 @@ const MusicProjects: React.FC<MusicProjectsProps> = () => {
               href="https://github.com/QC20/AsciiVision"
             >
               <p>
-                <b>Github repo</b> - go check out the code base to learn more!{" "}
+                <b>Live Website</b> - go check out the live demo!{" "}
               </p>
             </a>
           </p>
