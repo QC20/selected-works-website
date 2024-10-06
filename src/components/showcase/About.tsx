@@ -29,43 +29,16 @@ const About: React.FC<AboutProps> = (props) => {
       <br />
       <div className="text-block">
         <p>
-          Driven by a passion for programming and interfacing with innovative
-          technologies, I thrive across various domains within Computer Science,
-          always keeping the user's needs and desires at the forefront of my
-          work. Alright, I guess that covers the elevator pitch. Now, let's get
-          real. I've designed this website in direct opposition to most
-          contemporary design conventions because I believe it creates a more
-          engaging user experience. While other sites rush to deliver everything
-          within 5 seconds and under 2 clicks, this site will reward those who
-          are curious enough to explore (the hyperlink rabit hole do indeed go
-          deep).{" "}
-        </p>
-        <br />
-        <p>
-          Well, you've made it this far. I suppose that must mean some of the
-          content on my selected works website has caught your eye. I hope
-          you'll enjoy it. And yes, everything you see here is made my me from
-          the bottom up, including the{" "}
-          <a
-            rel="noreferrer"
-            target="_blank"
-            href="https://github.com/QC20/selected-works-website"
-          >
-            website itself
-          </a>
-          . Everthing is open source and reproducible, so feel free to copy and
-          'steal' whatever you fancy for your own projects. Just make sure to
-          drop me a mention will you? Maybe you've even taken some time to try
-          clicking on some of the icons on the desktop behind this window. Doom
-          is a great game, you know.
-        </p>
-        <p>
-          Well, in any case, I hope you enjoy your time here and if you have any
-          questions or comments, you can contact me using{" "}
-          <Link to="/contact">this form</Link>, or send me an email at{" "}
-          <a href="mailto:jkj@di.ku.dk">jkj@di.ku.dk</a>. Or you can go ahead
-          and connect with me on{" "}
-          <a href="https://www.linkedin.com/in/jonas-kjeldmand/">Linkedin</a>.
+          Driven by a passion for improving the interface between humans and
+          innovative technologies, I thrive across various domains within HCI,
+          Computer Science, and Cognitive Science, while always keeping the
+          user's needs and desires at the forefront of my work. Alright, I guess
+          that covers the elevator pitch. Now, let's get real. I've designed
+          this website in direct opposition to most contemporary design
+          conventions because I believe it creates a more engaging user
+          experience. While other sites rush to deliver everything within 5
+          seconds and under 2 clicks, this site will reward those who are
+          curious enough to explore.{" "}
         </p>
       </div>
       <ResumeDownload />
@@ -73,15 +46,17 @@ const About: React.FC<AboutProps> = (props) => {
         <h3>Getting to know me</h3>
         <br />
         <p>
-          In this section, allow me to share a glimpse of who I am. From my
-          passions to my journey, I aim to provide you with a deeper
-          understanding of the person behind the screen. My methodological grip
-          has been honed by diverse experiences, from collaborative projects in
-          academia to hands-on industry roles, and personal projects with
-          like-minded makers and designers. Each encounter has contributed to my
-          comprehensive understanding of programming and creative technologies,
-          fostering a versatile skill set that enables me to navigate various
-          domains within Computer Science with ease.{" "}
+          Let me give you a quick look into who I am. From my passions to my
+          personal journey, I hope to give you a better sense of the person
+          behind the screen. I'm driven by a constant desire for
+          self-improvement. I feel most alive when I'm stepping into something
+          completely new, where I'm a total beginner, and I can witness my own
+          growth as I develop new skills and competencies. In most areas of my
+          life, this is what drives me. This innate desire to create and build.
+          I definitely have a 'creator gene' that constantly pushes me to make,
+          tinker and experiment. But it’s not just about creating; it has to
+          have purpose. Whenever possible, it should serve as an improvement,
+          spark a provocation, or offer a fresh perspective.{" "}
         </p>
         <br />
         <div className="captioned-image">
@@ -99,14 +74,39 @@ const About: React.FC<AboutProps> = (props) => {
         </div>
 
         <p>
-          Outside of the software domain, I have many projects and hobbies that
-          I enjoy practicing in my spare time. Among the more tangible things I
-          do, I tinker with <Link to="/projects/art">physical computing</Link>{" "}
-          as well as <Link to="/projects/art">software programming</Link> and{" "}
-          <Link to="/projects/music">music & art</Link>. . You can learn more
-          about each on their respective pages under the '
-          <Link to="/projects">Projects</Link>' tab on my website. Other hobbies
-          I enjoy also enjoy is reading, hiking, and playing squash.
+          When I’m not using the computer to create, I like to stay active and
+          keep my body moving. I practice both yoga and karate. My philosophy is
+          that you can’t have yin without yang, and this applies to everything
+          in life. In order to be a complete human being, you need to embrace
+          and access both sides: the softness and flexibility of the yin, but
+          also the strength to push and perservere through challenges and
+          hardships when needed.
+        </p>
+        <br />
+        <p>
+          To nourish my mind, I also participate in a weekly political debate
+          club, where we discuss current events and explore classic texts to
+          educate each other and gain a deeper understanding of the world around
+          us. Beyond learning and helping others do the same, this also sharpens
+          my argumentative and public speaking skills. You haven’t truly
+          defended your viewpoints until you’ve debated someone with decades of
+          experience. While I don’t win every argument, I make sure to learn
+          from my mistakes each time.
+        </p>
+        <br />
+        <p>
+          And outside of the pure software domain, I have a range of projects
+          and hobbies that I enjoy exploring in my spare time, allowing me to
+          express my creativity and keep my mind engaged. Among the more
+          tangible things I do, I tinker with{" "}
+          <Link to="/projects/art">physical computing</Link>, as well as{" "}
+          <Link to="/projects/music">music & art</Link>. But yeah, even in my
+          spare time, I can't help but find myself drawn to{" "}
+          <Link to="/projects/software">software programming</Link>, a passion
+          that extends beyond my professional life. It's a skill I've learned
+          that allows me to create and build beyond just what's necessary for
+          daily living. You can explore each of these areas in more detail under
+          the '<Link to="/projects">Projects</Link>' tab on my website.
         </p>
         <br />
 
@@ -121,7 +121,7 @@ const About: React.FC<AboutProps> = (props) => {
             }}
           >
             <h3>
-              <img src={ComputerIcons} width="9%"></img> My passions
+              <img src={ComputerIcons} width="9%"></img> My academic passions
             </h3>
             <br />
 
@@ -209,20 +209,22 @@ const About: React.FC<AboutProps> = (props) => {
           </div>
         </div>
         <br />
+        <h3>About this site</h3>
         <br />
         <p>
           So yeah, that wraps up the 'about me' section for now. Now, feel free
           to explore the rest of the website and discover all it has to offer.
           I've included interactive elements, moving images, GIFs, redirects,
           and games for your enjoyment. So, please take the time to learn
-          something new and get inspired. Everything on here is shared through
-          open source and is 100% reproducible, should you get the urge to try
-          some of the designs yourself. Happy exploring! Don't forget to try
-          some of the other app shortcuts on the desktop as well. I've made the
-          website to emulate the classic MS95 OS as much as possible, meaning
-          that all element you see are interactive and all buttons work. Go
-          ahead and see for yourself. If you like it, feel free to let me know.{" "}
-          Good luck and have fun!
+          something new and get inspired. Everything on here is shared through{" "}
+          <a href="https://www.linkedin.com/in/jonas-kjeldmand/">open source</a>{" "}
+          and is 100% reproducible, should you get the urge to try some of the
+          designs yourself. Happy exploring! Don't forget to try some of the
+          other app shortcuts on the desktop as well. I've made the website to
+          emulate the classic MS95 OS as much as possible, meaning that all
+          element you see are interactive and all buttons work. Go ahead and see
+          for yourself. If you like it, feel free to let me know. Good luck and
+          have fun!
         </p>
         <br />
         <p>
