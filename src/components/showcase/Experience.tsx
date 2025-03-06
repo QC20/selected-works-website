@@ -16,12 +16,40 @@ const Experience: React.FC<ExperienceProps> = (props) => {
             <h1>Work Experience</h1>
           </div>
           <br />
+          <br />
+          <br></br>
+          <div style={styles.headerRow}>
+            <h3>PhD Researcher</h3>
+            <b>
+              <p>February 2025 ~ Present</p>
+            </b>
+          </div>
+          <h4 style={{ fontWeight: "normal" }}>Technical University of Denmark (DTU)</h4>
+          <div className="text-block">
+            <ul>
+              <li>
+                <p>
+                  <b>Research Focus: </b> Artificial Intelligence's Impact on Managment and Managerial Work
+                </p>
+              </li>
+              <li>
+                <p>
+                  <b>Key Contributions: </b> [Insert key projects, contributions, or methodologies]
+                </p>
+              </li>
+              <li>
+                <p>
+                  <b>Publications & Conferences: </b> [Insert any relevant details]
+                </p>
+              </li>
+            </ul>
+          </div>
           <br></br>
           <div style={styles.headerRow}>
             <h3>UI Specialist & Developer</h3>
 
             <b>
-              <p>Februrary 2023 ~ present</p>
+              <p>Februrary 2023 ~ February 2025</p>
             </b>
           </div>
           <h4 style={{ fontWeight: "normal" }}>
@@ -323,6 +351,42 @@ const Experience: React.FC<ExperienceProps> = (props) => {
             <h1>Education</h1>
           </div>
           <br />
+          <LineSplit />
+      <div style={styles.headerContainer}>
+        <div style={styles.header}>
+          <div style={styles.headerRow}>
+            <h1>Education</h1>
+          </div>
+          <br />
+          <br></br>
+          <div style={styles.headerRow}>
+            <h3>Doctor of Philosophy (PhD) in Strategy and Leadership</h3>
+            <b>
+              <p>2025 ~ 2028</p>
+            </b>
+          </div>
+          <h4 style={{ fontWeight: "normal" }}>Technical University of Denmark (DTU)</h4>
+          <div className="text-block">
+            <ul>
+              <li>
+                <p>
+                  <b>Research Area: </b> [Insert research area or specialization]
+                </p>
+              </li>
+              <li>
+                <p>
+                  <b>Supervisors: </b> [Insert supervisor names, if applicable]
+                </p>
+              </li>
+              <li>
+                <p>
+                  <b>Key Courses: </b> [Insert relevant coursework]
+                </p>
+              </li>
+            </ul>
+          </div>
+        </div>
+      </div>
           <br></br>
           <div style={styles.headerRow}>
             <h3>Master of Science in IT & Cognition</h3>
