@@ -360,7 +360,7 @@ const Experience: React.FC<ExperienceProps> = (props) => {
       <div style={styles.headerContainer}>
         <div style={styles.header}>
           <div style={styles.headerRow}>
-            <h1>Education</h1>
+         
           </div>
           <br />
           <br></br>
@@ -373,21 +373,21 @@ const Experience: React.FC<ExperienceProps> = (props) => {
           <h4 style={{ fontWeight: "normal" }}>Technical University of Denmark (DTU)</h4>
           <div className="text-block">
             <ul>
-              <li>
-                <p>
-                  <b>Research Area: </b> [Insert research area or specialization]
-                </p>
-              </li>
-              <li>
-                <p>
-                  <b>Supervisors: </b> [Insert supervisor names, if applicable]
-                </p>
-              </li>
-              <li>
-                <p>
-                  <b>Key Courses: </b> [Insert relevant coursework]
-                </p>
-              </li>
+            <li>
+              <p>
+                <b>Research Area: </b> The impact of Artificial Intelligence on managerial work, decision-making, and well-being within organizational settings.
+              </p>
+            </li>
+            <li>
+              <p>
+                <b>Supervisors: </b> Main supervisor: Kathrin Kirchner; Co-supervisor: Kasper Edwards
+              </p>
+            </li>
+            <li>
+              <p>
+                <b>Key Courses: </b> 
+              </p>
+            </li>
             </ul>
           </div>
         </div>
