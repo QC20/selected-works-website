@@ -34,19 +34,24 @@ const Experience: React.FC<ExperienceProps> = (props) => {
               </li>
               <li>
                 <p>
-                  <b>Key Contributions: </b> [Insert key projects, contributions, or methodologies]
+                  <b>Key Contributions: </b>
+                  <ul>
+                    <li>Conducted original research on the impact of AI and algorithmic systems on managerial roles and well-being.</li>
+                    <li>Developed and tested hypotheses on managerial perception, role adaptation, and decision-making autonomy in AI-integrated workplaces.</li>
+                    <li>Disseminated findings through peer-reviewed publications, public commentary, and expert appearances in media.</li>
+                  </ul>
                 </p>
               </li>
               <li>
                 <p>
-                  <b>Publications & Conferences: </b> [Insert any relevant details]
+                  <b>Publications & Conferences: </b> 
                 </p>
               </li>
             </ul>
           </div>
           <br></br>
           <div style={styles.headerRow}>
-            <h3>UI Specialist & Developer</h3>
+            <h3>AI & Automation Developer</h3>
 
             <b>
               <p>Februrary 2023 ~ February 2025</p>
