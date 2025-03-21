@@ -28,36 +28,27 @@ const About: React.FC<AboutProps> = (props) => {
       </h3>
       <br />
       <div className="text-block">
-        <p>
-          Driven by a passion for improving the interface between humans and
-          innovative technologies, I thrive across various domains within HCI,
-          Computer Science, and Cognitive Science, while always keeping the
-          user's needs and desires at the forefront of my work. Alright, I guess
-          that covers the elevator pitch. Now, let's get real. I've designed
-          this website in direct opposition to most contemporary design
-          conventions because I believe it creates a more engaging user
-          experience. While other sites rush to deliver everything within 5
-          seconds and under 2 clicks, this site will reward those who are
-          curious enough to explore.{" "}
-        </p>
-      </div>
-      <ResumeDownload />
-      <div className="text-block">
-        <h3>Getting to know me</h3>
-        <br />
-        <p>
-          Let me give you a quick look into who I am. From my passions to my
-          personal journey, I hope to give you a better sense of the person
-          behind the screen. I'm driven by a constant desire for
-          self-improvement. I feel most alive when I'm stepping into something
-          completely new, where I'm a total beginner, and I can witness my own
-          growth as I develop new skills and competencies. In most areas of my
-          life, this is what drives me. This innate desire to create and build.
-          I definitely have a 'creator gene' that constantly pushes me to make,
-          tinker and experiment. But it’s not just about creating; it has to
-          have purpose. Whenever possible, it should serve as an improvement,
-          spark a provocation, or offer a fresh perspective.{" "}
-        </p>
+      <p>
+  Driven by a passion for improving the interface between humans and innovative technologies, I thrive across various domains within HCI,   
+  Computer Science, and Cognitive Science, while always keeping the user's needs and desires at the forefront of my work. 
+  Today, my focus has evolved—I’m currently pursuing a PhD investigating how artificial intelligence reshapes management and managerial work. 
+  This research explores the profound impact of algorithmic systems on decision-making, leadership, and organizational dynamics, blending my 
+  longstanding interests in technology with a deep dive into how we work and lead.
+</p>
+<p>
+  Alright, I guess that covers the elevator pitch. Now, let's get real. I've designed this website in direct opposition to most 
+  contemporary design conventions because I believe it creates a more engaging user experience. While other sites rush to deliver 
+  everything within 5 seconds and under 2 clicks, this site will reward those who are curious enough to explore.
+</p>
+</div>
+<ResumeDownload />
+<div className="text-block">
+  <h3>Getting to know me</h3>
+  <br />
+  <p>
+    Let me give you a quick look into who I am. From my passions to my personal journey, I hope to give you a better sense of the person behind the screen. I'm driven by a constant desire for self-improvement. I feel most alive when I'm stepping into something completely new, where I'm a total beginner, and I can witness my own growth as I develop new skills and competencies. In most areas of my life, this is what drives me—the innate desire to create and build. I definitely have a 'creator gene' that constantly pushes me to make, tinker, and experiment. But it’s not just about creating; it has to have purpose. Whenever possible, it should serve as an improvement, spark a provocation, or offer a fresh perspective.
+  </p>
+
         <br />
         <div className="captioned-image">
           <img
