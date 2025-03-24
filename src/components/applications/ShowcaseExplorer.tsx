@@ -24,12 +24,12 @@ const ShowcaseExplorer: React.FC<ShowcaseExplorerProps> = (props) => {
             left={56}
             width={initWidth}
             height={initHeight}
-            windowTitle="Jonas Kjeldmand Jensen - Portfolio & Selected Works 2024"
+            windowTitle="Jonas Kjeldmand Jensen - Portfolio & Selected Works 2025"
             windowBarIcon="windowExplorerIcon"
             closeWindow={props.onClose}
             onInteract={props.onInteract}
             minimizeWindow={props.onMinimize}
-            bottomLeftText={'© Copyright 2024 Jonas Kjeldmand Jensen'}
+            bottomLeftText={'© Copyright 2025 Jonas Kjeldmand Jensen'}
         >
             <Router>
                 <div className="site-page">
