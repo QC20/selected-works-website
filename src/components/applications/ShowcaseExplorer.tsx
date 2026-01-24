@@ -24,7 +24,7 @@ const ShowcaseExplorer: React.FC<ShowcaseExplorerProps> = (props) => {
             left={56}
             width={initWidth}
             height={initHeight}
-            windowTitle="Jonas Kjeldmand Jensen - Portfolio & Selected Works 2025"
+            windowTitle="Jonas Kjeldmand Jensen - Portfolio & Selected Works 2026"
             windowBarIcon="windowExplorerIcon"
             closeWindow={props.onClose}
             onInteract={props.onInteract}
