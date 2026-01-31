@@ -29,7 +29,7 @@ const Experience: React.FC<ExperienceProps> = (props) => {
             <ul>
               <li>
                 <p>
-                  <b>Research Focus: </b> Artificial Intelligence's Impact on Managment and Managerial Work
+                  <b>Research Focus: </b> The Effects of Artificial Intelligence on Managers, Managerial Work, the Managerial Role, and Well Being within Organizational Contexts.
                 </p>
               </li>
               <li>
@@ -38,13 +38,17 @@ const Experience: React.FC<ExperienceProps> = (props) => {
                   <ul>
                     <li>Conducted original research on the impact of AI and algorithmic systems on managerial roles and well-being.</li>
                     <li>Developed and tested hypotheses on managerial perception, role adaptation, and decision-making autonomy in AI-integrated workplaces.</li>
-                    <li>Disseminated findings through peer-reviewed publications, public commentary, and expert appearances in media.</li>
+                    <li>Disseminated findings through hight-impact peer-reviewed publications, public commentary, and expert appearances in media.</li>
+                     <li>Designed and delivered educational programs for organizational leaders on AI integration and change management practices.</li>
                   </ul>
                 </p>
               </li>
               <li>
                 <p>
                   <b>Publications & Conferences: </b> 
+                  <ul>
+                    <li>A Conceptual Model for Human-AI Collaboration in Managerial Work</li>
+                  </ul>
                 </p>
               </li>
             </ul>
