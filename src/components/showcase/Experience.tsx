@@ -47,7 +47,7 @@ const Experience: React.FC<ExperienceProps> = (props) => {
                 <p>
                   <b>Publications & Conferences: </b> 
                   <ul>
-                    <li>A Conceptual Model for Human-AI Collaboration in Managerial Work</li>
+                    <li>A Conceptual Model for Human-AI Collaboration in Managerial Work [HICSS, 2025]</li>
                   </ul>
                 </p>
               </li>
@@ -369,22 +369,23 @@ const Experience: React.FC<ExperienceProps> = (props) => {
           <br />
           <br></br>
           <div style={styles.headerRow}>
-            <h3>Doctor of Philosophy (PhD) in Strategy and Leadership</h3>
+            <h3>Doctor of Philosophy (PhD) in Management Science, Technology Implementation and Organizational Theory</h3>
             <b>
               <p>2025 ~ 2028</p>
             </b>
           </div>
           <h4 style={{ fontWeight: "normal" }}>Technical University of Denmark (DTU)</h4>
+          <h5 style={{ fontWeight: "normal" }}>Section for Strategy & Leadership Development</h5>
           <div className="text-block">
             <ul>
             <li>
               <p>
-                <b>Research Area: </b> The impact of Artificial Intelligence on managerial work, decision-making, and well-being within organizational settings.
+                <b>Research Area: </b> The impact of Artificial Intelligence on managers, managerial work, decision-making, and well-being within organizational settings. This research explores how AI technologies and algorithmic systems reshape managerial roles, alter traditional work practices, and influence the cognitive and emotional experiences of managers. The study investigates both the opportunities and challenges that emerge as organizations integrate AI into their operations, with particular attention to how managers navigate changing responsibilities, maintain autonomy, and adapt to new forms of human-machine collaboration in their daily work.
               </p>
             </li>
             <li>
               <p>
-                <b>Supervisors: </b> Main supervisor: Kathrin Kirchner; Co-supervisor: Kasper Edwards
+                <b>Supervisors: </b> Main supervisor: <a href="https://www.linkedin.com/in/kathrinkirchner/" target="_blank" rel="noopener noreferrer">Kathrin Kirchner</a>; Co-supervisor: <a href="https://www.linkedin.com/in/kasperedwards/" target="_blank" rel="noopener noreferrer">Kasper Edwards</a>
               </p>
             </li>
             <li>
