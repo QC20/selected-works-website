@@ -618,8 +618,8 @@ const MusicProjects: React.FC<MusicProjectsProps> = () => {
           </div>
         </div>
       </div>
-    </div>
-  );
+    );
 };
+
 
 export default MusicProjects;
