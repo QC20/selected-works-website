@@ -358,12 +358,11 @@ const MusicProjects: React.FC<MusicProjectsProps> = () => {
           </p>
         </li>
       </ul>
-
       <br />
-
+      
+  {/*
       <LineSplit />
       <br />
-  {/*
       <div className="text-block">
         <h2>Selected Creative Web Dev Work</h2>
         <br />
