@@ -33,7 +33,7 @@ const VerticalNavbar: React.FC<VerticalNavbarProps> = (props) => {
       setIsHome(false);
     }
     return () => {};
-  }, [location.pathname]);
+    }, [location.pathname]);
 
   return !isHome ? (
     <div style={styles.navbar}>
