@@ -3,6 +3,7 @@ import Colors from '../../constants/colors';
 import ShowcaseExplorer from '../applications/ShowcaseExplorer';
 import Doom from '../applications/Doom';
 import OregonTrail from '../applications/OregonTrail';
+import Micropolis from '../applications/Micropolis';
 import ShutdownSequence from './ShutdownSequence';
 import ThisComputerApp from '../applications/ThisComputer';
 
@@ -25,12 +26,6 @@ const APPLICATIONS: {
         component: React.FC<ExtendedWindowAppProps<any>>;
     };
 } = {
-    // computer: {
-    //     key: 'computer',
-    //     name: 'This Computer',
-    //     shortcutIcon: 'computerBig',
-    //     component: ThisComputer,
-    // },
     showcase: {
         key: 'showcase',
         name: 'My Showcase',
@@ -57,6 +52,12 @@ const APPLICATIONS: {
         shortcutIcon: 'doomIcon',
         component: Doom,
     },
+    micropolis: {
+        key: 'micropolis',
+        name: 'Micropolis',
+        shortcutIcon: 'doomIcon',
+        component: Micropolis,
+    },
     scrabble: {
         key: 'scrabble',
         name: 'Scrabble',
@@ -72,7 +73,7 @@ const APPLICATIONS: {
     },
     
     floating: {
-        key: 'credits',
+        key: 'floating',
         name: 'Interactive Attractor',
         shortcutIcon: 'floatingSphere',
         component: floatingSphere,

@@ -2,9 +2,9 @@ import React, { useState } from 'react';
 import DosPlayer from '../dos/DosPlayer';
 import Window from '../os/Window';
 
-export interface DoomAppProps extends WindowAppProps {}
+export interface MicropolisAppProps extends WindowAppProps {}
 
-const DoomApp: React.FC<DoomAppProps> = (props) => {
+const MicropolisApp: React.FC<MicropolisAppProps> = (props) => {
     const [width, setWidth] = useState(920);
     const [height, setHeight] = useState(620);
 
@@ -14,7 +14,7 @@ const DoomApp: React.FC<DoomAppProps> = (props) => {
             left={10}
             width={width}
             height={height}
-            windowTitle="Doom"
+            windowTitle="Micropolis"
             windowBarColor="#1C1C1C"
             windowBarIcon="windowGameIcon"
             bottomLeftText={'Powered by JSDOS & DOSBox'}
@@ -24,9 +24,9 @@ const DoomApp: React.FC<DoomAppProps> = (props) => {
             onWidthChange={setWidth}
             onHeightChange={setHeight}
         >
-            <DosPlayer width={width} height={height} bundleUrl="doom.jsdos" />
+            <DosPlayer width={width} height={height} bundleUrl="micropolis.jsdos" />
         </Window>
     );
 };
 
-export default DoomApp;
+export default MicropolisApp;

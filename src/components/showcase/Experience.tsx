@@ -29,17 +29,19 @@ const Experience: React.FC<ExperienceProps> = (props) => {
             <ul>
               <li>
                 <p>
-                  <b>Research Focus: </b> The Effects of Artificial Intelligence on Managers, Managerial Work, the Managerial Role, and Well Being within Organizational Contexts.
+                  <b>Research Focus: </b> Investigating how artificial intelligence reshapes managerial work, decision-making, role identity, and well-being in knowledge-producing organizations. Drawing on qualitative focus group interviews with 24 Danish middle managers and analyzed through the Gioia methodology, my research examines the hidden costs of AI-driven efficiency, including the loss of cognitively restorative routine tasks and the emergence of intensified, unbroken high-demand work.
                 </p>
               </li>
               <li>
                 <p>
                   <b>Key Contributions: </b>
                   <ul>
-                    <li>Conducted original research on the impact of AI and algorithmic systems on managerial roles and well-being.</li>
-                    <li>Developed and tested hypotheses on managerial perception, role adaptation, and decision-making autonomy in AI-integrated workplaces.</li>
-                    <li>Disseminated findings through hight-impact peer-reviewed publications, public commentary, and expert appearances in media.</li>
-                     <li>Designed and delivered educational programs for organizational leaders on AI integration and change management practices.</li>
+                    <li>Developed the theoretical concepts of <i>protective demands</i> (low-intensity routine tasks that provide micro-recovery, reflective thinking, and professional judgment maintenance) and <i>latent recovery</i> (the hidden restorative function embedded in everyday managerial work), advancing the Job Demands-Resources (JD-R) framework.</li>
+                    <li>Identified the <i>efficiency trap</i> mechanism, where AI automation of routine work paradoxically increases cognitive strain by eliminating natural recovery opportunities and compressing remaining tasks into sustained high-intensity effort.</li>
+                    <li>Conducted original empirical research through structured focus group interviews, producing a rich qualitative dataset on managerial perception, role adaptation, and autonomy in AI-integrated workplaces.</li>
+                    <li>Disseminated findings through peer-reviewed publications, public commentary for practitioner audiences, and expert contributions to national media on AI and leadership.</li>
+                    <li>Designed and delivered educational programs and workshops for organizational leaders on AI integration, change management, and managerial well-being.</li>
+                    <li>Teaching <i>Organisation og Ledelse</i> (Organization and Management) to engineering students at DTU.</li>
                   </ul>
                 </p>
               </li>
@@ -48,6 +50,7 @@ const Experience: React.FC<ExperienceProps> = (props) => {
                   <b>Publications & Conferences: </b> 
                   <ul>
                     <li>A Conceptual Model for Human-AI Collaboration in Managerial Work [HICSS, 2025]</li>
+                    <li>Manuscript on protective demands, latent recovery, and the efficiency trap [Under review, Journal of Organizational Effectiveness: People and Performance]</li>
                   </ul>
                 </p>
               </li>
@@ -58,7 +61,7 @@ const Experience: React.FC<ExperienceProps> = (props) => {
             <h3>AI & Automation Developer</h3>
 
             <b>
-              <p>Februrary 2023 ~ February 2025</p>
+              <p>February 2023 ~ February 2025</p>
             </b>
           </div>
           <h4 style={{ fontWeight: "normal" }}>
@@ -269,7 +272,7 @@ const Experience: React.FC<ExperienceProps> = (props) => {
             <h3>HCI B.A. Student Researcher</h3>
 
             <b>
-              <p>May 2018 2017 ~ November 2018</p>
+              <p>May 2018 ~ November 2018</p>
             </b>
           </div>
         </div>
@@ -380,12 +383,22 @@ const Experience: React.FC<ExperienceProps> = (props) => {
             <ul>
             <li>
               <p>
-                <b>Research Area: </b> The impact of Artificial Intelligence on managers, managerial work, decision-making, and well-being within organizational settings. This research explores how AI technologies and algorithmic systems reshape managerial roles, alter traditional work practices, and influence the cognitive and emotional experiences of managers. The study investigates both the opportunities and challenges that emerge as organizations integrate AI into their operations, with particular attention to how managers navigate changing responsibilities, maintain autonomy, and adapt to new forms of human-machine collaboration in their daily work.
+                <b>Research Area: </b> Investigating how AI technologies transform managerial work, decision-making, and well-being in knowledge-producing organizations. Through qualitative focus group interviews with Danish middle managers, this research uncovers how AI-driven automation of routine tasks can paradoxically undermine well-being by removing cognitively restorative work and intensifying remaining demands. The study contributes new theoretical concepts to the Job Demands-Resources framework, including <i>protective demands</i> and <i>latent recovery</i>, while examining how managers navigate changing responsibilities, maintain professional autonomy, and adapt to new forms of human-machine collaboration.
+              </p>
+            </li>
+            <li>
+              <p>
+                <b>Methodology: </b> Qualitative empirical research drawing on focus group interviews with 24 Danish middle managers, analyzed through the Gioia methodology. Theoretical scaffolding grounded in the Job Demands-Resources (JD-R) framework, Conservation of Resources theory, and Sonnentag's recovery paradox.
               </p>
             </li>
             <li>
               <p>
                 <b>Supervisors: </b> Main supervisor: <a href="https://www.linkedin.com/in/kathrinkirchner/" target="_blank" rel="noopener noreferrer">Kathrin Kirchner</a>; Co-supervisor: <a href="https://www.linkedin.com/in/kasperedwards/" target="_blank" rel="noopener noreferrer">Kasper Edwards</a>
+              </p>
+            </li>
+            <li>
+              <p>
+                <b>Teaching: </b> Organisation og Ledelse (Organization and Management) for engineering students at DTU.
               </p>
             </li>
             <li>
