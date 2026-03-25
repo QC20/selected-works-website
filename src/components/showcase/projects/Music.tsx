@@ -1,6 +1,6 @@
 /* eslint-disable react/jsx-no-comment-textnodes */
 /* eslint-disable jsx-a11y/alt-text */
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect, useCallback } from "react";
 // @ts-ignore
 import house from "../../../assets/audio/agressive_phonk.mp3";
 // @ts-ignore
@@ -45,8 +45,25 @@ import shortcut from "../../../../src/assets/pictures/projects/audio/shortcut.gi
 
 interface MusicProjectsProps {}
 
+// Detect platform for interaction hints
+const getIsMac = (): boolean => {
+  if (typeof navigator === "undefined") return false;
+  return /Mac|iPhone|iPad|iPod/.test(navigator.platform || navigator.userAgent);
+};
+
+const getIsTouchDevice = (): boolean => {
+  if (typeof window === "undefined") return false;
+  return "ontouchstart" in window || navigator.maxTouchPoints > 0;
+};
+
 const MusicProjects: React.FC<MusicProjectsProps> = () => {
   const [currentSong, setCurrentSong] = useState("");
+  const [iframeActive, setIframeActive] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const iframeContainerRef = useRef<HTMLDivElement>(null);
+  const iframeRef = useRef<HTMLIFrameElement>(null);
+  const isMac = getIsMac();
+  const isTouchDevice = getIsTouchDevice();
 
   useEffect(() => {
     const handleKeyDown = (event: MessageEvent) => {
@@ -66,6 +83,94 @@ const MusicProjects: React.FC<MusicProjectsProps> = () => {
     return () => {
       window.removeEventListener("message", handleKeyDown);
     };
+  }, []);
+
+  // Deactivate iframe when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (
+        iframeContainerRef.current &&
+        !iframeContainerRef.current.contains(e.target as Node)
+      ) {
+        setIframeActive(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  // Handle Escape to deactivate and exit fullscreen
+  useEffect(() => {
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        if (isFullscreen) {
+          exitFullscreen();
+        } else {
+          setIframeActive(false);
+        }
+      }
+    };
+
+    const handleFullscreenChange = () => {
+      const fsEl =
+        document.fullscreenElement ||
+        (document as any).webkitFullscreenElement;
+      if (!fsEl) {
+        setIsFullscreen(false);
+      }
+    };
+
+    document.addEventListener("keydown", handleEscape);
+    document.addEventListener("fullscreenchange", handleFullscreenChange);
+    document.addEventListener(
+      "webkitfullscreenchange",
+      handleFullscreenChange
+    );
+
+    return () => {
+      document.removeEventListener("keydown", handleEscape);
+      document.removeEventListener(
+        "fullscreenchange",
+        handleFullscreenChange
+      );
+      document.removeEventListener(
+        "webkitfullscreenchange",
+        handleFullscreenChange
+      );
+    };
+  }, [isFullscreen]);
+
+  const activateIframe = useCallback(() => {
+    setIframeActive(true);
+    if (iframeRef.current) {
+      iframeRef.current.focus();
+    }
+  }, []);
+
+  const enterFullscreen = useCallback(() => {
+    const container = iframeContainerRef.current;
+    if (!container) return;
+
+    if (container.requestFullscreen) {
+      container.requestFullscreen();
+    } else if ((container as any).webkitRequestFullscreen) {
+      (container as any).webkitRequestFullscreen();
+    }
+    setIsFullscreen(true);
+    setIframeActive(true);
+    if (iframeRef.current) {
+      iframeRef.current.focus();
+    }
+  }, []);
+
+  const exitFullscreen = useCallback(() => {
+    if (document.exitFullscreen) {
+      document.exitFullscreen();
+    } else if ((document as any).webkitExitFullscreen) {
+      (document as any).webkitExitFullscreen();
+    }
+    setIsFullscreen(false);
   }, []);
 
   return (
@@ -359,249 +464,494 @@ const MusicProjects: React.FC<MusicProjectsProps> = () => {
         </li>
       </ul>
       <br />
-      
-  {/*
+
       <LineSplit />
       <br />
       <div className="text-block">
-        <h2>Selected Creative Web Dev Work</h2>
+        <h2>Cellular ASCIImata</h2>
         <br />
         <p>
-          So I have made this entire website comprised of nothing but{" "}
+          There is something quietly mesmerizing about watching complexity
+          emerge from nothing. Cellular ASCIImata is a generative art piece
+          that takes{" "}
           <a
-            href="https://qc20.github.io/Scroll./"
+            href="https://en.wikipedia.org/wiki/Cellular_automaton"
             target="_blank"
             rel="noopener noreferrer"
           >
-            Black and White Visualizations
+            cellular automata
+          </a>{" "}
+          and renders their evolving states entirely through ASCII characters,
+          producing a living grid of typography that mutates and reorganizes
+          itself in real time. The underlying computation runs on WebGL
+          fragment shaders using a modified{" "}
+          <a
+            href="https://en.wikipedia.org/wiki/Von_Neumann_neighborhood"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            von Neumann neighborhood
           </a>
-          . I suggest you go and explore it if you want to get a feel of what
-          interests me web development-wise. They are all my designs, but I have
-          made them all open-source. If any of them has caught your eye, feel
-          free to <a href="mailto:jkj@di.ku.dk">reach out</a>.
+          , but none of that scaffolding is visible to the eye. What you
+          actually see is pure emergence: characters blooming and decaying
+          across the grid, shaped by nothing more than their immediate
+          neighbors and a set of deterministic rules that somehow produce
+          results that feel deeply organic.
+        </p>
+        <p>
+          What draws me to this kind of work is the tension between rigid
+          mathematical systems and the unpredictable visual complexity they
+          produce. The piece is built on top of{" "}
+          <a
+            href="https://p5js.org/"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            p5.js
+          </a>{" "}
+          and the{" "}
+          <a
+            href="https://github.com/humanbydefinition/p5.asciify"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            p5.asciify
+          </a>{" "}
+          library, keeping it deliberately dependency-light. Interactivity is
+          baked in from the ground up: you can switch character sets, toggle
+          kaleidoscope mirroring, invert the display, or just let it run and
+          watch the system settle into its own rhythm. No two resets produce
+          the same result. I encourage you to click into the window below and
+          play around for a while.
         </p>
         <br />
+
+        {/* Interactive iframe container with click-to-activate and fullscreen */}
         <div
-          className="captioned-image"
-          style={{ width: "80%", marginTop: "-0px" }}
+          ref={iframeContainerRef}
+          style={{
+            position: "relative",
+            width: "100%",
+            maxWidth: "100%",
+            margin: "0 auto",
+            borderRadius: isFullscreen ? 0 : 4,
+            overflow: "hidden",
+            backgroundColor: "#222323",
+            ...(isFullscreen
+              ? {
+                  position: "fixed" as const,
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  bottom: 0,
+                  width: "100vw",
+                  height: "100vh",
+                  maxWidth: "100vw",
+                  zIndex: 99999,
+                }
+              : {}),
+          }}
         >
+          {/* The iframe itself */}
           <iframe
-            src="https://qc20.github.io/Scroll./"
-            style={{ width: "1200px", height: "500px", border: "none" }}
-            title="Game of Life Simulation"
-          ></iframe>
-        </div>
-        <p>
-          While I continue to add to it, I believe you can understand where I am
-          heading and the type of creative and artistic explorations that excite
-          me. Truth be told, I host yet another collection of web development
-          projects on this other
-          <a
-            href="https://creative-technologist-showcase.vercel.app/"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            website
-          </a>
-          . It's waaay less glossy and ready for the public's discerning gaze,
-          though I still like it because it's more playful and does━if I should
-          say so myself━contain some pretty interesting and novel design ideas.
-          So, yeah, this serves as a small promo for some of my selected web
-          development work featured on my portfolio website. Enjoy.{" "}
-        </p>
-        <br />
-      </div>
-
-      <LineSplit />
-  */}
-        <LineSplit />
-        <br />
-        <div className="text-block">
-          <h2>Cellular ASCIImata - Generative ASCII Art</h2>
-          <br />
-          <p>
-            Cellular ASCIImata is a generative art piece born out of my ongoing
-            fascination with the intersection of computation and visual
-            expression. At its core, it runs{" "}
-            <a
-              href="https://en.wikipedia.org/wiki/Cellular_automaton"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              cellular automata
-            </a>{" "}
-            — self-organizing mathematical systems — and renders their evolving
-            states entirely through ASCII characters. The result is something
-            that feels almost alive: typographic patterns that breathe, mutate,
-            and reorganize themselves in real time.
-          </p>
-          <p>
-            What draws me to this kind of work is the tension between rigid
-            rule-sets and the organic complexity they produce. Under the hood,
-            state transitions are computed via GPU-accelerated WebGL fragment
-            shaders using a modified von Neumann neighborhood approach — but
-            none of that scaffolding is visible to the eye. What you see is
-            pure emergence. Characters bloom and decay across the grid, shaped
-            by nothing more than their immediate neighbors.
-          </p>
-          <div
-            className="captioned-image"
-            style={{ width: "90%", marginTop: "0px" }}
-          >
-            <iframe
-              src="https://qc20.github.io/Cellular-Asciimata/"
-              style={{ width: "100%", height: "600px", border: "none" }}
-              title="Cellular ASCIImata"
-            ></iframe>
-            <p>
-              <sub>
-                <b>Image 3:</b> Live{" "}
-                <a
-                  href="https://qc20.github.io/Cellular-Asciimata/"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  demo of Cellular ASCIImata
-                </a>{" "}
-                — watch the patterns evolve in real time. Click into the frame
-                and use <b>Space</b> to pause, <b>R</b> to reset, <b>K</b> for
-                kaleidoscope mode, <b>C</b> to cycle colors, and <b>+/-</b> to
-                adjust font size.
-              </sub>
-            </p>
-          </div>
-          <p>
-            The piece is built on top of{" "}
-            <a
-              href="https://p5js.org/"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              p5.js
-            </a>{" "}
-            and the p5.asciify library, keeping the setup deliberately
-            dependency-light. Interactivity is baked in — switch character
-            sets, invert the display, toggle kaleidoscope mirroring, or just
-            let it run and watch the system find its own rhythm. No two resets
-            produce the same result.
-          </p>
-          <br />
-          <h3>Link to Project:</h3>
-          <ul>
-            <li>
-              <a
-                rel="noopener noreferrer"
-                target="_blank"
-                href="https://github.com/QC20/Cellular-Asciimata"
-              >
-                <p>
-                  <b>Cellular ASCIImata</b> - Source code on GitHub{" "}
-                </p>
-              </a>
-            </li>
-          </ul>
-        </div>
-        <LineSplit />
-        <br />
-        <div className="text-block">
-          <h2
+            ref={iframeRef}
+            src="https://qc20.github.io/Cellular-Asciimata/"
+            title="Cellular ASCIImata"
+            allow="fullscreen"
             style={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "right",
+              width: "100%",
+              height: isFullscreen ? "100vh" : "600px",
+              border: "none",
+              display: "block",
+              pointerEvents: iframeActive ? "auto" : "none",
             }}
-          >
-            <img src={paintBrush} width="15%" style={{ marginRight: "40px" }} />{" "}
-            My Oil Paintings{" "}
-          </h2>
+            tabIndex={0}
+          />
 
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              flexDirection: "row-reverse",
-            }}
-          >
-            <div style={{ flex: 1, marginLeft: 32 }}>
-              <p>
-                A more recent activity I've been picking up is oil painting.
-                What really excites me about this endeavor is that I have no
-                prior experience whatsoever. Actually, growing up left-handed
-                and with handwriting that was more or less intelligible, I guess
-                I was somewhat deterred from drawing, painting, or doing
-                anything by hand. <br />
-                <br></br>
-                However, in 2021, I started to pick up my first supplies and
-                first clean canvas. Having no idea what I was doing or how to
-                even begin learning, I decided to just throw myself into it and
-                hope something beautiful would spawn out of it. Moreover, I
-                think it was a deliberate decision of mine to not seek any type
-                of help or teaching about techniques or styles. The reason for
-                this was purely based on the idea that I wanted to see what I
-                would be able to create purely based on my own intuition and
-                creativity. <br /> <br></br>
-                What excites and inspires me when conceptualizing a new canvas
-                is starting from an initial feeling, exploring uncharted
-                techniques, experimenting with new texture designs, or using
-                paint products I haven’t tried before. I persist until something
-                I like emerges, and then I continue from there. Overall, a
-                significant takeaway from oil painting is the opportunity to
-                refine and practice skills I initially lacked proficiency or
-                experience in. <br /> <br></br>
-                <div
-                  style={{
-                    display: "flex",
-                    justifyContent: "center",
-                    alignItems: "center",
-                    marginRight: "0px",
-                  }}
-                >
-                  <div
-                    style={{
-                      textAlign: "center",
-                      width: "50%",
-                      marginRight: "10px",
-                    }}
-                  >
-                    <img src={Painting2} style={{ width: "100%" }} alt="" />
-                  </div>
-                  <div
-                    style={{
-                      textAlign: "center",
-                      width: "50%",
-                      marginLeft: "10px",
-                    }}
-                  >
-                    <img src={Painting3} style={{ width: "100%" }} alt="" />
-                  </div>
-                </div>
-              </p>
-            </div>
-
+          {/* Click-to-activate overlay (shown when iframe is not active) */}
+          {!iframeActive && (
             <div
+              onClick={activateIframe}
               style={{
+                position: "absolute",
+                top: 0,
+                left: 0,
+                right: 0,
+                bottom: 0,
+                cursor: "pointer",
                 display: "flex",
-                flexDirection: "column",
                 alignItems: "center",
-                marginRight: "-82px",
-                marginTop: "-85px",
+                justifyContent: "center",
+                background:
+                  "radial-gradient(ellipse at center, rgba(0,0,0,0.5) 0%, rgba(0,0,0,0.2) 70%, transparent 100%)",
+                transition: "opacity 0.25s ease",
               }}
             >
               <div
                 style={{
                   textAlign: "center",
-                  width: "85%",
-                  marginLeft: "-75px",
+                  color: "#f0f6f0",
+                  fontFamily: "monospace",
+                  userSelect: "none",
                 }}
               >
-                <VideoAsset src={PaintingPallets} />
+                <div
+                  style={{
+                    fontSize: 28,
+                    marginBottom: 8,
+                    letterSpacing: 2,
+                    fontWeight: 700,
+                    textShadow: "0 2px 16px rgba(0,0,0,0.6)",
+                  }}
+                >
+                  {isTouchDevice ? "Tap to interact" : "Click to interact"}
+                </div>
+                <div
+                  style={{
+                    fontSize: 13,
+                    opacity: 0.7,
+                    textShadow: "0 1px 8px rgba(0,0,0,0.5)",
+                  }}
+                >
+                  {isTouchDevice
+                    ? "Swipe to pan · Double-tap to resize"
+                    : "Click outside the frame to release"}
+                </div>
               </div>
+            </div>
+          )}
+
+          {/* Control bar at the bottom */}
+          <div
+            style={{
+              position: "absolute",
+              bottom: 0,
+              left: 0,
+              right: 0,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              padding: "8px 14px",
+              background:
+                "linear-gradient(to top, rgba(0,0,0,0.75) 0%, rgba(0,0,0,0.3) 70%, transparent 100%)",
+              pointerEvents: "auto",
+              opacity: iframeActive ? 1 : 0,
+              transition: "opacity 0.3s ease",
+            }}
+          >
+            {/* Keyboard hints (left side) */}
+            <div
+              style={{
+                display: "flex",
+                gap: 6,
+                flexWrap: "wrap",
+                alignItems: "center",
+              }}
+            >
+              {!isTouchDevice && (
+                <>
+                  {[
+                    { key: "WASD", label: "Move" },
+                    { key: "Space", label: "Pause" },
+                    { key: "R", label: "Reset" },
+                    { key: "K", label: "Kaleidoscope" },
+                    { key: "C", label: "Colors" },
+                    { key: "+/-", label: "Font size" },
+                  ].map((hint) => (
+                    <span
+                      key={hint.key}
+                      style={{
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: 4,
+                        fontSize: 11,
+                        color: "rgba(240,246,240,0.65)",
+                        fontFamily: "monospace",
+                        whiteSpace: "nowrap",
+                      }}
+                    >
+                      <span
+                        style={{
+                          background: "rgba(255,255,255,0.15)",
+                          padding: "2px 6px",
+                          borderRadius: 3,
+                          fontSize: 10,
+                          fontWeight: 600,
+                          color: "#f0f6f0",
+                          border: "1px solid rgba(255,255,255,0.12)",
+                        }}
+                      >
+                        {hint.key}
+                      </span>
+                      {hint.label}
+                    </span>
+                  ))}
+                </>
+              )}
+              {isTouchDevice && (
+                <span
+                  style={{
+                    fontSize: 11,
+                    color: "rgba(240,246,240,0.65)",
+                    fontFamily: "monospace",
+                  }}
+                >
+                  Swipe to pan · Double-tap to resize
+                </span>
+              )}
+            </div>
+
+            {/* Right side buttons */}
+            <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+              {/* Deactivate button */}
+              {iframeActive && !isFullscreen && (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setIframeActive(false);
+                  }}
+                  title="Release focus (Esc)"
+                  style={{
+                    background: "rgba(255,255,255,0.12)",
+                    border: "1px solid rgba(255,255,255,0.15)",
+                    borderRadius: 4,
+                    color: "#f0f6f0",
+                    fontSize: 11,
+                    fontFamily: "monospace",
+                    padding: "4px 10px",
+                    cursor: "pointer",
+                    whiteSpace: "nowrap",
+                    transition: "background 0.15s ease",
+                  }}
+                  onMouseEnter={(e) =>
+                    (e.currentTarget.style.background =
+                      "rgba(255,255,255,0.22)")
+                  }
+                  onMouseLeave={(e) =>
+                    (e.currentTarget.style.background =
+                      "rgba(255,255,255,0.12)")
+                  }
+                >
+                  {isMac ? "Esc" : "Esc"} · Release
+                </button>
+              )}
+
+              {/* Fullscreen button */}
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  if (isFullscreen) {
+                    exitFullscreen();
+                  } else {
+                    enterFullscreen();
+                  }
+                }}
+                title={
+                  isFullscreen
+                    ? "Exit fullscreen (Esc)"
+                    : "Enter fullscreen"
+                }
+                style={{
+                  background: "rgba(255,255,255,0.12)",
+                  border: "1px solid rgba(255,255,255,0.15)",
+                  borderRadius: 4,
+                  color: "#f0f6f0",
+                  fontSize: 13,
+                  padding: "4px 10px",
+                  cursor: "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 5,
+                  fontFamily: "monospace",
+                  whiteSpace: "nowrap",
+                  transition: "background 0.15s ease",
+                }}
+                onMouseEnter={(e) =>
+                  (e.currentTarget.style.background =
+                    "rgba(255,255,255,0.22)")
+                }
+                onMouseLeave={(e) =>
+                  (e.currentTarget.style.background =
+                    "rgba(255,255,255,0.12)")
+                }
+              >
+                {isFullscreen ? (
+                  <>
+                    <svg
+                      width="14"
+                      height="14"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      <polyline points="4 14 10 14 10 20" />
+                      <polyline points="20 10 14 10 14 4" />
+                      <line x1="14" y1="10" x2="21" y2="3" />
+                      <line x1="3" y1="21" x2="10" y2="14" />
+                    </svg>
+                    Exit
+                  </>
+                ) : (
+                  <>
+                    <svg
+                      width="14"
+                      height="14"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      <polyline points="15 3 21 3 21 9" />
+                      <polyline points="9 21 3 21 3 15" />
+                      <line x1="21" y1="3" x2="14" y2="10" />
+                      <line x1="3" y1="21" x2="10" y2="14" />
+                    </svg>
+                    Fullscreen
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <p style={{ marginTop: 8 }}>
+          <sub>
+            <b>Image 3:</b> Live{" "}
+            <a
+              href="https://qc20.github.io/Cellular-Asciimata/"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              Cellular ASCIImata
+            </a>{" "}
+            running in real time. {isTouchDevice
+              ? "Tap the frame to interact, swipe to navigate the automaton space."
+              : "Click into the frame to interact, click outside or press Esc to release."
+            }
+          </sub>
+        </p>
+
+        <br />
+        <h3>Link to Project:</h3>
+        <ul>
+          <li>
+            <a
+              rel="noopener noreferrer"
+              target="_blank"
+              href="https://github.com/QC20/Cellular-Asciimata"
+            >
+              <p>
+                <b>Cellular ASCIImata</b> - Source code on GitHub{" "}
+              </p>
+            </a>
+          </li>
+        </ul>
+      </div>
+      <LineSplit />
+      <br />
+      <div className="text-block">
+        <h2
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "right",
+          }}
+        >
+          <img src={paintBrush} width="15%" style={{ marginRight: "40px" }} />{" "}
+          My Oil Paintings{" "}
+        </h2>
+
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            flexDirection: "row-reverse",
+          }}
+        >
+          <div style={{ flex: 1, marginLeft: 32 }}>
+            <p>
+              A more recent activity I've been picking up is oil painting.
+              What really excites me about this endeavor is that I have no
+              prior experience whatsoever. Actually, growing up left-handed
+              and with handwriting that was more or less intelligible, I guess
+              I was somewhat deterred from drawing, painting, or doing
+              anything by hand. <br />
+              <br></br>
+              However, in 2021, I started to pick up my first supplies and
+              first clean canvas. Having no idea what I was doing or how to
+              even begin learning, I decided to just throw myself into it and
+              hope something beautiful would spawn out of it. Moreover, I
+              think it was a deliberate decision of mine to not seek any type
+              of help or teaching about techniques or styles. The reason for
+              this was purely based on the idea that I wanted to see what I
+              would be able to create purely based on my own intuition and
+              creativity. <br /> <br></br>
+              What excites and inspires me when conceptualizing a new canvas
+              is starting from an initial feeling, exploring uncharted
+              techniques, experimenting with new texture designs, or using
+              paint products I haven't tried before. I persist until something
+              I like emerges, and then I continue from there. Overall, a
+              significant takeaway from oil painting is the opportunity to
+              refine and practice skills I initially lacked proficiency or
+              experience in. <br /> <br></br>
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "center",
+                  alignItems: "center",
+                  marginRight: "0px",
+                }}
+              >
+                <div
+                  style={{
+                    textAlign: "center",
+                    width: "50%",
+                    marginRight: "10px",
+                  }}
+                >
+                  <img src={Painting2} style={{ width: "100%" }} alt="" />
+                </div>
+                <div
+                  style={{
+                    textAlign: "center",
+                    width: "50%",
+                    marginLeft: "10px",
+                  }}
+                >
+                  <img src={Painting3} style={{ width: "100%" }} alt="" />
+                </div>
+              </div>
+            </p>
+          </div>
+
+          <div
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              marginRight: "-82px",
+              marginTop: "-85px",
+            }}
+          >
+            <div
+              style={{
+                textAlign: "center",
+                width: "85%",
+                marginLeft: "-75px",
+              }}
+            >
+              <VideoAsset src={PaintingPallets} />
             </div>
           </div>
         </div>
       </div>
-    );
+    </div>
+  );
 };
-
 
 export default MusicProjects;
