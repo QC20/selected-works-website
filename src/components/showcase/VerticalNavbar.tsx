@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from "react";
 import { Link } from "../general";
-import cdSpin from "../../assets/pictures/cdSpin.gif";
 import { useLocation, useNavigate } from "react-router";
 
 export interface VerticalNavbarProps {}
@@ -33,7 +32,7 @@ const VerticalNavbar: React.FC<VerticalNavbarProps> = (props) => {
       setIsHome(false);
     }
     return () => {};
-    }, [location.pathname]);
+  }, [location.pathname]);
 
   return !isHome ? (
     <div style={styles.navbar}>
@@ -55,18 +54,20 @@ const VerticalNavbar: React.FC<VerticalNavbarProps> = (props) => {
           to="experience"
           text="EXPERIENCE"
         />
-        {
-          // if current path contains projects
-          experienceExpanded && (
-            <div style={styles.insetLinks}>
-              <Link
-                containerStyle={styles.insetLink}
-                to="experience/papers"
-                text="Research Papers"
-              />
-            </div>
-          )
-        }
+        {experienceExpanded && (
+          <div style={styles.insetLinks}>
+            <Link
+              containerStyle={styles.insetLink}
+              to="experience/papers"
+              text="Research Papers"
+            />
+            <Link
+              containerStyle={styles.insetLink}
+              to="experience/practitioner-articles"
+              text="Practitioner Writing & Articles"
+            />
+          </div>
+        )}
 
         <Link
           containerStyle={Object.assign(
@@ -77,34 +78,29 @@ const VerticalNavbar: React.FC<VerticalNavbarProps> = (props) => {
           to="projects"
           text="PROJETS & SELECTED WORKS"
         />
-        {
-          // if current path contains projects
-          projectsExpanded && (
-            <div style={styles.insetLinks}>
-              <Link
-                containerStyle={styles.insetLink}
-                to="projects/software"
-                text="Coding & Programming"
-              />
-              <Link
-                containerStyle={styles.insetLink}
-                to="projects/art"
-                text="Embedded Computing"
-              />
-              <Link
-                containerStyle={styles.insetLink}
-                to="projects/music"
-                text="Music & Art"
-              />
-            </div>
-          )
-        }
+        {projectsExpanded && (
+          <div style={styles.insetLinks}>
+            <Link
+              containerStyle={styles.insetLink}
+              to="projects/software"
+              text="Coding & Programming"
+            />
+            <Link
+              containerStyle={styles.insetLink}
+              to="projects/art"
+              text="Embedded Computing"
+            />
+            <Link
+              containerStyle={styles.insetLink}
+              to="projects/music"
+              text="Music & Art"
+            />
+          </div>
+        )}
         <Link containerStyle={styles.link} to="contact" text="CONTACT" />
       </div>
       <div style={styles.spacer} />
-      <div style={styles.forHireContainer} onMouseDown={goToContact}>
-        {/* <img src={cdSpin} style={styles.image} alt="" /> */}
-      </div>
+      <div style={styles.forHireContainer} onMouseDown={goToContact} />
     </div>
   ) : (
     <></>
@@ -163,7 +159,6 @@ const styles: StyleSheetCSS = {
   },
   forHireContainer: {
     cursor: "pointer",
-
     width: "100%",
   },
 };

@@ -17,6 +17,7 @@ import windowGameIcon from './windowGameIcon.png';
 import windowExplorerIcon from './windowExplorerIcon.png';
 import windowsStartIcon from './windowsStartIcon.png';
 import scrabbleIcon from './scrabbleIcon.png';
+import micropolisIcon from './micropolisIcon.png';
 import close from './close.png';
 import internetExplorerIcon from './internetExplorerIcon.png'
 
@@ -40,6 +41,7 @@ const icons = {
     volumeOff: volumeOff,
     credits: credits,
     scrabbleIcon: scrabbleIcon,
+    micropolisIcon: micropolisIcon,
     close: close,
     windowGameIcon: windowGameIcon,
     windowExplorerIcon: windowExplorerIcon,

@@ -55,7 +55,7 @@ const APPLICATIONS: {
     micropolis: {
         key: 'micropolis',
         name: 'Micropolis',
-        shortcutIcon: 'doomIcon',
+        shortcutIcon: 'micropolisIcon',
         component: Micropolis,
     },
     scrabble: {

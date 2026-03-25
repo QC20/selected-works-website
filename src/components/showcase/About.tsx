@@ -29,15 +29,21 @@ const About: React.FC<AboutProps> = (props) => {
       <br />
       <div className="text-block">
       <p>
-  Driven by a passion for improving the interface between humans and innovative technologies, I thrive across various domains within HCI,   
-  Computer Science, and Cognitive Science, while always keeping the user's needs and desires at the forefront of my work. 
-  Today, my focus has evolved—I’m currently pursuing a PhD investigating how artificial intelligence reshapes management and managerial work. 
-  This research explores the profound impact of algorithmic systems on decision-making, leadership, and organizational dynamics, blending my 
-  longstanding interests in technology with a deep dive into how we work and lead.
+  I started out fascinated by how computers work — the raw mechanics of software, systems, and the science behind the technology we build.
+  That foundation gradually pulled me toward a deeper question: how do people actually interact with these systems? That question led me into
+  Human-Computer Interaction, where I spent years studying usability, running user studies, and learning to understand technology not just as
+  something engineered, but as something practiced — shaped by the people, contexts, and organisations that use it.
 </p>
 <p>
-  Alright, I guess that covers the elevator pitch. Now, let's get real. I've designed this website in direct opposition to most 
-  contemporary design conventions because I believe it creates a more engaging user experience. While other sites rush to deliver 
+  That perspective — of technology as it is actually performed and understood in its natural habitat — turned out to be the through-line
+  of everything I do. It’s what eventually drew me to my current work: a PhD investigating how artificial intelligence is reshaping managerial
+  work and well-being in organisations. It’s a natural next step. My deep background in AI and computing lets me understand what these systems
+  actually do, while my training in user studies and a combined qualitative and quantitative methods toolbox lets me study how managers
+  experience, adapt to, and are affected by them — from multiple angles at once.
+</p>
+<p>
+  Alright, I guess that covers the elevator pitch. Now, let’s get real. I’ve designed this website in direct opposition to most
+  contemporary design conventions because I believe it creates a more engaging user experience. While other sites rush to deliver
   everything within 5 seconds and under 2 clicks, this site will reward those who are curious enough to explore.
 </p>
 </div>
@@ -173,17 +179,31 @@ const About: React.FC<AboutProps> = (props) => {
               >
                 IT & Cognition
               </Link>{" "}
-              to empower me to develop advanced cognitive tehcbologies, enabling
-              me to gain deep knowledge of language, vision, and cognition, to
-              design innovative information and communication technology (ICT)
-              that mimics human cognitive processes and addresses complex
-              cognitive phenomena such as memory, attention, and language. As
-              these systems increasingly rely on machine learning and AI, my
-              objective is to refine these approaches and enhance user
-              engagement. By enabling individuals to draw more actionable
-              insights from these technologies, I aim to leverage my
-              interdisciplinary background to propel the development of
-              Human-Centered AI.{" "}
+              to deepen my knowledge of language, vision, and cognition, and to
+              design information and communication technology that works with —
+              rather than against — human cognitive processes. The programme
+              sharpened my technical understanding of machine learning and AI
+              while keeping questions of human experience and usability at the
+              centre.
+            </p>
+            <p>
+              <br />
+              That combination pointed somewhere specific. If I understand how
+              AI systems are built <i>and</i> how people actually experience
+              them in practice, the most pressing place to apply that is where
+              these systems are landing with the most force: in organisations,
+              and particularly in the daily work of managers. My PhD at the{" "}
+              <Link to="https://www.cbs.dk/" target="_blank">
+                Copenhagen Business School
+              </Link>{" "}
+              follows that thread directly — investigating how AI is
+              restructuring managerial work, what it does to well-being and
+              decision-making, and how organisations can navigate that
+              transition thoughtfully. It lets me bring everything together: a
+              technical literacy in AI, a grounding in how technology is
+              actually used and understood in context, and a methods repertoire
+              that spans qualitative fieldwork and quantitative analysis — so
+              the problem can be approached from more than one angle at once.{" "}
             </p>
           </div>
           <div style={styles.verticalImage}>
