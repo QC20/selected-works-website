@@ -58,6 +58,12 @@ const APPLICATIONS: {
         shortcutIcon: 'micropolisIcon',
         component: Micropolis,
     },
+    micropolis2: {
+        key: 'micropolis2',
+        name: 'Micropolis',
+        shortcutIcon: 'micropolisIcon',
+        component: Micropolis,
+    },
     scrabble: {
         key: 'scrabble',
         name: 'Scrabble',
@@ -240,12 +246,16 @@ const Desktop: React.FC<DesktopProps> = (props) => {
             })}
             <div style={styles.shortcuts}>
                 {shortcuts.map((shortcut, i) => {
+                    const iconsPerColumn = 8;
+                    const column = Math.floor(i / iconsPerColumn);
+                    const row = i % iconsPerColumn;
                     return (
                         <div
                             style={Object.assign({}, styles.shortcutContainer, {
-                                top: i * 104,
+                                top: row * 104,
+                                left: column * 74,
                             })}
-                            key={shortcut.shortcutName}
+                            key={`shortcut-${i}`}
                         >
                             <DesktopShortcut
                                 icon={shortcut.icon}
