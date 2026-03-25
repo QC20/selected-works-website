@@ -417,102 +417,85 @@ const MusicProjects: React.FC<MusicProjectsProps> = () => {
         <LineSplit />
         <br />
         <div className="text-block">
-          <h2>Life's a Journey - Interactive Visualization </h2>
+          <h2>Cellular ASCIImata - Generative ASCII Art</h2>
           <br />
           <p>
-            Life's Journey is a small interactive experience inspired by Jon
-            Conway's{" "}
+            Cellular ASCIImata is a generative art piece born out of my ongoing
+            fascination with the intersection of computation and visual
+            expression. At its core, it runs{" "}
             <a
-              href="https://en.wikipedia.org/wiki/Conway%27s_Game_of_Life"
+              href="https://en.wikipedia.org/wiki/Cellular_automaton"
               target="_blank"
               rel="noopener noreferrer"
             >
-              classic Game of Life
-            </a>
-            . Step into a mesmerizing world where you can shape and witness the
-            unfolding of life itself.{" "}
+              cellular automata
+            </a>{" "}
+            — self-organizing mathematical systems — and renders their evolving
+            states entirely through ASCII characters. The result is something
+            that feels almost alive: typographic patterns that breathe, mutate,
+            and reorganize themselves in real time.
           </p>
           <p>
-            Immerse yourself in the captivating gameplay and experience the
-            magic of cellular automata, revealing emergent patterns that
-            mesmerize and inspire. Engage with dynamic landscapes and explore
-            infinite possibilities, all powered by p5.js for a truly immersive
-            visual experience.{" "}
+            What draws me to this kind of work is the tension between rigid
+            rule-sets and the organic complexity they produce. Under the hood,
+            state transitions are computed via GPU-accelerated WebGL fragment
+            shaders using a modified von Neumann neighborhood approach — but
+            none of that scaffolding is visible to the eye. What you see is
+            pure emergence. Characters bloom and decay across the grid, shaped
+            by nothing more than their immediate neighbors.
           </p>
           <div
             className="captioned-image"
-            style={{ width: "80%", marginTop: "-0px" }}
+            style={{ width: "90%", marginTop: "0px" }}
           >
             <iframe
-              src="https://qc20.github.io/game-of-life-simulation/"
-              style={{ width: "800px", height: "600px", border: "none" }}
-              title="Game of Life Simulation"
+              src="https://qc20.github.io/Cellular-Asciimata/"
+              style={{ width: "100%", height: "600px", border: "none" }}
+              title="Cellular ASCIImata"
             ></iframe>
             <p>
               <sub>
-                <b>Image 3:</b> live{" "}
+                <b>Image 3:</b> Live{" "}
                 <a
-                  href="https://qc20.github.io/game-of-life-simulation/"
+                  href="https://qc20.github.io/Cellular-Asciimata/"
                   target="_blank"
                   rel="noopener noreferrer"
                 >
-                  demo of the visualization
+                  demo of Cellular ASCIImata
                 </a>{" "}
-                dynamically changing colors, smoothly navigating obstacles, and
-                naturally regenerating. <br />
-                Press the image and start playing! Use the arrow keys to
-                navigate and press <b>C</b> to change color.{" "}
+                — watch the patterns evolve in real time. Click into the frame
+                and use <b>Space</b> to pause, <b>R</b> to reset, <b>K</b> for
+                kaleidoscope mode, <b>C</b> to cycle colors, and <b>+/-</b> to
+                adjust font size.
               </sub>
             </p>
           </div>
-
           <p>
-            Indulge in this engaging interpretation of the Game of Life project
-            crafted in{" "}
+            The piece is built on top of{" "}
             <a
               href="https://p5js.org/"
               target="_blank"
               rel="noopener noreferrer"
             >
-              P5.js
-            </a>
-            . Navigate through the grid using your keyboard's arrow keys and
-            customize cell colors by pressing <b>C</b>. The rules a pretty
-            simple. Every cell observes its surrounding neighbours to check
-            whether its living area is underpopulated, overpopulated or suitable
-            to live in. The game launches from its initial state, presenting a
-            grid of cells. These are the basic principles guiding cell
-            interaction: <br></br>
-            <br />
-            <li>
-              Cells with fewer than two live neighbors perish due to
-              underpopulation.
-            </li>
-            <li>
-              Cells with two or three live neighbors persist into the next
-              generation.
-            </li>
-            <li>
-              Cells with more than three live neighbors succumb to
-              overpopulation.
-            </li>
-            <li>
-              Dead cells with precisely three live neighbors spring to life
-              through reproduction.
-            </li>
+              p5.js
+            </a>{" "}
+            and the p5.asciify library, keeping the setup deliberately
+            dependency-light. Interactivity is baked in — switch character
+            sets, invert the display, toggle kaleidoscope mirroring, or just
+            let it run and watch the system find its own rhythm. No two resets
+            produce the same result.
           </p>
-
           <br />
           <h3>Link to Project:</h3>
           <ul>
             <li>
               <a
-                rel="noreferrer"
+                rel="noopener noreferrer"
                 target="_blank"
-                href="https://github.com/QC20/game-of-life-simulation"
+                href="https://github.com/QC20/Cellular-Asciimata"
               >
                 <p>
-                  <b>P5.js Game of Life Simulation</b> - Life's a Journey{" "}
+                  <b>Cellular ASCIImata</b> - Source code on GitHub{" "}
                 </p>
               </a>
             </li>
