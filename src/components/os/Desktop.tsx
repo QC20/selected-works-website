@@ -58,31 +58,31 @@ const APPLICATIONS: {
         shortcutIcon: 'micropolisIcon',
         component: Micropolis,
     },
-    micropolis2: {
-        key: 'micropolis2',
-        name: 'Micropolis',
-        shortcutIcon: 'micropolisIcon',
-        component: Micropolis,
-    },
     scrabble: {
         key: 'scrabble',
         name: 'Scrabble',
         shortcutIcon: 'scrabbleIcon',
         component: Scrabble,
     },
-    
+
     credits: {
         key: 'credits',
         name: 'Credits',
         shortcutIcon: 'credits',
         component: Credits,
     },
-    
+
     floating: {
         key: 'floating',
         name: 'Interactive Attractor',
         shortcutIcon: 'floatingSphere',
         component: floatingSphere,
+    },
+    micropolis2: {
+        key: 'micropolis2',
+        name: 'Micropolis',
+        shortcutIcon: 'micropolisIcon',
+        component: Micropolis,
     },
     
 
