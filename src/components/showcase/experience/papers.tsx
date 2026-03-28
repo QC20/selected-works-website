@@ -7,6 +7,7 @@ import DosPlayer from '../../dos/DosPlayer';
 import audioIcons from '../../../assets/pictures/audioIconsLoop.png';
 import voiceinteractionTask from '../../../assets/pictures/VoiceInteractionTask.png';
 import transfer from '../../../assets/pictures/transfer.png';
+import manuscriptPdf from '../../../assets/documents/Designing_AI_Systems_for_Managers.pdf';
 
 interface paperProps {}
 
@@ -36,6 +37,41 @@ const PapersProjects: React.FC<paperProps> = (props) => {
                     <ResumeDownload />
                     <br /><br></br>
                     <div style={styles.headerRow}>
+                        <h3>A Conceptual Model for Human-AI Collaboration in Managerial Work</h3>
+                    </div>
+                    <div>
+                        <h4><u>Jonas Kjeldmand Jensen</u></h4>
+                    </div>
+                    <div>
+                        <h5>Unpublished manuscript (target venue: HICSS). {' '}
+                            <a
+                                rel="noreferrer"
+                                target="_blank"
+                                href={manuscriptPdf}>
+                                    View Manuscript
+                                </a>.
+                                </h5>
+                    </div>
+                </div>
+            </div>
+            <div className="text-block">
+                <ul>
+                        <p><b>Abstract</b></p>
+                        <p>
+                            Managerial work involves strategic, timely, and complex decision making, impacting employees, strategy, and the economy of the company. While AI systems can assist by integrating complex data and facilitating timely decisions, managers may face challenges with transparency and risk losing agency over their decisions. This paper presents a two-dimensional conceptual model mapping AI systems along the augmentation-automation dimension (agency distribution) and analysis-synthesis dimension (cognitive orientation). Using a design science approach based on literature, we identify four distinct groups, each presenting unique implications for AI systems and managerial roles and competencies. The framework advances the theory of human-AI collaboration while providing practitioners with actionable guidance for system selection and implementation. By revealing strategic choices in AI design, organizations can align technology adoption with managerial responsibilities, preserving human agency while enhancing organizational capabilities.
+                        </p>
+                </ul>
+                <p>
+                    <i>
+                        <b>
+                            Keywords: {' '}
+                        </b>
+                        AI systems, Human-AI collaboration, Managerial work, System design, Organizational implementation
+                    </i>
+                </p>
+            </div>
+            <br /><br></br>
+            <div style={styles.headerRow}>
                         <h3>Exploring Audio Icons for Content-Based Navigation in Voice User Interfaces</h3> 
                     </div>
                     <div>
@@ -50,9 +86,6 @@ const PapersProjects: React.FC<paperProps> = (props) => {
                                     DOI
                                 </a>.
                                 </h5>
-                    </div>
-                </div>
-            </div>
             <div className="text-block">
                 <ul>
                 <div className="captioned-image">
