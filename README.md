@@ -8,6 +8,7 @@ I'd love to partner up and collaborate on anything from physical computing proje
 
 
 ## How to setup this website locally
+In case you like this setup, go right ahead and fork it and make your own personal version to fitted to your liking. But if you do, please give me (and the ones before me) a shout. 
 
 ### To setup a dev environment
 
@@ -35,12 +36,6 @@ npm run build
 npm start
 ```
 
-### Things I need to improve:
-- [ ] Insert micropolis game
-- [ ] Figure out how to make projects open in different windows
-- [ ] Make fill out form work (and send to your own fill-out form)
-- [ ] Figure out how to deal with large files in the repo (currently it is fixed by having <50mb files)
-- [ ] Switch out ThreeJS project on desktop with some other interesting and interactive web dev app you've made
 
 ## To-Do's
 - Make reasearch paper images smaller in size so they'll be quicker to load in.
@@ -50,7 +45,3 @@ npm start
 - Make a new favicon for the website
 
 
-
-Original texts:
-
-In this section you will find various projects I've done. One common denominator about them is  they are all solely pc-based, meaning you'll be able to run them yourself on your own device. As I am a strong believer in the ethics of open-source software everything posted here you'll be able to follow and recreate should you wish to.  The projects shown here projects my programming interests which spans from data science and Machine learning, to creative coding and web development, and UX/UI Design projects. I also do physical computing, but this is allocated to a its own section.
