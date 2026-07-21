@@ -8,7 +8,7 @@ import audioIcons from '../../../assets/pictures/audioIconsLoop.png';
 import voiceinteractionTask from '../../../assets/pictures/VoiceInteractionTask.png';
 import transfer from '../../../assets/pictures/transfer.png';
 import manuscriptPdf from '../../../assets/documents/Designing_AI_Systems_for_Managers.pdf';
-import 
+
 interface paperProps {}
 
 const PapersProjects: React.FC<paperProps> = (props) => {
@@ -86,6 +86,7 @@ const PapersProjects: React.FC<paperProps> = (props) => {
                                     DOI
                                 </a>.
                                 </h5>
+                    </div>
             <div className="text-block">
                 <ul>
                 <div className="captioned-image">
