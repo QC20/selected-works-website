@@ -5,6 +5,12 @@ object-assign
 */
 
 /**
+ * @license
+ * Copyright 2010-2023 Three.js Authors
+ * SPDX-License-Identifier: MIT
+ */
+
+/**
  * @remix-run/router v1.23.2
  *
  * Copyright (c) Remix Software Inc.

@@ -1,7 +1,7 @@
 {
   "files": {
     "main.css": "/static/css/main.5710ebb3.css",
-    "main.js": "/static/js/main.890f13d7.js",
+    "main.js": "/static/js/main.e9f0c893.js",
     "static/js/453.d0e5d6a3.chunk.js": "/static/js/453.d0e5d6a3.chunk.js",
     "static/media/NChainzSoundCafeSession.mp3": "/static/media/NChainzSoundCafeSession.3ec9cd8ac986dc8f09dc.mp3",
     "static/media/NChainsQuantumSession.mp3": "/static/media/NChainsQuantumSession.0b4d4e7e3cb0bfca7fc8.mp3",
@@ -15,13 +15,16 @@
     "static/media/PrototypeDemo.mp4": "/static/media/PrototypeDemo.7d7d9993c309b5a70dd3.mp4",
     "static/media/Screen_Demo-(v.3).mp4": "/static/media/Screen_Demo-(v.3).62c03b69129513582ede.mp4",
     "static/media/diyArduinoController.gif": "/static/media/diyArduinoController.ddfba94b1c200efb70cf.gif",
+    "static/media/Dune2-desktop-icon.png": "/static/media/Dune2-desktop-icon.8b8cca8981cc5e2f1ef2.png",
     "static/media/Tromino-In-Game(Compressed).mp4": "/static/media/Tromino-In-Game(Compressed).b45c787ea14f8dd4d9e3.mp4",
     "static/media/currentme1.jpg": "/static/media/currentme1.ea8c47efaa5f5d9b1a91.jpg",
     "static/media/Prototype.jpg": "/static/media/Prototype.c5b9940dc176ff7c77dd.jpg",
     "static/media/Tromino_GameOver.jpg": "/static/media/Tromino_GameOver.7bc46a58c2b563dd65dd.jpg",
+    "static/media/Designing_AI_Systems_for_Managers.pdf": "/static/media/Designing_AI_Systems_for_Managers.70977eed6d6ee3619cac.pdf",
     "static/media/EffectsOfMusicOnReading.pdf": "/static/media/EffectsOfMusicOnReading.ea9244c0b194afae96a0.pdf",
     "static/media/Tromino_InGame.jpg": "/static/media/Tromino_InGame.241379ff626d803c8f1c.jpg",
     "static/media/PaintingPallets.mp4": "/static/media/PaintingPallets.7565badb3fab08206abf.mp4",
+    "static/media/Jazz_Jackrabbit-app-icon.png": "/static/media/Jazz_Jackrabbit-app-icon.1f1fb2c648bc596a9b8e.png",
     "static/media/Painting3.jpg": "/static/media/Painting3.0145ca1a8a3aca1bc2ab.jpg",
     "static/media/Prototype2.jpg": "/static/media/Prototype2.3a9f57ff25c69061c45b.jpg",
     "static/media/workingAtComputer.jpg": "/static/media/workingAtComputer.d17613f74ff7e26f364d.jpg",
@@ -44,6 +47,7 @@
     "static/media/neverGiveUp.jpg": "/static/media/neverGiveUp.c9ee4e48677de77065a9.jpg",
     "static/media/audioIconsLoop.png": "/static/media/audioIconsLoop.7e601de05177d861b790.png",
     "static/media/meDJing2.jpg": "/static/media/meDJing2.a124f8cc8a4d996c24de.jpg",
+    "static/media/worms-app-icon.png": "/static/media/worms-app-icon.62690f8afb1d94976b89.png",
     "static/media/Millennium.ttf": "/static/media/Millennium.e16d74a8e8e0567ce30e.ttf",
     "static/media/Millennium-Bold.ttf": "/static/media/Millennium-Bold.cd5e3be832ebd008c852.ttf",
     "static/media/micropolisIcon.png": "/static/media/micropolisIcon.c510022fdd9ee3ccf2ca.png",
@@ -51,11 +55,11 @@
     "static/media/paint-brush.gif": "/static/media/paint-brush.4881379e32bfc50962aa.gif",
     "index.html": "/index.html",
     "main.5710ebb3.css.map": "/static/css/main.5710ebb3.css.map",
-    "main.890f13d7.js.map": "/static/js/main.890f13d7.js.map",
+    "main.e9f0c893.js.map": "/static/js/main.e9f0c893.js.map",
     "453.d0e5d6a3.chunk.js.map": "/static/js/453.d0e5d6a3.chunk.js.map"
   },
   "entrypoints": [
     "static/css/main.5710ebb3.css",
-    "static/js/main.890f13d7.js"
+    "static/js/main.e9f0c893.js"
   ]
 }

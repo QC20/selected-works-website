@@ -19,8 +19,8 @@ const ThisComputerApp: React.FC<ThisComputerProps> = (props) => {
         >
             <div className="site-page">
                 <iframe
-                    src="https://wiby.me/"
-                    title="google"
+                    src="https://web.archive.org/web/19970605005833if_/http://home.microsoft.com:80/"
+                    title="Internet Start"
                     width="100%"
                     height="100%"
                 />

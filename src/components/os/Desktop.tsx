@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
+import { motion } from 'framer-motion';
 import Colors from '../../constants/colors';
 import ShowcaseExplorer from '../applications/ShowcaseExplorer';
 import Doom from '../applications/Doom';
@@ -13,6 +14,11 @@ import Scrabble from '../applications/Scrabble';
 import { IconName } from '../../assets/icons';
 import Credits from '../applications/Credits';
 import floatingSphere from '../applications/floatingSphere';
+import Experience3D from '../experience/Experience3D';
+
+// Apps whose icon launches a full-screen takeover (the 3D experience) rather
+// than opening a draggable window. Keyed by their APPLICATIONS key.
+const FULLSCREEN_EXPERIENCES = ['stepOutside'];
 
 export interface DesktopProps {}
 
@@ -84,7 +90,15 @@ const APPLICATIONS: {
         shortcutIcon: 'micropolisIcon',
         component: Micropolis,
     },
-    
+
+    // Launches the 3D CRT-room experience instead of a window (see Desktop render).
+    // `component` is unused for this entry; kept only to satisfy the map's type.
+    stepOutside: {
+        key: 'stepOutside',
+        name: 'Step Outside',
+        shortcutIcon: 'computerBig',
+        component: floatingSphere,
+    },
 
 };
 
@@ -95,6 +109,9 @@ const Desktop: React.FC<DesktopProps> = (props) => {
 
     const [shutdown, setShutdown] = useState(false);
     const [numShutdowns, setNumShutdowns] = useState(1);
+
+    // When true, the 2D desktop recedes and the 3D CRT-room experience takes over.
+    const [experienceOpen, setExperienceOpen] = useState(false);
 
     useEffect(() => {
         if (shutdown === true) {
@@ -111,6 +128,10 @@ const Desktop: React.FC<DesktopProps> = (props) => {
                 shortcutName: app.name,
                 icon: app.shortcutIcon,
                 onOpen: () => {
+                    if (FULLSCREEN_EXPERIENCES.includes(app.key)) {
+                        setExperienceOpen(true);
+                        return;
+                    }
                     addWindow(
                         app.key,
                         <app.component
@@ -223,8 +244,22 @@ const Desktop: React.FC<DesktopProps> = (props) => {
 
     return !shutdown ? (
         <div style={styles.desktop}>
-            {/* For each window in windows, loop over and render  */}
-            {Object.keys(windows).map((key) => {
+            {/* The whole 2D desktop lives on a "stage" that physically recedes
+                (scale + tilt + brighten) when the 3D experience takes over, so the
+                hand-off reads as being pulled back through the screen. */}
+            <motion.div
+                style={Object.assign({}, styles.desktopStage, {
+                    pointerEvents: experienceOpen ? 'none' : 'auto',
+                })}
+                animate={
+                    experienceOpen
+                        ? { scale: 0.9, rotateX: 7, filter: 'brightness(1.7)' }
+                        : { scale: 1, rotateX: 0, filter: 'brightness(1)' }
+                }
+                transition={{ duration: 0.9, ease: [0.4, 0, 0.2, 1] }}
+            >
+                {/* For each window in windows, loop over and render  */}
+                {Object.keys(windows).map((key) => {
                 const element = windows[key].component;
                 if (!element) return <div key={`win-${key}`}></div>;
                 return (
@@ -266,10 +301,16 @@ const Desktop: React.FC<DesktopProps> = (props) => {
                     );
                 })}
             </div>
-            <Toolbar
-                windows={windows}
-                toggleMinimize={toggleMinimize}
-                shutdown={startShutdown}
+                <Toolbar
+                    windows={windows}
+                    toggleMinimize={toggleMinimize}
+                    shutdown={startShutdown}
+                />
+            </motion.div>
+            <Experience3D
+                open={experienceOpen}
+                onExit={() => setExperienceOpen(false)}
+                accentColor={Colors.turquoise}
             />
         </div>
     ) : (
@@ -282,9 +323,22 @@ const Desktop: React.FC<DesktopProps> = (props) => {
 
 const styles: StyleSheetCSS = {
     desktop: {
+        position: 'relative',
         minHeight: '100%',
         flex: 1,
+        overflow: 'hidden',
+        // Dark backdrop revealed at the edges as the stage recedes into 3D.
+        backgroundColor: '#05080a',
+        perspective: 1200,
+    },
+    desktopStage: {
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
         backgroundColor: Colors.turquoise,
+        transformOrigin: '50% 45%',
     },
     shutdown: {
         minHeight: '100%',
