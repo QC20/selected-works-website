@@ -20,6 +20,17 @@ import Experience3D from '../experience/Experience3D';
 // than opening a draggable window. Keyed by their APPLICATIONS key.
 const FULLSCREEN_EXPERIENCES = ['stepOutside'];
 
+// True when this desktop is the *embedded* copy living inside the 3D monitor's
+// CSS3D iframe. In that case we hide "Step Outside" so you can't recurse into
+// another 3D room from within the room.
+const IS_EMBEDDED_IN_CRT = (() => {
+    try {
+        return window.self !== window.top;
+    } catch {
+        return true; // cross-origin access throws => we're framed
+    }
+})();
+
 export interface DesktopProps {}
 
 type ExtendedWindowAppProps<T> = T & WindowAppProps;
@@ -124,6 +135,10 @@ const Desktop: React.FC<DesktopProps> = (props) => {
         const newShortcuts: DesktopShortcutProps[] = [];
         Object.keys(APPLICATIONS).forEach((key) => {
             const app = APPLICATIONS[key];
+            // Don't offer the 3D experience from inside the 3D monitor.
+            if (IS_EMBEDDED_IN_CRT && FULLSCREEN_EXPERIENCES.includes(app.key)) {
+                return;
+            }
             newShortcuts.push({
                 shortcutName: app.name,
                 icon: app.shortcutIcon,

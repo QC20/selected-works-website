@@ -37,6 +37,7 @@ const shade = (hex: string, amt: number): string => {
  */
 const Experience3D: React.FC<Experience3DProps> = ({ open, onExit, accentColor }) => {
     const canvasRef = useRef<HTMLCanvasElement>(null);
+    const cssRef = useRef<HTMLDivElement>(null);
     const controllerRef = useRef<CrtRoomController | null>(null);
     const closingRef = useRef(false);
 
@@ -63,11 +64,13 @@ const Experience3D: React.FC<Experience3DProps> = ({ open, onExit, accentColor }
     useEffect(() => {
         if (!render) return;
         const canvas = canvasRef.current;
-        if (!canvas) return;
+        const cssContainer = cssRef.current;
+        if (!canvas || !cssContainer) return;
 
         const controller = createCrtRoomScene(canvas, {
             accent: accentColor,
             reducedMotion: reduced,
+            cssContainer,
             onReady: () => {
                 // The room finished loading: lift the teal veil and fly in.
                 glow.start({
@@ -143,6 +146,10 @@ const Experience3D: React.FC<Experience3DProps> = ({ open, onExit, accentColor }
 
     return (
         <div style={styles.overlay}>
+            {/* CSS3D layer (the live OS iframe) — sits behind the canvas; the
+                canvas is transparent over the screen so this shows through. */}
+            <div ref={cssRef} style={styles.cssLayer} />
+
             <canvas ref={canvasRef} style={styles.canvas} />
 
             {/* Teal glow bridge — hides every crossover seam. */}
@@ -162,7 +169,9 @@ const Experience3D: React.FC<Experience3DProps> = ({ open, onExit, accentColor }
                 transition={{ duration: 1.2 }}
                 style={styles.uiLayer}
             >
-                <div style={styles.hint}>drag to look around</div>
+                <div style={styles.hint}>
+                    use the screen · it steps back on its own
+                </div>
 
                 <button
                     type="button"
@@ -195,12 +204,27 @@ const styles: StyleSheetCSS = {
         zIndex: 99999,
         overflow: 'hidden',
         backgroundColor: '#05080a',
-        cursor: 'grab',
+    },
+    cssLayer: {
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        width: '100%',
+        height: '100%',
+        zIndex: 1,
     },
     canvas: {
         display: 'block',
+        position: 'absolute',
+        top: 0,
+        left: 0,
         width: '100%',
         height: '100%',
+        zIndex: 2,
+        // Transparent over the screen so the CSS iframe shows through, and
+        // click-through so the iframe stays interactive.
+        pointerEvents: 'none',
+        background: 'transparent',
         touchAction: 'none',
     },
     glow: {
@@ -209,6 +233,7 @@ const styles: StyleSheetCSS = {
         left: 0,
         width: '100%',
         height: '100%',
+        zIndex: 3,
         pointerEvents: 'none',
     },
     uiLayer: {
@@ -217,6 +242,7 @@ const styles: StyleSheetCSS = {
         left: 0,
         width: '100%',
         height: '100%',
+        zIndex: 4,
         pointerEvents: 'none',
     },
     hint: {
