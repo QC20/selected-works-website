@@ -68,22 +68,27 @@ const Experience3D: React.FC<Experience3DProps> = ({ open, onExit, accentColor }
         const controller = createCrtRoomScene(canvas, {
             accent: accentColor,
             reducedMotion: reduced,
+            onReady: () => {
+                // The room finished loading: lift the teal veil and fly in.
+                glow.start({
+                    opacity: 0,
+                    transition: { duration: reduced ? 0.8 : 1.6, ease: 'easeInOut' },
+                });
+                controller.enterIntro(() => setShowUi(true));
+            },
+            onError: () => {
+                // Loading failed — hand back to the desktop without a glitch.
+                glow.start({ opacity: 0, transition: { duration: 0.4 } });
+                onExit();
+                setRender(false);
+            },
         });
         controllerRef.current = controller;
 
-        if (reduced) {
-            glow.set({ opacity: 0.55 });
-            glow.start({ opacity: 0, transition: { duration: 0.9, ease: 'easeInOut' } });
-        } else {
-            glow.set({ opacity: 0 });
-            // Swell to full teal (hides the DOM->WebGL swap), then recede.
-            glow.start({
-                opacity: [0, 0.95, 0],
-                transition: { duration: 2.0, times: [0, 0.32, 1], ease: 'easeInOut' },
-            });
-        }
-
-        controller.enterIntro(() => setShowUi(true));
+        // Hold a teal veil over the DOM->WebGL swap AND the model load, so the
+        // room only appears once it's fully ready (no pop-in).
+        glow.set({ opacity: reduced ? 0.7 : 0 });
+        glow.start({ opacity: 0.96, transition: { duration: 0.7, ease: 'easeOut' } });
 
         return () => {
             controller.dispose();

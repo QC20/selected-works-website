@@ -18,6 +18,13 @@ const CREDITS = [
         ],
     },
     {
+        title: '3D Room ("Step Outside")',
+        rows: [
+            ['Henry Heffernan', 'Room & Models'],
+            ['Used under MIT License', ''],
+        ],
+    },
+    {
         title: 'Special Thanks',
         rows: [
             ['Bruno Simon', 'Henry Hefferman'],

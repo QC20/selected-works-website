@@ -1,48 +1,63 @@
 import * as THREE from 'three';
-import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer';
-import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass';
-import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPass';
+import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader';
+import { DRACOLoader } from 'three/examples/jsm/loaders/DRACOLoader';
+import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
 
 /**
  * CrtRoomScene
  * -------------
- * A dependency-light Three.js scene: a lone CRT monitor glowing in a dark studio
- * room. The camera begins *inside* the screen (so the screen's teal glow fills the
- * frame — this is what lets the 2D->3D handoff feel seamless) and dollies back to
- * reveal the room, then hands off to a look-only orbit controller. Everything is
- * built from primitives + a CanvasTexture, so no external assets are needed.
+ * Loads Henry Heffernan's room (environment / computer / decor GLB models with
+ * baked-lighting textures) and plays a cinematic fly-in toward the computer,
+ * then hands off to a look-only orbit for pure atmosphere.
  *
- * The intro and the free-look share ONE spherical camera model, so the handoff has
- * no snap: the intro just animates the same (radius, phi, theta) the user then drives.
+ * Henry's assets are MIT-licensed; his copyright/permission notice is retained in
+ * `public/henry/LICENSE-henry-heffernan.md`. The models live in a huge coordinate
+ * space (meshes are scaled x900, camera FOV 35, units in the thousands), so all of
+ * the poses below are in *his* world units. Baked lighting means the models use an
+ * unlit MeshBasicMaterial — no scene lights are required.
+ *
+ * The seamless 2D->3D handoff is owned by Experience3D's teal glow; this module
+ * just needs to be *ready* (models loaded) before the glow lifts.
  */
 
 export interface CrtRoomOptions {
-    /** Base accent colour of the desktop (its teal), used for the screen + glow. */
+    /** Base accent colour of the desktop (its teal), used for the screen glow. */
     accent: string;
     /** Shorten/soften motion for users who prefer reduced motion. */
     reducedMotion?: boolean;
+    /** Fires once the models are loaded and the first frame is drawn. */
+    onReady?: () => void;
+    /** Fires if loading fails, so the caller can bail gracefully. */
+    onError?: (err: unknown) => void;
 }
 
 export interface CrtRoomController {
-    /** Play the dolly-back reveal. onSettled fires once free-look takes over. */
+    /** Play the fly-in toward the computer. onSettled fires as free-look begins. */
     enterIntro: (onSettled?: () => void) => void;
-    /** Reverse: dolly back into the screen, then fire onDone (glow should cover). */
+    /** Reverse: push toward the screen, then fire onDone (glow should cover). */
     exit: (onDone?: () => void) => void;
-    /** Toggle the ambient hum (first unmute resumes the AudioContext). */
+    /** Toggle the office ambience (first unmute needs a user gesture). */
     setMuted: (muted: boolean) => void;
     resize: () => void;
     dispose: () => void;
 }
 
-// Rest pose the camera settles into after the intro (spherical around the screen).
-const REST = { radius: 3.4, phi: 1.34, theta: 0.28 };
-// Start pose: essentially at the screen surface, looking straight in.
-const START = { radius: 0.32, phi: Math.PI / 2, theta: 0 };
+const PUBLIC = process.env.PUBLIC_URL || '';
+const BASE = `${PUBLIC}/henry`;
+const MODEL_SCALE = 900;
+
+// Camera poses, in Henry's world units (position + look-at focal point).
+const POSE = {
+    // A wide, slightly elevated first look at the room.
+    introStart: { pos: new THREE.Vector3(-13000, 9000, 16000), foc: new THREE.Vector3(0, 200, 0) },
+    // Settled "desk" framing of the computer — where free-look begins.
+    rest: { pos: new THREE.Vector3(0, 1800, 5500), foc: new THREE.Vector3(0, 500, 0) },
+    // Pushed in toward the screen for the exit (glow covers the last stretch).
+    exit: { pos: new THREE.Vector3(0, 950, 1500), foc: new THREE.Vector3(0, 950, 255) },
+};
 
 const easeInOutCubic = (t: number): number =>
     t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
-
-const lerp = (a: number, b: number, t: number): number => a + (b - a) * t;
 
 export function createCrtRoomScene(
     canvas: HTMLCanvasElement,
@@ -56,349 +71,205 @@ export function createCrtRoomScene(
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     renderer.setSize(window.innerWidth, window.innerHeight);
     renderer.outputColorSpace = THREE.SRGBColorSpace;
-    renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    renderer.toneMappingExposure = 1.1;
 
     const scene = new THREE.Scene();
-    scene.background = new THREE.Color(0x05080a);
-    scene.fog = new THREE.Fog(0x05080a, 2.5, 15);
+    scene.background = new THREE.Color(0x140f0c);
 
     const camera = new THREE.PerspectiveCamera(
-        55,
+        35,
         window.innerWidth / window.innerHeight,
-        0.05,
-        100
+        10,
+        900000
     );
+    camera.position.copy(POSE.introStart.pos);
+    camera.lookAt(POSE.introStart.foc);
 
-    // Everything orbits/looks at the screen centre (world origin).
-    const orbitTarget = new THREE.Vector3(0, 0, 0);
+    // A subtle glowing screen tied to the desktop's teal, so the monitor reads as
+    // "on" and the transition colour continues into the room.
+    const screen = new THREE.Mesh(
+        new THREE.PlaneGeometry(1150, 920),
+        new THREE.MeshBasicMaterial({ color: accent.clone().multiplyScalar(1.15) })
+    );
+    screen.position.set(0, 950, 258);
+    screen.rotation.x = -3 * THREE.MathUtils.DEG2RAD;
+    scene.add(screen);
 
-    // ---- Room -----------------------------------------------------------------
-    const room = new THREE.Mesh(
-        new THREE.BoxGeometry(22, 13, 22),
-        new THREE.MeshStandardMaterial({
-            color: 0x0b0f10,
-            roughness: 1,
-            metalness: 0,
-            side: THREE.BackSide,
+    // ---- Model loading --------------------------------------------------------
+    const dracoLoader = new DRACOLoader();
+    dracoLoader.setDecoderPath(`${BASE}/draco/`);
+    const gltfLoader = new GLTFLoader();
+    gltfLoader.setDRACOLoader(dracoLoader);
+    const textureLoader = new THREE.TextureLoader();
+
+    const disposables: Array<{ dispose: () => void }> = [];
+
+    const loadBaked = (
+        modelPath: string,
+        texturePath: string
+    ): Promise<THREE.Group> =>
+        new Promise((resolve, reject) => {
+            const texture = textureLoader.load(texturePath, undefined, undefined, reject);
+            texture.flipY = false;
+            texture.colorSpace = THREE.SRGBColorSpace;
+            const material = new THREE.MeshBasicMaterial({ map: texture });
+            disposables.push(texture, material);
+
+            gltfLoader.load(
+                modelPath,
+                (gltf) => {
+                    gltf.scene.traverse((child) => {
+                        if ((child as THREE.Mesh).isMesh) {
+                            const mesh = child as THREE.Mesh;
+                            mesh.scale.setScalar(MODEL_SCALE);
+                            mesh.material = material;
+                        }
+                    });
+                    resolve(gltf.scene);
+                },
+                undefined,
+                reject
+            );
+        });
+
+    let ready = false;
+    Promise.all([
+        loadBaked(
+            `${BASE}/models/World/environment.glb`,
+            `${BASE}/models/World/baked_environment.jpg`
+        ),
+        loadBaked(
+            `${BASE}/models/Computer/computer_setup.glb`,
+            `${BASE}/models/Computer/baked_computer.jpg`
+        ),
+        loadBaked(
+            `${BASE}/models/Decor/decor.glb`,
+            `${BASE}/models/Decor/baked_decor_modified.jpg`
+        ),
+    ])
+        .then((groups) => {
+            groups.forEach((g) => scene.add(g));
+            ready = true;
+            options.onReady?.();
         })
-    );
-    room.position.set(0, 4, -3);
-    scene.add(room);
+        .catch((err) => {
+            options.onError?.(err);
+        });
 
-    const floor = new THREE.Mesh(
-        new THREE.PlaneGeometry(24, 24),
-        new THREE.MeshStandardMaterial({ color: 0x0a0d0e, roughness: 0.95 })
-    );
-    floor.rotation.x = -Math.PI / 2;
-    floor.position.y = -1.4;
-    scene.add(floor);
+    // ---- Camera state machine -------------------------------------------------
+    type Mode = 'idle' | 'intro' | 'free' | 'exit';
+    let mode: Mode = 'idle';
 
-    // ---- Desk -----------------------------------------------------------------
-    const desk = new THREE.Mesh(
-        new THREE.BoxGeometry(6, 0.3, 2.4),
-        new THREE.MeshStandardMaterial({ color: 0x161210, roughness: 0.85 })
-    );
-    desk.position.set(0, -0.55, 0.1);
-    scene.add(desk);
-
-    // ---- CRT monitor ----------------------------------------------------------
-    const monitor = new THREE.Group();
-    scene.add(monitor);
-
-    const bodyMat = new THREE.MeshStandardMaterial({
-        color: 0x3b3a34,
-        roughness: 0.7,
-        metalness: 0.1,
-    });
-
-    // Main body (tapered look faked with a box) — front face sits at z = 0.
-    const body = new THREE.Mesh(new THREE.BoxGeometry(1.8, 1.42, 1.15), bodyMat);
-    body.position.set(0, 0, -0.55);
-    monitor.add(body);
-
-    // Bezel around the screen.
-    const bezel = new THREE.Mesh(new THREE.BoxGeometry(1.62, 1.24, 0.06), bodyMat);
-    bezel.position.set(0, 0, 0.01);
-    monitor.add(bezel);
-
-    // Stand.
-    const stand = new THREE.Mesh(new THREE.BoxGeometry(0.9, 0.18, 0.7), bodyMat);
-    stand.position.set(0, -0.78, -0.45);
-    monitor.add(stand);
-
-    // ---- Screen (the key light) ----------------------------------------------
-    const screenTexture = buildScreenTexture(accent);
-    const screenMat = new THREE.MeshStandardMaterial({
-        map: screenTexture,
-        emissive: new THREE.Color(0xffffff),
-        emissiveMap: screenTexture,
-        emissiveIntensity: 1.35,
-        roughness: 0.4,
-        metalness: 0,
-    });
-    const screen = new THREE.Mesh(new THREE.PlaneGeometry(1.42, 1.06), screenMat);
-    screen.position.set(0, 0, 0.05);
-    monitor.add(screen);
-
-    // Lift the monitor so it rests on the desk.
-    monitor.position.y = 0.28;
-
-    // ---- Lighting -------------------------------------------------------------
-    scene.add(new THREE.AmbientLight(0x2a3638, 0.35));
-
-    // The screen spills teal light into the room — the main source.
-    const screenLight = new THREE.PointLight(accent.clone(), 2.6, 12, 2);
-    screenLight.position.set(0, 0.3, 0.9);
-    scene.add(screenLight);
-
-    // Cool rim from behind to peel the monitor off the dark.
-    const rim = new THREE.PointLight(0x304a6a, 0.6, 14, 2);
-    rim.position.set(-3, 2.5, -4);
-    scene.add(rim);
-
-    // ---- Dust motes -----------------------------------------------------------
-    const DUST = 500;
-    const dustGeo = new THREE.BufferGeometry();
-    const dustPos = new Float32Array(DUST * 3);
-    const dustSpeed = new Float32Array(DUST);
-    for (let i = 0; i < DUST; i++) {
-        dustPos[i * 3] = (Math.random() - 0.5) * 10;
-        dustPos[i * 3 + 1] = Math.random() * 6 - 1.5;
-        dustPos[i * 3 + 2] = (Math.random() - 0.5) * 8;
-        dustSpeed[i] = 0.05 + Math.random() * 0.12;
-    }
-    dustGeo.setAttribute('position', new THREE.BufferAttribute(dustPos, 3));
-    const dust = new THREE.Points(
-        dustGeo,
-        new THREE.PointsMaterial({
-            color: accent.clone().lerp(new THREE.Color(0xffffff), 0.4),
-            size: 0.03,
-            transparent: true,
-            opacity: 0.5,
-            depthWrite: false,
-            blending: THREE.AdditiveBlending,
-            sizeAttenuation: true,
-        })
-    );
-    scene.add(dust);
-
-    // ---- Post-processing (gentle bloom on the screen) -------------------------
-    const composer = new EffectComposer(renderer);
-    composer.addPass(new RenderPass(scene, camera));
-    const bloom = new UnrealBloomPass(
-        new THREE.Vector2(window.innerWidth, window.innerHeight),
-        0.85, // strength
-        0.5, // radius
-        0.82 // threshold — only the bright screen blooms
-    );
-    composer.addPass(bloom);
-    composer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-
-    // ---- Camera model (shared by intro + free-look) ---------------------------
-    // goal.* is where we want to be; cur.* is damped toward it every frame.
-    const cur = { ...START };
-    const goal = { ...START };
-    let userTheta = REST.theta;
-    let userPhi = REST.phi;
-
-    type Mode = 'intro' | 'free' | 'exit';
-    let mode: Mode = 'intro';
+    const fromPos = new THREE.Vector3();
+    const toPos = new THREE.Vector3();
+    const fromFoc = new THREE.Vector3();
+    const toFoc = new THREE.Vector3();
+    const curFoc = new THREE.Vector3().copy(POSE.introStart.foc);
     let tweenStart = 0;
     let tweenDur = 0;
-    const tweenFrom = { ...START };
-    const tweenTo = { ...START };
     let onTweenDone: (() => void) | undefined;
 
     const startTween = (
-        to: { radius: number; phi: number; theta: number },
+        to: { pos: THREE.Vector3; foc: THREE.Vector3 },
         dur: number,
         done?: () => void
     ) => {
-        tweenFrom.radius = cur.radius;
-        tweenFrom.phi = cur.phi;
-        tweenFrom.theta = cur.theta;
-        tweenTo.radius = to.radius;
-        tweenTo.phi = to.phi;
-        tweenTo.theta = to.theta;
+        fromPos.copy(camera.position);
+        toPos.copy(to.pos);
+        fromFoc.copy(curFoc);
+        toFoc.copy(to.foc);
         tweenStart = performance.now();
         tweenDur = dur;
         onTweenDone = done;
     };
 
-    const applyCamera = () => {
-        const sinPhi = Math.sin(cur.phi);
-        camera.position.set(
-            orbitTarget.x + cur.radius * sinPhi * Math.sin(cur.theta),
-            orbitTarget.y + cur.radius * Math.cos(cur.phi),
-            orbitTarget.z + cur.radius * sinPhi * Math.cos(cur.theta)
-        );
-        camera.lookAt(orbitTarget);
-    };
-    applyCamera();
-
-    // ---- Pointer look (only active in free mode) ------------------------------
-    let dragging = false;
-    let lastX = 0;
-    let lastY = 0;
-    let idleTime = 0; // seconds since last user input, for auto-drift
-
-    const onPointerDown = (e: PointerEvent) => {
-        if (mode !== 'free') return;
-        dragging = true;
-        idleTime = 0;
-        lastX = e.clientX;
-        lastY = e.clientY;
-        canvas.setPointerCapture?.(e.pointerId);
-    };
-    const onPointerMove = (e: PointerEvent) => {
-        if (!dragging || mode !== 'free') return;
-        const dx = e.clientX - lastX;
-        const dy = e.clientY - lastY;
-        lastX = e.clientX;
-        lastY = e.clientY;
-        idleTime = 0;
-        userTheta -= dx * 0.005;
-        userPhi -= dy * 0.005;
-        userPhi = Math.max(0.65, Math.min(1.85, userPhi));
-    };
-    const onPointerUp = (e: PointerEvent) => {
-        dragging = false;
-        canvas.releasePointerCapture?.(e.pointerId);
-    };
-    canvas.addEventListener('pointerdown', onPointerDown);
-    window.addEventListener('pointermove', onPointerMove);
-    window.addEventListener('pointerup', onPointerUp);
-
-    // ---- Ambient hum (WebAudio, no asset) -------------------------------------
-    let audioCtx: AudioContext | null = null;
-    let masterGain: GainNode | null = null;
-    const buildAudio = () => {
-        const Ctx =
-            window.AudioContext ||
-            (window as any).webkitAudioContext;
-        if (!Ctx) return;
-        audioCtx = new Ctx();
-        masterGain = audioCtx.createGain();
-        masterGain.gain.value = 0;
-        masterGain.connect(audioCtx.destination);
-
-        const mkOsc = (freq: number, gain: number) => {
-            const osc = audioCtx!.createOscillator();
-            osc.type = 'sine';
-            osc.frequency.value = freq;
-            const g = audioCtx!.createGain();
-            g.gain.value = gain;
-            osc.connect(g).connect(masterGain!);
-            osc.start();
-        };
-        mkOsc(58, 0.6); // deep room tone
-        mkOsc(87.2, 0.25); // slightly detuned fifth-ish for CRT "presence"
-        mkOsc(120, 0.08); // faint high whine
-
-        // Slow breathing on the master via an LFO.
-        const lfo = audioCtx.createOscillator();
-        lfo.frequency.value = 0.12;
-        const lfoGain = audioCtx.createGain();
-        lfoGain.gain.value = 0.04;
-        lfo.connect(lfoGain).connect(masterGain.gain);
-        lfo.start();
+    // Look-only orbit for the atmospheric free-look phase.
+    let controls: OrbitControls | null = null;
+    const enableControls = () => {
+        controls = new OrbitControls(camera, canvas);
+        controls.target.copy(POSE.rest.foc);
+        controls.enablePan = false;
+        controls.enableZoom = false;
+        controls.enableDamping = true;
+        controls.dampingFactor = 0.06;
+        controls.rotateSpeed = 0.4;
+        controls.autoRotate = true;
+        controls.autoRotateSpeed = reduced ? 0 : 0.25;
+        controls.minPolarAngle = 0.25;
+        controls.maxPolarAngle = Math.PI / 2.05;
+        controls.update();
     };
 
+    // ---- Ambient office audio (muted by default) ------------------------------
+    const audio = new Audio(`${BASE}/audio/office.mp3`);
+    audio.loop = true;
+    audio.volume = 0;
+    let fadeTimer: number | undefined;
     const setMuted = (muted: boolean) => {
-        if (!audioCtx) buildAudio();
-        if (!audioCtx || !masterGain) return;
-        if (audioCtx.state === 'suspended') audioCtx.resume();
-        const now = audioCtx.currentTime;
-        masterGain.gain.cancelScheduledValues(now);
-        masterGain.gain.setTargetAtTime(muted ? 0 : 0.09, now, 0.6);
+        window.clearInterval(fadeTimer);
+        const target = muted ? 0 : 0.5;
+        if (!muted) audio.play().catch(() => undefined);
+        fadeTimer = window.setInterval(() => {
+            const next = audio.volume + (target - audio.volume) * 0.12;
+            audio.volume = Math.abs(next - target) < 0.01 ? target : next;
+            if (audio.volume === target) {
+                window.clearInterval(fadeTimer);
+                if (muted) audio.pause();
+            }
+        }, 40);
     };
 
     // ---- Render loop ----------------------------------------------------------
     let raf = 0;
     let running = true;
-    let last = performance.now();
-
-    const baseEmissive = 1.35;
-    const baseLight = 2.6;
 
     const tick = () => {
         if (!running) return;
         raf = requestAnimationFrame(tick);
-        const now = performance.now();
-        const dt = Math.min((now - last) / 1000, 0.05);
-        last = now;
 
-        // --- Camera state machine ---
         if (mode === 'intro' || mode === 'exit') {
-            const t = tweenDur > 0 ? Math.min((now - tweenStart) / tweenDur, 1) : 1;
+            const t = tweenDur > 0 ? Math.min((performance.now() - tweenStart) / tweenDur, 1) : 1;
             const e = easeInOutCubic(t);
-            cur.radius = lerp(tweenFrom.radius, tweenTo.radius, e);
-            cur.phi = lerp(tweenFrom.phi, tweenTo.phi, e);
-            cur.theta = lerp(tweenFrom.theta, tweenTo.theta, e);
-            applyCamera();
+            camera.position.lerpVectors(fromPos, toPos, e);
+            curFoc.lerpVectors(fromFoc, toFoc, e);
+            camera.lookAt(curFoc);
             if (t >= 1) {
                 const done = onTweenDone;
                 onTweenDone = undefined;
                 if (mode === 'intro') {
                     mode = 'free';
-                    userTheta = cur.theta;
-                    userPhi = cur.phi;
+                    enableControls();
                 }
-                done && done();
+                done?.();
             }
-        } else {
-            // free-look: gentle idle drift, damped toward user goal
-            idleTime += dt;
-            if (idleTime > 2.5 && !dragging) {
-                userTheta += Math.sin(now * 0.00013) * 0.00035;
-            }
-            goal.radius = REST.radius;
-            goal.theta = userTheta;
-            goal.phi = userPhi;
-            const k = 1 - Math.pow(0.0015, dt); // frame-rate independent damping
-            cur.radius = lerp(cur.radius, goal.radius, k);
-            cur.theta = lerp(cur.theta, goal.theta, k);
-            cur.phi = lerp(cur.phi, goal.phi, k);
-            applyCamera();
+        } else if (mode === 'free' && controls) {
+            controls.update();
         }
 
-        // --- CRT flicker: subtle, organic ---
-        const flicker =
-            0.92 +
-            0.05 * Math.sin(now * 0.02) +
-            0.03 * Math.sin(now * 0.11) +
-            (Math.random() - 0.5) * 0.015;
-        screenMat.emissiveIntensity = baseEmissive * flicker;
-        screenLight.intensity = baseLight * flicker;
+        // Gentle CRT flicker on the screen colour.
+        const f = 0.95 + 0.05 * Math.sin(performance.now() * 0.02) + (Math.random() - 0.5) * 0.02;
+        (screen.material as THREE.MeshBasicMaterial).color
+            .copy(accent)
+            .multiplyScalar(1.15 * f);
 
-        // --- Dust drift ---
-        const p = dustGeo.attributes.position as THREE.BufferAttribute;
-        const arr = p.array as Float32Array;
-        for (let i = 0; i < DUST; i++) {
-            arr[i * 3 + 1] += dustSpeed[i] * dt;
-            arr[i * 3] += Math.sin(now * 0.0003 + i) * 0.0006;
-            if (arr[i * 3 + 1] > 4.5) arr[i * 3 + 1] = -1.5;
-        }
-        p.needsUpdate = true;
-
-        composer.render();
+        renderer.render(scene, camera);
     };
 
     // ---- Public controls ------------------------------------------------------
     const enterIntro = (onSettled?: () => void) => {
         mode = 'intro';
-        cur.radius = START.radius;
-        cur.phi = START.phi;
-        cur.theta = START.theta;
-        applyCamera();
-        startTween(REST, reduced ? 1200 : 3600, onSettled);
+        camera.position.copy(POSE.introStart.pos);
+        curFoc.copy(POSE.introStart.foc);
+        camera.lookAt(curFoc);
+        startTween(POSE.rest, reduced ? 1400 : 4500, onSettled);
     };
 
     const exit = (onDone?: () => void) => {
+        if (controls) {
+            controls.dispose();
+            controls = null;
+        }
         mode = 'exit';
-        // Dolly back into the screen; caller's glow covers the last stretch.
-        startTween(START, reduced ? 700 : 1500, onDone);
+        startTween(POSE.exit, reduced ? 700 : 1400, onDone);
     };
 
     const resize = () => {
@@ -408,7 +279,6 @@ export function createCrtRoomScene(
         camera.updateProjectionMatrix();
         renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
         renderer.setSize(w, h);
-        composer.setSize(w, h);
     };
 
     const onVisibility = () => {
@@ -417,107 +287,37 @@ export function createCrtRoomScene(
             cancelAnimationFrame(raf);
         } else if (!running) {
             running = true;
-            last = performance.now();
             raf = requestAnimationFrame(tick);
         }
     };
     document.addEventListener('visibilitychange', onVisibility);
     window.addEventListener('resize', resize);
 
-    // Kick off.
     raf = requestAnimationFrame(tick);
 
     const dispose = () => {
         running = false;
         cancelAnimationFrame(raf);
+        window.clearInterval(fadeTimer);
         window.removeEventListener('resize', resize);
         document.removeEventListener('visibilitychange', onVisibility);
-        canvas.removeEventListener('pointerdown', onPointerDown);
-        window.removeEventListener('pointermove', onPointerMove);
-        window.removeEventListener('pointerup', onPointerUp);
+
+        audio.pause();
+        audio.src = '';
+        controls?.dispose();
+        dracoLoader.dispose();
 
         scene.traverse((obj) => {
             const mesh = obj as THREE.Mesh;
             if (mesh.geometry) mesh.geometry.dispose();
-            const mat = (mesh as any).material;
-            if (Array.isArray(mat)) mat.forEach((m: THREE.Material) => m.dispose());
-            else if (mat) (mat as THREE.Material).dispose();
         });
-        screenTexture.dispose();
-        bloom.dispose();
-        composer.dispose();
+        disposables.forEach((d) => d.dispose());
+        (screen.material as THREE.Material).dispose();
         renderer.dispose();
 
-        if (audioCtx) {
-            audioCtx.close().catch(() => undefined);
-            audioCtx = null;
-        }
+        // Silence "unused" while keeping the flag meaningful for future guards.
+        void ready;
     };
 
     return { enterIntro, exit, setMuted, resize, dispose };
-}
-
-/**
- * Draws the CRT's face onto a canvas: a soft teal glow, scanlines, a vignette and
- * a few faint window-ish shapes so it reads as "a desktop" without being literal.
- */
-function buildScreenTexture(accent: THREE.Color): THREE.CanvasTexture {
-    const size = 512;
-    const c = document.createElement('canvas');
-    c.width = size;
-    c.height = size;
-    const ctx = c.getContext('2d')!;
-
-    const hex = `#${accent.getHexString()}`;
-    const bright = `#${accent.clone().lerp(new THREE.Color(0xffffff), 0.35).getHexString()}`;
-    const dark = `#${accent.clone().multiplyScalar(0.4).getHexString()}`;
-
-    // Base radial glow.
-    const grad = ctx.createRadialGradient(
-        size / 2,
-        size * 0.42,
-        30,
-        size / 2,
-        size / 2,
-        size * 0.75
-    );
-    grad.addColorStop(0, bright);
-    grad.addColorStop(0.55, hex);
-    grad.addColorStop(1, dark);
-    ctx.fillStyle = grad;
-    ctx.fillRect(0, 0, size, size);
-
-    // Faint "window" rectangles, echoing the OS underneath.
-    ctx.globalAlpha = 0.12;
-    ctx.fillStyle = '#ffffff';
-    ctx.fillRect(size * 0.16, size * 0.2, size * 0.4, size * 0.28);
-    ctx.fillRect(size * 0.45, size * 0.5, size * 0.4, size * 0.26);
-    ctx.globalAlpha = 1;
-
-    // Scanlines.
-    ctx.globalAlpha = 0.18;
-    ctx.fillStyle = '#000000';
-    for (let y = 0; y < size; y += 3) {
-        ctx.fillRect(0, y, size, 1);
-    }
-    ctx.globalAlpha = 1;
-
-    // Vignette.
-    const vig = ctx.createRadialGradient(
-        size / 2,
-        size / 2,
-        size * 0.3,
-        size / 2,
-        size / 2,
-        size * 0.72
-    );
-    vig.addColorStop(0, 'rgba(0,0,0,0)');
-    vig.addColorStop(1, 'rgba(0,0,0,0.55)');
-    ctx.fillStyle = vig;
-    ctx.fillRect(0, 0, size, size);
-
-    const tex = new THREE.CanvasTexture(c);
-    tex.colorSpace = THREE.SRGBColorSpace;
-    tex.needsUpdate = true;
-    return tex;
 }
