@@ -20,6 +20,9 @@ import scrabbleIcon from './scrabbleIcon.png';
 import micropolisIcon from './micropolisIcon.png';
 import close from './close.png';
 import internetExplorerIcon from './internetExplorerIcon.png'
+import msnIcon from './msnIcon.png';
+import githubIcon from './githubIcon.png';
+import displayIcon from './displayIcon.png';
 
 const getIconByName = (
     iconName: IconName
@@ -49,6 +52,9 @@ const icons = {
     trailIcon: trailIcon,
     internetExplorerIcon: internetExplorerIcon,
     floatingSphere: Sphere,
+    msnIcon: msnIcon,
+    githubIcon: githubIcon,
+    displayIcon: displayIcon,
 };
 
 

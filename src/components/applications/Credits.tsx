@@ -28,7 +28,14 @@ const CREDITS = [
         title: 'Special Thanks',
         rows: [
             ['Bruno Simon', 'Henry Hefferman'],
-            ['Dikra Ben Allel'],
+            ['Dikra Ben Allel', 'Yute (Yuteoctober)'],
+        ],
+    },
+    {
+        title: 'Guestbook & Resolution Toggle',
+        rows: [
+            ['Yute (Yuteoctober)', 'Windows95 Portfolio'],
+            ['Adapted under MIT License', ''],
         ],
     },
     {

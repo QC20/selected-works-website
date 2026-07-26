@@ -23,6 +23,25 @@ div {
     height: 100%;
 }
 
+/* --- Mobile / tablet niceties (no effect on desktop/laptop) --- */
+html,
+body {
+    /* Stop the whole page from rubber-band scrolling on touch. */
+    overscroll-behavior: none;
+    /* Instant taps (removes the 300ms double-tap-zoom delay). */
+    touch-action: manipulation;
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+}
+
+/* Use the dynamic viewport height where supported so the taskbar isn't hidden
+   behind mobile browser chrome. Falls back to the 100vh rule above. */
+@supports (height: 100dvh) {
+    .App {
+        height: 100dvh;
+    }
+}
+
 .white {
     color: #fff;
 }

@@ -4,7 +4,6 @@ import Colors from '../../constants/colors';
 import ShowcaseExplorer from '../applications/ShowcaseExplorer';
 import Doom from '../applications/Doom';
 import OregonTrail from '../applications/OregonTrail';
-import Micropolis from '../applications/Micropolis';
 import ShutdownSequence from './ShutdownSequence';
 import ThisComputerApp from '../applications/ThisComputer';
 
@@ -14,11 +13,24 @@ import Scrabble from '../applications/Scrabble';
 import { IconName } from '../../assets/icons';
 import Credits from '../applications/Credits';
 import floatingSphere from '../applications/floatingSphere';
+import Guestbook from '../applications/Guestbook';
 import Experience3D from '../experience/Experience3D';
+import {
+    Resolution,
+    scaleFor,
+    loadResolution,
+    saveResolution,
+    setCurrentScale,
+} from './resolution';
 
 // Apps whose icon launches a full-screen takeover (the 3D experience) rather
 // than opening a draggable window. Keyed by their APPLICATIONS key.
 const FULLSCREEN_EXPERIENCES = ['stepOutside'];
+
+// Apps whose icon just opens an external URL in a new tab.
+const EXTERNAL_LINKS: { [key: string]: string } = {
+    github: 'https://github.com/QC20',
+};
 
 // True when this desktop is the *embedded* copy living inside the 3D monitor's
 // CSS3D iframe. In that case we hide "Step Outside" so you can't recurse into
@@ -69,11 +81,11 @@ const APPLICATIONS: {
         shortcutIcon: 'doomIcon',
         component: Doom,
     },
-    micropolis: {
-        key: 'micropolis',
-        name: 'Micropolis',
-        shortcutIcon: 'micropolisIcon',
-        component: Micropolis,
+    guestbook: {
+        key: 'guestbook',
+        name: 'Guestbook',
+        shortcutIcon: 'msnIcon',
+        component: Guestbook,
     },
     scrabble: {
         key: 'scrabble',
@@ -95,11 +107,13 @@ const APPLICATIONS: {
         shortcutIcon: 'floatingSphere',
         component: floatingSphere,
     },
-    micropolis2: {
-        key: 'micropolis2',
-        name: 'Micropolis',
-        shortcutIcon: 'micropolisIcon',
-        component: Micropolis,
+    // Opens my GitHub overview in a new tab (see EXTERNAL_LINKS / render).
+    // `component` is unused; kept only to satisfy the map's type.
+    github: {
+        key: 'github',
+        name: 'GitHub',
+        shortcutIcon: 'githubIcon',
+        component: floatingSphere,
     },
 
     // Launches the 3D CRT-room experience instead of a window (see Desktop render).
@@ -124,6 +138,15 @@ const Desktop: React.FC<DesktopProps> = (props) => {
     // When true, the 2D desktop recedes and the 3D CRT-room experience takes over.
     const [experienceOpen, setExperienceOpen] = useState(false);
 
+    // Retro "screen resolution" — scales the 2D desktop only (persisted).
+    const [resolution, setResolutionState] = useState<Resolution>(loadResolution());
+    const resolutionScale = scaleFor(resolution);
+    setCurrentScale(resolutionScale); // keep window drag/resize scale-aware
+    const setResolution = useCallback((r: Resolution) => {
+        saveResolution(r);
+        setResolutionState(r);
+    }, []);
+
     useEffect(() => {
         if (shutdown === true) {
             rebootDesktop();
@@ -145,6 +168,14 @@ const Desktop: React.FC<DesktopProps> = (props) => {
                 onOpen: () => {
                     if (FULLSCREEN_EXPERIENCES.includes(app.key)) {
                         setExperienceOpen(true);
+                        return;
+                    }
+                    if (EXTERNAL_LINKS[app.key]) {
+                        window.open(
+                            EXTERNAL_LINKS[app.key],
+                            '_blank',
+                            'noopener,noreferrer'
+                        );
                         return;
                     }
                     addWindow(
@@ -273,6 +304,19 @@ const Desktop: React.FC<DesktopProps> = (props) => {
                 }
                 transition={{ duration: 0.9, ease: [0.4, 0, 0.2, 1] }}
             >
+              {/* Resolution wrapper: scales the whole desktop while still filling
+                  the viewport (inverse-sized + transform-scaled). */}
+              <div
+                style={{
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                    width: `${100 / resolutionScale}%`,
+                    height: `${100 / resolutionScale}%`,
+                    transform: `scale(${resolutionScale})`,
+                    transformOrigin: 'top left',
+                }}
+              >
                 {/* For each window in windows, loop over and render  */}
                 {Object.keys(windows).map((key) => {
                 const element = windows[key].component;
@@ -320,7 +364,10 @@ const Desktop: React.FC<DesktopProps> = (props) => {
                     windows={windows}
                     toggleMinimize={toggleMinimize}
                     shutdown={startShutdown}
+                    resolution={resolution}
+                    setResolution={setResolution}
                 />
+              </div>
             </motion.div>
             <Experience3D
                 open={experienceOpen}

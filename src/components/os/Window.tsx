@@ -7,6 +7,7 @@ import Icon from '../general/Icon';
 import Button from './Button';
 import DragIndicator from './DragIndicator';
 import ResizeIndicator from './ResizeIndicator';
+import { getResolutionScale } from './resolution';
 
 export interface WindowProps {
     closeWindow: () => void;
@@ -38,13 +39,22 @@ const Window: React.FC<WindowProps> = (props) => {
 
     const resizeRef = useRef<any>(null);
 
-    const [top, setTop] = useState(props.top);
-    const [left, setLeft] = useState(props.left);
+    // Clamp the initial window box to the (scale-aware) viewport so windows fit on
+    // phones/tablets. On desktop the viewport is large, so these are no-ops.
+    const vw = window.innerWidth / getResolutionScale();
+    const vh = window.innerHeight / getResolutionScale();
+    const initWidth = Math.min(props.width, Math.max(240, vw - 8));
+    const initHeight = Math.min(props.height, Math.max(200, vh - 48));
+    const initLeft = Math.max(0, Math.min(props.left, vw - initWidth));
+    const initTop = Math.max(0, Math.min(props.top, vh - 60));
+
+    const [top, setTop] = useState(initTop);
+    const [left, setLeft] = useState(initLeft);
 
     const lastClickInside = useRef(false);
 
-    const [width, setWidth] = useState(props.width);
-    const [height, setHeight] = useState(props.height);
+    const [width, setWidth] = useState(initWidth);
+    const [height, setHeight] = useState(initHeight);
 
     const [contentWidth, setContentWidth] = useState(props.width);
     const [contentHeight, setContentHeight] = useState(props.height);
@@ -65,13 +75,16 @@ const Window: React.FC<WindowProps> = (props) => {
     const startResize = (event: any) => {
         event.preventDefault();
         setIsResizing(true);
-        window.addEventListener('mousemove', onResize, false);
-        window.addEventListener('mouseup', stopResize, false);
+        window.addEventListener('pointermove', onResize, false);
+        window.addEventListener('pointerup', stopResize, false);
     };
 
     const onResize = ({ clientX, clientY }: any) => {
-        const curWidth = clientX - left;
-        const curHeight = clientY - top;
+        // Screen coords -> desktop (scaled) coords so resizing tracks the cursor
+        // at any resolution.
+        const scale = getResolutionScale();
+        const curWidth = clientX / scale - left;
+        const curHeight = clientY / scale - top;
         if (curWidth > 520) resizeRef.current.style.width = `${curWidth}px`;
         if (curHeight > 220) resizeRef.current.style.height = `${curHeight}px`;
         resizeRef.current.style.opacity = 1;
@@ -82,8 +95,8 @@ const Window: React.FC<WindowProps> = (props) => {
         setWidth(resizeRef.current.style.width);
         setHeight(resizeRef.current.style.height);
         resizeRef.current.style.opacity = 0;
-        window.removeEventListener('mousemove', onResize, false);
-        window.removeEventListener('mouseup', stopResize, false);
+        window.removeEventListener('pointermove', onResize, false);
+        window.removeEventListener('pointerup', stopResize, false);
     };
 
     const startDrag = (event: any) => {
@@ -94,8 +107,8 @@ const Window: React.FC<WindowProps> = (props) => {
             dragStartX: clientX,
             dragStartY: clientY,
         };
-        window.addEventListener('mousemove', onDrag, false);
-        window.addEventListener('mouseup', stopDrag, false);
+        window.addEventListener('pointermove', onDrag, false);
+        window.addEventListener('pointerup', stopDrag, false);
     };
 
     const onDrag = ({ clientX, clientY }: any) => {
@@ -110,8 +123,8 @@ const Window: React.FC<WindowProps> = (props) => {
         const { x, y } = getXYFromDragProps(clientX, clientY);
         setTop(y);
         setLeft(x);
-        window.removeEventListener('mousemove', onDrag, false);
-        window.removeEventListener('mouseup', stopDrag, false);
+        window.removeEventListener('pointermove', onDrag, false);
+        window.removeEventListener('pointerup', stopDrag, false);
     };
 
     const getXYFromDragProps = (
@@ -121,8 +134,11 @@ const Window: React.FC<WindowProps> = (props) => {
         if (!dragProps.current) return { x: 0, y: 0 };
         const { dragStartX, dragStartY } = dragProps.current;
 
-        const x = clientX - dragStartX + left;
-        const y = clientY - dragStartY + top;
+        // Divide the screen-space delta by the desktop scale so the window keeps
+        // up with the cursor/finger at any resolution.
+        const scale = getResolutionScale();
+        const x = (clientX - dragStartX) / scale + left;
+        const y = (clientY - dragStartY) / scale + top;
 
         return { x, y };
     };
@@ -179,9 +195,9 @@ const Window: React.FC<WindowProps> = (props) => {
     };
 
     useEffect(() => {
-        window.addEventListener('mousedown', onCheckClick, false);
+        window.addEventListener('pointerdown', onCheckClick, false);
         return () => {
-            window.removeEventListener('mousedown', onCheckClick, false);
+            window.removeEventListener('pointerdown', onCheckClick, false);
         };
     }, []);
 
@@ -192,7 +208,7 @@ const Window: React.FC<WindowProps> = (props) => {
     };
 
     return (
-        <div onMouseDown={onWindowInteract} style={styles.container}>
+        <div onPointerDown={onWindowInteract} style={styles.container}>
             <div
                 style={Object.assign({}, styles.window, {
                     width,
@@ -206,7 +222,7 @@ const Window: React.FC<WindowProps> = (props) => {
                     <div style={styles.windowBorderInner}>
                         <div
                             style={styles.dragHitbox}
-                            onMouseDown={startDrag}
+                            onPointerDown={startDrag}
                         ></div>
                         <div
                             className={props.rainbow ? 'rainbow-wrapper' : ''}
@@ -272,7 +288,7 @@ const Window: React.FC<WindowProps> = (props) => {
                             </div>
                         </div>
                         <div
-                            onMouseDown={startResize}
+                            onPointerDown={startResize}
                             style={styles.resizeHitbox}
                         ></div>
                         <div style={styles.bottomBar}>
@@ -385,6 +401,7 @@ const styles: StyleSheetCSS = {
         top: -8,
         left: -4,
         cursor: 'move',
+        touchAction: 'none',
     },
     windowBorderOuter: {
         border: `1px solid ${Colors.black}`,
@@ -408,6 +425,7 @@ const styles: StyleSheetCSS = {
         bottom: -20,
         right: -20,
         cursor: 'nwse-resize',
+        touchAction: 'none',
     },
     topBar: {
         backgroundColor: Colors.blue,

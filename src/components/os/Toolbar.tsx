@@ -1,21 +1,24 @@
 import React, { useEffect, useRef, useState } from 'react';
 import Colors from '../../constants/colors';
 import { Icon } from '../general';
-// import { } from '../general';
-// import Home from '../site/Home';
-// import Window from './Window';
+import { Resolution, RESOLUTIONS } from './resolution';
 
 export interface ToolbarProps {
     windows: DesktopWindows;
     toggleMinimize: (key: string) => void;
     shutdown: () => void;
+    resolution: Resolution;
+    setResolution: (r: Resolution) => void;
 }
 
 const Toolbar: React.FC<ToolbarProps> = ({
     windows,
     toggleMinimize,
     shutdown,
+    resolution,
+    setResolution,
 }) => {
+    const [resMenuOpen, setResMenuOpen] = useState(false);
     const getTime = () => {
         const date = new Date();
         let hours = date.getHours();
@@ -68,10 +71,24 @@ const Toolbar: React.FC<ToolbarProps> = ({
     };
 
     useEffect(() => {
-        window.addEventListener('mousedown', onCheckClick, false);
+        window.addEventListener('pointerdown', onCheckClick, false);
         return () => {
-            window.removeEventListener('mousedown', onCheckClick, false);
+            window.removeEventListener('pointerdown', onCheckClick, false);
         };
+    }, []);
+
+    const resAreaRef = useRef<HTMLDivElement>(null);
+    useEffect(() => {
+        const onDown = (e: PointerEvent) => {
+            if (
+                resAreaRef.current &&
+                !resAreaRef.current.contains(e.target as Node)
+            ) {
+                setResMenuOpen(false);
+            }
+        };
+        window.addEventListener('pointerdown', onDown);
+        return () => window.removeEventListener('pointerdown', onDown);
     }, []);
 
     const onStartWindowClicked = () => {
@@ -91,7 +108,7 @@ const Toolbar: React.FC<ToolbarProps> = ({
         <div style={styles.toolbarOuter}>
             {startWindowOpen && (
                 <div
-                    onMouseDown={onStartWindowClicked}
+                    onPointerDown={onStartWindowClicked}
                     style={styles.startWindow}
                 >
                     <div style={styles.startWindowInner}>
@@ -104,7 +121,7 @@ const Toolbar: React.FC<ToolbarProps> = ({
                             <div
                                 className="start-menu-option"
                                 style={styles.startMenuOption}
-                                onMouseDown={shutdown}
+                                onPointerDown={shutdown}
                             >
                                 <Icon
                                     style={styles.startMenuIcon}
@@ -126,7 +143,7 @@ const Toolbar: React.FC<ToolbarProps> = ({
                             styles.startContainerOuter,
                             startWindowOpen && styles.activeTabOuter
                         )}
-                        onMouseDown={toggleStartWindow}
+                        onPointerDown={toggleStartWindow}
                     >
                         <div
                             style={Object.assign(
@@ -155,7 +172,7 @@ const Toolbar: React.FC<ToolbarProps> = ({
                                             !windows[key].minimized &&
                                             styles.activeTabOuter
                                     )}
-                                    onMouseDown={() => toggleMinimize(key)}
+                                    onPointerDown={() => toggleMinimize(key)}
                                 >
                                     <div
                                         style={Object.assign(
@@ -180,7 +197,39 @@ const Toolbar: React.FC<ToolbarProps> = ({
                         })}
                     </div>
                 </div>
-                <div style={styles.time}>
+                <div style={styles.time} ref={resAreaRef}>
+                    {resMenuOpen && (
+                        <div style={styles.resMenu}>
+                            <p style={styles.resMenuTitle}>Screen area</p>
+                            {RESOLUTIONS.map((opt) => (
+                                <div
+                                    key={opt.value}
+                                    className="start-menu-option"
+                                    style={styles.resItem}
+                                    onPointerDown={(e) => {
+                                        e.stopPropagation();
+                                        setResolution(opt.value);
+                                        setResMenuOpen(false);
+                                    }}
+                                >
+                                    <span style={styles.resCheck}>
+                                        {opt.value === resolution ? '✓' : ''}
+                                    </span>
+                                    <span>{opt.label}</span>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+                    <div
+                        style={styles.displayIconWrap}
+                        title="Screen resolution"
+                        onPointerDown={(e) => {
+                            e.stopPropagation();
+                            setResMenuOpen((o) => !o);
+                        }}
+                    >
+                        <Icon icon="displayIcon" size={16} />
+                    </div>
                     <Icon style={styles.volumeIcon} icon="volumeOn" />
                     <p style={styles.timeText}>{time}</p>
                 </div>
@@ -350,8 +399,9 @@ const styles: StyleSheetCSS = {
         width: '100%',
     },
     time: {
+        position: 'relative',
         flexShrink: 1,
-        width: 86,
+        width: 112,
         height: 24,
         boxSizing: 'border-box',
         marginRight: 4,
@@ -363,6 +413,45 @@ const styles: StyleSheetCSS = {
         justifyContent: 'space-between',
         alignItems: 'center',
         borderLeftColor: Colors.darkGray,
+    },
+    displayIconWrap: {
+        cursor: 'pointer',
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginRight: 2,
+    },
+    resMenu: {
+        position: 'absolute',
+        bottom: '135%',
+        right: 0,
+        minWidth: 120,
+        background: Colors.lightGray,
+        border: `1px solid ${Colors.white}`,
+        borderBottomColor: Colors.black,
+        borderRightColor: Colors.black,
+        boxShadow: '1px 1px 0 rgba(0,0,0,0.4)',
+        flexDirection: 'column',
+        padding: 2,
+        zIndex: 100001,
+    },
+    resMenuTitle: {
+        fontFamily: 'MSSerif',
+        fontSize: 10,
+        color: Colors.darkGray,
+        padding: '2px 6px 4px 6px',
+    },
+    resItem: {
+        alignItems: 'center',
+        cursor: 'pointer',
+        padding: '3px 6px',
+        fontFamily: 'MSSerif',
+        fontSize: 12,
+    },
+    resCheck: {
+        width: 14,
+        display: 'inline-block',
+        fontFamily: 'MSSerif',
+        fontSize: 12,
     },
     volumeIcon: {
         cursor: 'pointer',

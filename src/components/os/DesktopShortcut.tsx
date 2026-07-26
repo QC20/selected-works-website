@@ -82,9 +82,9 @@ const DesktopShortcut: React.FC<DesktopShortcutProps> = ({
     }, [doubleClickTimerActive, setIsSelected, onOpen]);
 
     useEffect(() => {
-        document.addEventListener('mousedown', handleClickOutside);
+        document.addEventListener('pointerdown', handleClickOutside);
         return () => {
-            document.removeEventListener('mousedown', handleClickOutside);
+            document.removeEventListener('pointerdown', handleClickOutside);
         };
     }, [isSelected, handleClickOutside]);
 
@@ -92,7 +92,7 @@ const DesktopShortcut: React.FC<DesktopShortcutProps> = ({
         <div
             id={`${shortcutId}`}
             style={Object.assign({}, styles.appShortcut, scaledStyle)}
-            onMouseDown={handleClickShortcut}
+            onPointerDown={handleClickShortcut}
             ref={containerRef}
         >
             <div id={`${shortcutId}`} style={styles.iconContainer}>
@@ -145,6 +145,8 @@ const styles: StyleSheetCSS = {
         alignItems: 'center',
         flexDirection: 'column',
         textAlign: 'center',
+        // Faster taps on touch (no 300ms double-tap-zoom delay).
+        touchAction: 'manipulation',
     },
     shortcutText: {
         cursor: 'pointer',
