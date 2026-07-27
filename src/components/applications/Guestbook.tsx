@@ -86,7 +86,7 @@ const Guestbook: React.FC<GuestbookProps> = (props) => {
             left={40}
             width={460}
             height={520}
-            windowTitle="Guestbook — Leave a message"
+            windowTitle="MSN — Messenger"
             windowBarIcon="msnIcon"
             closeWindow={props.onClose}
             onInteract={props.onInteract}
@@ -99,7 +99,7 @@ const Guestbook: React.FC<GuestbookProps> = (props) => {
         >
             <div style={styles.page}>
                 <div style={styles.banner}>
-                    <p style={styles.bannerTitle}>Sign my guestbook</p>
+                    <p style={styles.bannerTitle}>MSN Messenger</p>
                     <p style={styles.bannerSub}>
                         Say hi, leave a note, read what others left behind.
                     </p>

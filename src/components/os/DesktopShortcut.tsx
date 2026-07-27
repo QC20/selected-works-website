@@ -2,12 +2,15 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { IconName } from '../../assets/icons';
 import colors from '../../constants/colors';
 import { Icon } from '../general';
+import { getResolutionScale } from './resolution';
 
 export interface DesktopShortcutProps {
     icon: IconName;
     shortcutName: string;
     invertText?: boolean;
     onOpen: () => void;
+    /** Fires with the drag delta (in desktop coords) when a drag finishes. */
+    onMoved?: (dx: number, dy: number) => void;
 }
 
 const DesktopShortcut: React.FC<DesktopShortcutProps> = ({
@@ -15,6 +18,7 @@ const DesktopShortcut: React.FC<DesktopShortcutProps> = ({
     shortcutName,
     invertText,
     onOpen,
+    onMoved,
 }) => {
     const [isSelected, setIsSelected] = useState(false);
     const [shortcutId, setShortcutId] = useState('');
@@ -81,6 +85,53 @@ const DesktopShortcut: React.FC<DesktopShortcutProps> = ({
         }, 300);
     }, [doubleClickTimerActive, setIsSelected, onOpen]);
 
+    // ---- Dragging ---------------------------------------------------------
+    // Icons can be dragged anywhere on the desktop. A press only counts as a
+    // drag once it passes a small threshold, so ordinary (double-)clicks to open
+    // still work exactly as before.
+    const dragRef = useRef<{ x: number; y: number; moved: boolean } | null>(null);
+    const [dragDelta, setDragDelta] = useState<{ x: number; y: number } | null>(
+        null
+    );
+
+    const handlePointerDown = useCallback(
+        (e: React.PointerEvent) => {
+            handleClickShortcut();
+            if (!onMoved) return;
+            dragRef.current = { x: e.clientX, y: e.clientY, moved: false };
+
+            const scale = getResolutionScale();
+
+            const onMove = (ev: PointerEvent) => {
+                const start = dragRef.current;
+                if (!start) return;
+                const dx = (ev.clientX - start.x) / scale;
+                const dy = (ev.clientY - start.y) / scale;
+                if (!start.moved && Math.hypot(dx, dy) < 4) return;
+                start.moved = true;
+                setDragDelta({ x: dx, y: dy });
+            };
+
+            const onUp = (ev: PointerEvent) => {
+                const start = dragRef.current;
+                window.removeEventListener('pointermove', onMove);
+                window.removeEventListener('pointerup', onUp);
+                dragRef.current = null;
+                setDragDelta(null);
+                if (start?.moved) {
+                    onMoved(
+                        (ev.clientX - start.x) / scale,
+                        (ev.clientY - start.y) / scale
+                    );
+                }
+            };
+
+            window.addEventListener('pointermove', onMove);
+            window.addEventListener('pointerup', onUp);
+        },
+        [handleClickShortcut, onMoved]
+    );
+
     useEffect(() => {
         document.addEventListener('pointerdown', handleClickOutside);
         return () => {
@@ -91,8 +142,19 @@ const DesktopShortcut: React.FC<DesktopShortcutProps> = ({
     return (
         <div
             id={`${shortcutId}`}
-            style={Object.assign({}, styles.appShortcut, scaledStyle)}
-            onPointerDown={handleClickShortcut}
+            style={Object.assign(
+                {},
+                styles.appShortcut,
+                scaledStyle,
+                dragDelta && {
+                    transform: `${
+                        (scaledStyle as React.CSSProperties).transform || ''
+                    } translate(${dragDelta.x}px, ${dragDelta.y}px)`,
+                    zIndex: 5000,
+                    opacity: 0.75,
+                }
+            )}
+            onPointerDown={handlePointerDown}
             ref={containerRef}
         >
             <div id={`${shortcutId}`} style={styles.iconContainer}>
@@ -160,6 +222,18 @@ const styles: StyleSheetCSS = {
     iconContainer: {
         cursor: 'pointer',
         paddingBottom: 3,
+        width: 32,
+        height: 32,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    // Desktop icons are always drawn in a 32x32 box. Without this the <img>
+    // falls back to its natural size, so a high-res source PNG renders huge.
+    // `contain` keeps non-square art from being stretched.
+    icon: {
+        width: 32,
+        height: 32,
+        objectFit: 'contain',
     },
     iconOverlay: {
         position: 'absolute',

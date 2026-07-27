@@ -15,6 +15,9 @@ import Credits from '../applications/Credits';
 import floatingSphere from '../applications/floatingSphere';
 import Guestbook from '../applications/Guestbook';
 import Experience3D from '../experience/Experience3D';
+import Mail from '../applications/Mail';
+import About from '../applications/About';
+import RecycleBin from '../applications/RecycleBin';
 import {
     Resolution,
     scaleFor,
@@ -22,6 +25,13 @@ import {
     saveResolution,
     setCurrentScale,
 } from './resolution';
+import {
+    IconPos,
+    defaultPosition,
+    loadPositions,
+    savePositions,
+    snap,
+} from './iconPositions';
 
 // Apps whose icon launches a full-screen takeover (the 3D experience) rather
 // than opening a draggable window. Keyed by their APPLICATIONS key.
@@ -83,7 +93,7 @@ const APPLICATIONS: {
     },
     guestbook: {
         key: 'guestbook',
-        name: 'Guestbook',
+        name: 'MSN',
         shortcutIcon: 'msnIcon',
         component: Guestbook,
     },
@@ -125,6 +135,27 @@ const APPLICATIONS: {
         component: floatingSphere,
     },
 
+    mail: {
+        key: 'mail',
+        name: 'Mail',
+        shortcutIcon: 'mailIcon',
+        component: Mail,
+    },
+
+    about: {
+        key: 'about',
+        name: 'About',
+        shortcutIcon: 'credits',
+        component: About,
+    },
+
+    recycleBin: {
+        key: 'recycleBin',
+        name: 'Recycle Bin',
+        shortcutIcon: 'recycleBinIcon',
+        component: RecycleBin,
+    },
+
 };
 
 const Desktop: React.FC<DesktopProps> = (props) => {
@@ -146,6 +177,28 @@ const Desktop: React.FC<DesktopProps> = (props) => {
         saveResolution(r);
         setResolutionState(r);
     }, []);
+
+    // User-arranged desktop icon positions (keyed by icon name, persisted).
+    const [iconPositions, setIconPositions] = useState<Record<string, IconPos>>(
+        loadPositions
+    );
+
+    const moveIcon = useCallback(
+        (name: string, from: IconPos, dx: number, dy: number) => {
+            const scale = scaleFor(loadResolution());
+            const bounds = {
+                w: window.innerWidth / scale,
+                h: window.innerHeight / scale - 40, // keep clear of the taskbar
+            };
+            const next = snap(from.x + dx, from.y + dy, bounds);
+            setIconPositions((prev) => {
+                const updated = { ...prev, [name]: next };
+                savePositions(updated);
+                return updated;
+            });
+        },
+        []
+    );
 
     useEffect(() => {
         if (shutdown === true) {
@@ -340,21 +393,26 @@ const Desktop: React.FC<DesktopProps> = (props) => {
             })}
             <div style={styles.shortcuts}>
                 {shortcuts.map((shortcut, i) => {
-                    const iconsPerColumn = 8;
-                    const column = Math.floor(i / iconsPerColumn);
-                    const row = i % iconsPerColumn;
+                    // Use the user's arranged position if they've dragged this
+                    // icon, otherwise fall back to the classic grid slot.
+                    const pos =
+                        iconPositions[shortcut.shortcutName] ||
+                        defaultPosition(i);
                     return (
                         <div
                             style={Object.assign({}, styles.shortcutContainer, {
-                                top: row * 104,
-                                left: column * 74,
+                                top: pos.y,
+                                left: pos.x,
                             })}
-                            key={`shortcut-${i}`}
+                            key={`shortcut-${shortcut.shortcutName}`}
                         >
                             <DesktopShortcut
                                 icon={shortcut.icon}
                                 shortcutName={shortcut.shortcutName}
                                 onOpen={shortcut.onOpen}
+                                onMoved={(dx, dy) =>
+                                    moveIcon(shortcut.shortcutName, pos, dx, dy)
+                                }
                             />
                         </div>
                     );

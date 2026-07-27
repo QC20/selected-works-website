@@ -121,6 +121,59 @@ const Toolbar: React.FC<ToolbarProps> = ({
                             <div
                                 className="start-menu-option"
                                 style={styles.startMenuOption}
+                                onPointerDown={() => {
+                                    window.open('https://github.com/QC20', '_blank', 'noopener,noreferrer');
+                                    setStartWindowOpen(false);
+                                }}
+                                title="Open GitHub profile"
+                            >
+                                <Icon
+                                    style={styles.startMenuIcon}
+                                    icon="githubIcon"
+                                />
+                                <p style={styles.startMenuText}>
+                                    <u>G</u>ithub
+                                </p>
+                            </div>
+                            <div style={styles.startMenuLine} />
+                            <div
+                                className="start-menu-option"
+                                style={styles.startMenuOption}
+                                onPointerDown={() => {
+                                    // TODO: Open Settings
+                                    setStartWindowOpen(false);
+                                }}
+                                title="Open Settings"
+                            >
+                                <Icon
+                                    style={styles.startMenuIcon}
+                                    icon="settingsIcon"
+                                />
+                                <p style={styles.startMenuText}>
+                                    <u>S</u>ettings
+                                </p>
+                            </div>
+                            <div
+                                className="start-menu-option"
+                                style={styles.startMenuOption}
+                                onPointerDown={() => {
+                                    // TODO: Open Run dialog
+                                    setStartWindowOpen(false);
+                                }}
+                                title="Run a program"
+                            >
+                                <Icon
+                                    style={styles.startMenuIcon}
+                                    icon="runIcon"
+                                />
+                                <p style={styles.startMenuText}>
+                                    <u>R</u>un...
+                                </p>
+                            </div>
+                            <div style={styles.startMenuLine} />
+                            <div
+                                className="start-menu-option"
+                                style={styles.startMenuOption}
                                 onPointerDown={shutdown}
                             >
                                 <Icon

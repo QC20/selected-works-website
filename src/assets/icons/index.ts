@@ -23,6 +23,10 @@ import internetExplorerIcon from './internetExplorerIcon.png'
 import msnIcon from './msnIcon.png';
 import githubIcon from './githubIcon.png';
 import displayIcon from './displayIcon.png';
+import mailIcon from './mailIcon.png';
+import recycleBinIcon from './recycleBinIcon.png';
+import settingsIcon from './settingsIcon.png';
+import runIcon from './runIcon.png';
 
 const getIconByName = (
     iconName: IconName
@@ -55,6 +59,10 @@ const icons = {
     msnIcon: msnIcon,
     githubIcon: githubIcon,
     displayIcon: displayIcon,
+    mailIcon: mailIcon,
+    recycleBinIcon: recycleBinIcon,
+    settingsIcon: settingsIcon,
+    runIcon: runIcon,
 };
 
 

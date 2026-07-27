@@ -12,7 +12,7 @@
  * never touched.
  */
 
-export type Resolution = 1 | 2 | 3 | 4;
+export type Resolution = 0 | 1 | 2 | 3 | 4;
 
 export interface ResolutionOption {
     value: Resolution;
@@ -22,6 +22,8 @@ export interface ResolutionOption {
 }
 
 export const RESOLUTIONS: ResolutionOption[] = [
+    // Smallest "screen area" — everything is drawn large, like a low-res CRT.
+    { value: 0, label: '360 × 640', scale: 1.9 },
     { value: 1, label: '640 × 480', scale: 1.3 },
     { value: 2, label: '800 × 600', scale: 1.0 },
     { value: 3, label: '1024 × 768', scale: 0.82 },
@@ -35,7 +37,11 @@ export const scaleFor = (r: Resolution): number =>
     RESOLUTIONS.find((o) => o.value === r)?.scale ?? 1;
 
 export function loadResolution(): Resolution {
-    const v = Number(localStorage.getItem(KEY));
+    // Read the raw string first: `Number(null)` is 0, which is a *valid*
+    // resolution now, so an unset key would otherwise load 360x640.
+    const raw = localStorage.getItem(KEY);
+    if (raw === null || raw === '') return DEFAULT;
+    const v = Number(raw);
     return (RESOLUTIONS.some((o) => o.value === v) ? v : DEFAULT) as Resolution;
 }
 
