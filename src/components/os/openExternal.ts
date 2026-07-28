@@ -7,16 +7,36 @@
  * and the window buttons all use) is frequently treated as programmatic and
  * silently swallowed by the popup blocker, so the tap appears to do nothing.
  *
- * Clicking a real anchor is never treated as a popup, so that is all we do.
- * Note this deliberately avoids `window.open(url, '_blank', 'noopener')` — that
- * call returns `null` even when it succeeds (per spec, `noopener` severs the
- * handle), which makes "did it work?" impossible to detect and leads to
- * double-opening if you try.
+ * So: try `window.open` first and fall back to clicking a synthetic anchor,
+ * which browsers treat as ordinary navigation rather than a popup.
  *
- * `rel="noopener noreferrer"` gives the new tab the same isolation the
- * `noopener` window feature would have.
+ * Two details that are easy to get wrong, both found by testing:
+ *  - Do NOT pass the `noopener` window feature. Per spec that makes
+ *    `window.open` return `null` even when it succeeded, so you can no longer
+ *    tell success from "blocked" — and a fallback then fires on top of a tab
+ *    that did open, giving the user two. We clear `opener` manually instead.
+ *  - The anchor route is the fallback, not the default: clicking a detached
+ *    anchor was observed opening two tabs for a single call.
  */
 export function openExternal(url: string): void {
+    let opened: Window | null = null;
+    try {
+        opened = window.open(url, '_blank');
+    } catch {
+        opened = null;
+    }
+
+    if (opened) {
+        // Same isolation `noopener` would have given, without losing the handle.
+        try {
+            opened.opener = null;
+        } catch {
+            /* cross-origin — the browser already severed it */
+        }
+        return;
+    }
+
+    // Popup blocked (typically iOS/iPadOS Safari): navigate via a real link.
     const a = document.createElement('a');
     a.href = url;
     a.target = '_blank';

@@ -187,7 +187,7 @@ const About: React.FC<AboutProps> = ({ onInteract, onClose, onMinimize }) => {
             width={440}
             height={400}
             windowTitle="About Jonas"
-            windowBarIcon="credits"
+            windowBarIcon="aboutIcon"
             closeWindow={onClose}
             onInteract={onInteract}
             minimizeWindow={onMinimize}

@@ -28,6 +28,10 @@ import recycleBinIcon from './recycleBinIcon.png';
 import recycleBinEmptyIcon from './recycleBinEmptyIcon.png';
 import jpegIcon from './jpegIcon.png';
 import eurIcon from './eurIcon.png';
+import aboutIcon from './aboutIcon.png';
+import folderIcon from './folderIcon.png';
+import minesweeperIcon from './minesweeperIcon.png';
+import shutdownPcIcon from './shutdownPcIcon.png';
 import settingsIcon from './settingsIcon.png';
 import runIcon from './runIcon.png';
 
@@ -67,6 +71,10 @@ const icons = {
     recycleBinEmptyIcon: recycleBinEmptyIcon,
     jpegIcon: jpegIcon,
     eurIcon: eurIcon,
+    aboutIcon: aboutIcon,
+    folderIcon: folderIcon,
+    minesweeperIcon: minesweeperIcon,
+    shutdownPcIcon: shutdownPcIcon,
     settingsIcon: settingsIcon,
     runIcon: runIcon,
 };

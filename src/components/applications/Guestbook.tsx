@@ -86,7 +86,7 @@ const Guestbook: React.FC<GuestbookProps> = (props) => {
             left={40}
             width={460}
             height={520}
-            windowTitle="MSN — Messenger"
+            windowTitle="MSN Messenger"
             windowBarIcon="msnIcon"
             closeWindow={props.onClose}
             onInteract={props.onInteract}

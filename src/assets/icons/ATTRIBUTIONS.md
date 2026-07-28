@@ -8,6 +8,13 @@ The following desktop icons were adapted from **Yute (Yuteoctober)**'s
 - `displayIcon.png`
 - `jpegIcon.png`
 - `recycleBinEmptyIcon.png`
+- `aboutIcon.png`
+- `folderIcon.png`
+- `minesweeperIcon.png`
+- `shutdownPcIcon.png`
+- `ms-smiley-face.png`, `ms-dead-face.png`, `ms-flag.png`, `ms-minesweeper.png`
+
+`eurIcon.png` is an original 16x16 pixel-art recreation, not from that project.
 
 MIT License — Copyright (c) 2024 Yute. The full permission notice is retained per
 the license terms:
@@ -17,10 +24,15 @@ the license terms:
 > Software without restriction... The above copyright notice and this permission
 > notice shall be included in all copies or substantial portions of the Software.
 
-The Guestbook (message board), the taskbar screen-resolution toggle, and the
-Recycle Bin's icon view (files shown as draggable symbols that can be dragged out
-onto the desktop and back in again) are original implementations inspired by ideas
-from the same project.
+The Guestbook (message board), the taskbar screen-resolution toggle, the DKK/EUR
+converter, and the Recycle Bin's icon view (files shown as draggable symbols that
+can be dragged out onto the desktop and back in again) are original implementations
+inspired by ideas from the same project.
+
+`src/components/applications/Minesweeper.tsx` is a direct port of that project's
+Minesweeper (game logic and presentation), rewritten in TypeScript for this
+codebase. The "Shut Down Windows" dialog and log-on screen follow the same
+project's equivalents.
 
 The MSN Messenger and GitHub marks are trademarks of their respective owners and are
 used here nominatively for a personal, non-commercial portfolio.

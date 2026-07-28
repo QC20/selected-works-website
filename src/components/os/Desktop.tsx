@@ -5,6 +5,8 @@ import ShowcaseExplorer from '../applications/ShowcaseExplorer';
 import Doom from '../applications/Doom';
 import OregonTrail from '../applications/OregonTrail';
 import ShutdownSequence from './ShutdownSequence';
+import ShutdownDialog, { ShutdownChoice } from './ShutdownDialog';
+import LogonScreen from './LogonScreen';
 import ThisComputerApp from '../applications/ThisComputer';
 
 import Toolbar from './Toolbar';
@@ -21,6 +23,8 @@ import RecycleBin from '../applications/RecycleBin';
 import Settings from '../applications/Settings';
 import Run from '../applications/Run';
 import GitHubViewer from '../applications/GitHubViewer';
+import ProgramsFolder from '../applications/ProgramsFolder';
+import Minesweeper from '../applications/Minesweeper';
 import { useTheme } from './theme';
 import {
     Resolution,
@@ -77,8 +81,12 @@ const APPLICATIONS: {
         name: string;
         shortcutIcon: IconName;
         component: React.FC<ExtendedWindowAppProps<any>>;
-        /** Reachable from the Start menu only — no icon on the desktop. */
-        startMenuOnly?: boolean;
+        /**
+         * No icon on the desktop. Reached some other way instead — from the
+         * Start menu (Settings, Run), from inside a folder (Credits,
+         * Minesweeper), or by typing the name into Run.
+         */
+        noDesktopIcon?: boolean;
     };
 } = {
     showcase: {
@@ -120,11 +128,29 @@ const APPLICATIONS: {
         component: Scrabble,
     },
 
+    // The desktop shows the folder; Credits and Minesweeper live inside it and
+    // are launched from there (or from Run), so neither gets its own icon.
+    programs: {
+        key: 'programs',
+        name: 'My Programs',
+        shortcutIcon: 'folderIcon',
+        component: ProgramsFolder,
+    },
+
     credits: {
         key: 'credits',
         name: 'Credits',
         shortcutIcon: 'credits',
         component: Credits,
+        noDesktopIcon: true,
+    },
+
+    minesweeper: {
+        key: 'minesweeper',
+        name: 'Minesweeper',
+        shortcutIcon: 'minesweeperIcon',
+        component: Minesweeper,
+        noDesktopIcon: true,
     },
 
     floating: {
@@ -161,7 +187,7 @@ const APPLICATIONS: {
     about: {
         key: 'about',
         name: 'About',
-        shortcutIcon: 'credits',
+        shortcutIcon: 'aboutIcon',
         component: About,
     },
 
@@ -179,7 +205,7 @@ const APPLICATIONS: {
         name: 'Display Properties',
         shortcutIcon: 'settingsIcon',
         component: Settings,
-        startMenuOnly: true,
+        noDesktopIcon: true,
     },
 
     run: {
@@ -187,7 +213,7 @@ const APPLICATIONS: {
         name: 'Run',
         shortcutIcon: 'runIcon',
         component: Run,
-        startMenuOnly: true,
+        noDesktopIcon: true,
     },
 };
 
@@ -211,6 +237,10 @@ const Desktop: React.FC<DesktopProps> = (props) => {
 
     const [shutdown, setShutdown] = useState(false);
     const [numShutdowns, setNumShutdowns] = useState(1);
+    // Start -> Shut down opens a confirmation dialog; "Log off" from it drops
+    // to the log-on screen rather than ending the session outright.
+    const [shutdownDialogOpen, setShutdownDialogOpen] = useState(false);
+    const [loggedOff, setLoggedOff] = useState(false);
 
     // When true, the 2D desktop recedes and the 3D CRT-room experience takes over.
     const [experienceOpen, setExperienceOpen] = useState(false);
@@ -256,6 +286,9 @@ const Desktop: React.FC<DesktopProps> = (props) => {
     // The Recycle Bin shortcut, so a file dropped on top of it can be detected.
     const binShortcutRef = useRef<HTMLDivElement>(null);
 
+    // Always the latest openApp, for the shortcut closures built on mount.
+    const openAppRef = useRef<(key: string) => void>(() => {});
+
     const onFileDropped = useCallback(
         (file: DesktopFile, dx: number, dy: number, screen: { x: number; y: number }) => {
             const bin = binShortcutRef.current?.getBoundingClientRect();
@@ -299,36 +332,17 @@ const Desktop: React.FC<DesktopProps> = (props) => {
             if (IS_EMBEDDED_IN_CRT && FULLSCREEN_EXPERIENCES.includes(app.key)) {
                 return;
             }
-            // Settings / Run live in the Start menu, not on the desktop.
-            if (app.startMenuOnly) {
+            if (app.noDesktopIcon) {
                 return;
             }
             newShortcuts.push({
                 shortcutName: app.name,
                 icon: app.shortcutIcon,
-                onOpen: () => {
-                    if (FULLSCREEN_EXPERIENCES.includes(app.key)) {
-                        setExperienceOpen(true);
-                        return;
-                    }
-                    if (EXTERNAL_LINKS[app.key]) {
-                        window.open(
-                            EXTERNAL_LINKS[app.key],
-                            '_blank',
-                            'noopener,noreferrer'
-                        );
-                        return;
-                    }
-                    addWindow(
-                        app.key,
-                        <app.component
-                            onInteract={() => onWindowInteract(app.key)}
-                            onMinimize={() => minimizeWindow(app.key)}
-                            onClose={() => removeWindow(app.key)}
-                            key={app.key}
-                        />
-                    );
-                },
+                // Every launcher — shortcut, Start menu, Run, folder — goes
+                // through the same openApp, so an app opens identically
+                // whichever way you reach it. The ref keeps this closure (built
+                // once, on mount) pointing at the current openApp.
+                onOpen: () => openAppRef.current(app.key),
             });
         });
 
@@ -406,12 +420,37 @@ const Desktop: React.FC<DesktopProps> = (props) => {
         [setWindows, getHighestZIndex]
     );
 
+    /**
+     * Start -> Shut down now asks first (see ShutdownDialog) instead of
+     * dropping straight into the shutdown sequence.
+     */
     const startShutdown = useCallback(() => {
-        setTimeout(() => {
-            setShutdown(true);
-            setNumShutdowns(numShutdowns + 1);
-        }, 600);
-    }, [numShutdowns]);
+        setShutdownDialogOpen(true);
+    }, []);
+
+    const confirmShutdown = useCallback(
+        (choice: ShutdownChoice) => {
+            setShutdownDialogOpen(false);
+            switch (choice) {
+                case 'shutdown':
+                    setTimeout(() => {
+                        setShutdown(true);
+                        setNumShutdowns(numShutdowns + 1);
+                    }, 600);
+                    break;
+                case 'restart':
+                    window.location.reload();
+                    break;
+                case 'logoff':
+                    // Clear the session the way logging out would: every window
+                    // closes, and you come back to the log-on screen.
+                    setWindows({});
+                    setLoggedOff(true);
+                    break;
+            }
+        },
+        [numShutdowns]
+    );
 
     const addWindow = useCallback(
         (
@@ -484,7 +523,18 @@ const Desktop: React.FC<DesktopProps> = (props) => {
                     <Run
                         {...shared}
                         programs={runnablePrograms}
-                        launch={(target) => openApp(target)}
+                        launch={(target) => openAppRef.current(target)}
+                    />
+                );
+                return;
+            }
+
+            if (app.key === 'programs') {
+                addWindow(
+                    app.key,
+                    <ProgramsFolder
+                        {...shared}
+                        openApp={(target) => openAppRef.current(target)}
                     />
                 );
                 return;
@@ -502,6 +552,8 @@ const Desktop: React.FC<DesktopProps> = (props) => {
             setResolution,
         ]
     );
+
+    openAppRef.current = openApp;
 
     /** Double-clicking a picture on the desktop opens it in the viewer. */
     const openFile = useCallback(
@@ -642,6 +694,15 @@ const Desktop: React.FC<DesktopProps> = (props) => {
                 onExit={() => setExperienceOpen(false)}
                 accentColor={Colors.turquoise}
             />
+            {shutdownDialogOpen && (
+                <ShutdownDialog
+                    onConfirm={confirmShutdown}
+                    onCancel={() => setShutdownDialogOpen(false)}
+                />
+            )}
+            {loggedOff && (
+                <LogonScreen onLogon={() => setLoggedOff(false)} />
+            )}
         </div>
     ) : (
         <ShutdownSequence
