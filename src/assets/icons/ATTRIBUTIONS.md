@@ -13,8 +13,13 @@ The following desktop icons were adapted from **Yute (Yuteoctober)**'s
 - `minesweeperIcon.png`
 - `shutdownPcIcon.png`
 - `ms-smiley-face.png`, `ms-dead-face.png`, `ms-flag.png`, `ms-minesweeper.png`
+- `folderResumeIcon.png`
+- `resumeFileIcon.png`
+- `ieIcon.png`
 
-`eurIcon.png` is an original 16x16 pixel-art recreation, not from that project.
+`eurIcon.png` and `selectedWebsitesIcon.png` are original pixel art, not from that
+project. `selectedWebsitesIcon.png` is a placeholder — overwrite the file to change
+the Start → Resume → Selected Websites icon; no code change is needed.
 
 MIT License — Copyright (c) 2024 Yute. The full permission notice is retained per
 the license terms:

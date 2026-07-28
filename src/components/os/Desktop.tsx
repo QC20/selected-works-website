@@ -25,6 +25,8 @@ import Run from '../applications/Run';
 import GitHubViewer from '../applications/GitHubViewer';
 import ProgramsFolder from '../applications/ProgramsFolder';
 import Minesweeper from '../applications/Minesweeper';
+import WebFrame from '../applications/WebFrame';
+import ResumeFile from '../applications/ResumeFile';
 import { useTheme } from './theme';
 import {
     Resolution,
@@ -214,6 +216,76 @@ const APPLICATIONS: {
         shortcutIcon: 'runIcon',
         component: Run,
         noDesktopIcon: true,
+    },
+
+    // --- Start -> Projects ------------------------------------------------
+    // Live sites, opened in an Internet Explorer window rather than a new tab.
+    // All three embed fine (none of them send X-Frame-Options).
+    pinPortrait: {
+        key: 'pinPortrait',
+        name: 'Pin Portrait',
+        shortcutIcon: 'ieIcon',
+        component: WebFrame,
+        noDesktopIcon: true,
+    },
+
+    emojiHeatmap: {
+        key: 'emojiHeatmap',
+        name: 'Emoji Heatmap',
+        shortcutIcon: 'ieIcon',
+        component: WebFrame,
+        noDesktopIcon: true,
+    },
+
+    // --- Start -> Resume --------------------------------------------------
+    resumeFile: {
+        key: 'resumeFile',
+        name: 'Resume File - My CV',
+        shortcutIcon: 'resumeFileIcon',
+        component: ResumeFile,
+        noDesktopIcon: true,
+    },
+
+    selectedWebsites: {
+        key: 'selectedWebsites',
+        name: 'Selected Websites',
+        shortcutIcon: 'selectedWebsitesIcon',
+        component: WebFrame,
+        noDesktopIcon: true,
+    },
+};
+
+/**
+ * The sites that open in an Internet Explorer window, with the window size
+ * each one was asked for.
+ */
+const WEB_APPS: {
+    [key: string]: {
+        url: string;
+        width: number;
+        height: number;
+        allowCamera?: boolean;
+    };
+} = {
+    // 3/4 of the My Showcase window (1100 x 800).
+    pinPortrait: {
+        url: 'https://qc20.github.io/PinPortrait/',
+        width: 825,
+        height: 600,
+        // The site asks for the webcam; without this the iframe can't even
+        // prompt. The browser still shows its own permission dialog.
+        allowCamera: true,
+    },
+    // Roughly a fifth of the desktop's area.
+    emojiHeatmap: {
+        url: 'https://qc20.github.io/EmojiHeatmap/',
+        width: 560,
+        height: 380,
+    },
+    selectedWebsites: {
+        url: 'https://creative-technologist-showcase.vercel.app/',
+        width: 900,
+        height: 650,
     },
 };
 
@@ -535,6 +607,23 @@ const Desktop: React.FC<DesktopProps> = (props) => {
                     <ProgramsFolder
                         {...shared}
                         openApp={(target) => openAppRef.current(target)}
+                    />
+                );
+                return;
+            }
+
+            const site = WEB_APPS[app.key];
+            if (site) {
+                addWindow(
+                    app.key,
+                    <WebFrame
+                        {...shared}
+                        title={app.name}
+                        url={site.url}
+                        width={site.width}
+                        height={site.height}
+                        windowBarIcon={app.shortcutIcon}
+                        allowCamera={site.allowCamera}
                     />
                 );
                 return;

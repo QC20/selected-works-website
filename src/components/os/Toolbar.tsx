@@ -1,9 +1,52 @@
 import React, { useEffect, useRef, useState } from 'react';
 import Colors from '../../constants/colors';
 import { Icon } from '../general';
+import { IconName } from '../../assets/icons';
 import { Resolution, RESOLUTIONS } from './resolution';
 import CurrencyConverter from './CurrencyConverter';
 import { openExternal } from './openExternal';
+
+/**
+ * The two folders at the top of the Start menu. Each opens a fly-out on hover
+ * (or tap), listing entries that launch by their APPLICATIONS key — so a
+ * Start-menu entry opens exactly the window its desktop counterpart would.
+ */
+interface StartFolder {
+    id: string;
+    label: string;
+    icon: IconName;
+    items: { key: string; label: string; icon: IconName }[];
+}
+
+const START_FOLDERS: StartFolder[] = [
+    {
+        id: 'projects',
+        label: 'Projects',
+        icon: 'folderIcon',
+        items: [
+            { key: 'pinPortrait', label: 'Pin Portrait', icon: 'ieIcon' },
+            { key: 'emojiHeatmap', label: 'Emoji Heatmap', icon: 'ieIcon' },
+        ],
+    },
+    {
+        id: 'resume',
+        label: 'Resume',
+        icon: 'folderResumeIcon',
+        items: [
+            {
+                key: 'resumeFile',
+                label: 'Resume File - My CV',
+                icon: 'resumeFileIcon',
+            },
+            { key: 'showcase', label: 'My Showcase', icon: 'showcaseIcon' },
+            {
+                key: 'selectedWebsites',
+                label: 'Selected Websites',
+                icon: 'selectedWebsitesIcon',
+            },
+        ],
+    },
+];
 
 export interface ToolbarProps {
     windows: DesktopWindows;
@@ -25,6 +68,8 @@ const Toolbar: React.FC<ToolbarProps> = ({
 }) => {
     const [resMenuOpen, setResMenuOpen] = useState(false);
     const [fxOpen, setFxOpen] = useState(false);
+    /** Which Start-menu folder's fly-out is showing, if any. */
+    const [openFolder, setOpenFolder] = useState<string | null>(null);
     const getTime = () => {
         const date = new Date();
         let hours = date.getHours();
@@ -126,8 +171,18 @@ const Toolbar: React.FC<ToolbarProps> = ({
             e.stopPropagation();
             lastClickInside.current = false;
             setStartWindowOpen(false);
+            setOpenFolder(null);
             action();
         };
+
+    // Moving onto a plain menu row dismisses whichever fly-out was showing,
+    // the way a real Start menu behaves.
+    const closeFolders = () => setOpenFolder(null);
+
+    // Don't leave a fly-out armed for the next time the menu is opened.
+    useEffect(() => {
+        if (!startWindowOpen) setOpenFolder(null);
+    }, [startWindowOpen]);
 
     return (
         <div style={styles.toolbarOuter}>
@@ -142,10 +197,77 @@ const Toolbar: React.FC<ToolbarProps> = ({
                         </div>
                         <div style={styles.startWindowContent}>
                             <div style={styles.startMenuSpace} />
+
+                            {/* Folders with fly-out submenus, at the top of the
+                                menu. Hovering one opens it and closes the other;
+                                tapping the row works the same way on touch. */}
+                            {START_FOLDERS.map((folder) => (
+                                <div
+                                    key={folder.id}
+                                    className="start-menu-option"
+                                    style={Object.assign(
+                                        {},
+                                        styles.startMenuOption,
+                                        openFolder === folder.id &&
+                                            styles.startMenuOptionActive
+                                    )}
+                                    onMouseEnter={() =>
+                                        setOpenFolder(folder.id)
+                                    }
+                                    onPointerDown={(e) => {
+                                        e.stopPropagation();
+                                        setOpenFolder((f) =>
+                                            f === folder.id ? null : folder.id
+                                        );
+                                    }}
+                                    title={folder.label}
+                                >
+                                    <Icon
+                                        style={styles.startMenuIcon}
+                                        icon={folder.icon}
+                                    />
+                                    <p style={styles.startMenuText}>
+                                        {folder.label}
+                                    </p>
+                                    <span style={styles.submenuArrow}>▶</span>
+
+                                    {openFolder === folder.id && (
+                                        <div style={styles.submenu}>
+                                            {folder.items.map((item) => (
+                                                <div
+                                                    key={item.key}
+                                                    className="start-menu-option"
+                                                    style={styles.submenuItem}
+                                                    onPointerDown={chooseStartMenuItem(
+                                                        () => openApp(item.key)
+                                                    )}
+                                                    title={item.label}
+                                                >
+                                                    <Icon
+                                                        style={
+                                                            styles.submenuIcon
+                                                        }
+                                                        icon={item.icon}
+                                                    />
+                                                    <p
+                                                        style={
+                                                            styles.submenuText
+                                                        }
+                                                    >
+                                                        {item.label}
+                                                    </p>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
+                            ))}
+
                             <div style={styles.startMenuLine} />
                             <div
                                 className="start-menu-option"
                                 style={styles.startMenuOption}
+                                onMouseEnter={closeFolders}
                                 // Start -> Github goes straight to the real site,
                                 // unlike the desktop icon (which opens a window).
                                 onPointerDown={chooseStartMenuItem(() =>
@@ -165,6 +287,7 @@ const Toolbar: React.FC<ToolbarProps> = ({
                             <div
                                 className="start-menu-option"
                                 style={styles.startMenuOption}
+                                onMouseEnter={closeFolders}
                                 onPointerDown={chooseStartMenuItem(() =>
                                     openApp('settings')
                                 )}
@@ -181,6 +304,7 @@ const Toolbar: React.FC<ToolbarProps> = ({
                             <div
                                 className="start-menu-option"
                                 style={styles.startMenuOption}
+                                onMouseEnter={closeFolders}
                                 onPointerDown={chooseStartMenuItem(() =>
                                     openApp('run')
                                 )}
@@ -198,6 +322,7 @@ const Toolbar: React.FC<ToolbarProps> = ({
                             <div
                                 className="start-menu-option"
                                 style={styles.startMenuOption}
+                                onMouseEnter={closeFolders}
                                 onPointerDown={chooseStartMenuItem(shutdown)}
                                 title="Shut down the computer"
                             >
@@ -404,12 +529,60 @@ const styles: StyleSheetCSS = {
     },
     startMenuOption: {
         alignItems: 'center',
-        // flex: 1,
+        // Anchors the fly-out submenus of the folder rows.
+        position: 'relative',
         height: 24,
         padding: 12,
         cursor: 'pointer',
         // Instant taps on touch devices (no 300ms double-tap-zoom wait).
         touchAction: 'manipulation',
+    },
+    startMenuOptionActive: {
+        background: Colors.blue,
+        color: Colors.white,
+    },
+    submenuArrow: {
+        marginLeft: 'auto',
+        paddingLeft: 8,
+        fontSize: 9,
+        lineHeight: '9px',
+        color: 'inherit',
+    },
+    submenu: {
+        position: 'absolute',
+        // Sits just outside the menu's right edge, overlapping by a pixel so
+        // the pointer doesn't cross a gap on the way over.
+        left: '100%',
+        top: -2,
+        marginLeft: -1,
+        minWidth: 190,
+        flexDirection: 'column',
+        background: Colors.lightGray,
+        border: `1px solid ${Colors.white}`,
+        borderBottomColor: Colors.black,
+        borderRightColor: Colors.black,
+        boxShadow: '1px 1px 0 rgba(0,0,0,0.4)',
+        padding: 2,
+        zIndex: 100002,
+    },
+    submenuItem: {
+        alignItems: 'center',
+        gap: 8,
+        padding: '5px 8px',
+        cursor: 'pointer',
+        color: Colors.black,
+        touchAction: 'manipulation',
+    },
+    submenuIcon: {
+        width: 20,
+        height: 20,
+        objectFit: 'contain',
+        flexShrink: 0,
+    },
+    submenuText: {
+        fontFamily: 'MSSerif',
+        fontSize: 12,
+        whiteSpace: 'nowrap',
     },
     startMenuSpace: {
         flex: 1,
