@@ -1,4 +1,5 @@
 import React, { useRef, useState } from 'react';
+import Window from '../os/Window';
 import Colors from '../../constants/colors';
 
 // Note: To make email sending work, you need to set up EmailJS
@@ -7,11 +8,7 @@ import Colors from '../../constants/colors';
 // 3. Create an email service and template
 // 4. Replace SERVICE_ID, TEMPLATE_ID, and PUBLIC_KEY below
 
-export interface MailProps {
-    onInteract?: () => void;
-    onClose?: () => void;
-    onMinimize?: () => void;
-}
+export interface MailProps extends WindowAppProps {}
 
 const Mail: React.FC<MailProps> = ({ onInteract, onClose, onMinimize }) => {
     const nameRef = useRef<HTMLInputElement>(null);
@@ -87,6 +84,9 @@ const Mail: React.FC<MailProps> = ({ onInteract, onClose, onMinimize }) => {
         container: {
             display: 'flex',
             flexDirection: 'column',
+            // Fill the Window's content box (which is itself a flex row).
+            flex: 1,
+            minWidth: 0,
             height: '100%',
             background: Colors.lightGray,
             fontFamily: 'MSSerif',
@@ -232,6 +232,18 @@ const Mail: React.FC<MailProps> = ({ onInteract, onClose, onMinimize }) => {
     };
 
     return (
+        <Window
+            top={64}
+            left={96}
+            width={460}
+            height={420}
+            windowTitle="Mail — New Message"
+            windowBarIcon="mailIcon"
+            closeWindow={onClose}
+            onInteract={onInteract}
+            minimizeWindow={onMinimize}
+            bottomLeftText="To: jokje@dtu.dk"
+        >
         <div style={styles.container}>
             {/* Menu Bar */}
             <div style={styles.menuBar}>
@@ -336,6 +348,7 @@ const Mail: React.FC<MailProps> = ({ onInteract, onClose, onMinimize }) => {
                 </button>
             </div>
         </div>
+        </Window>
     );
 };
 

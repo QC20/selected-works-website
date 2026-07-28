@@ -1,11 +1,18 @@
 import React, { useState } from 'react';
+import Window from '../os/Window';
 import Colors from '../../constants/colors';
 
-export interface AboutProps {
-    onInteract?: () => void;
-    onClose?: () => void;
-    onMinimize?: () => void;
-}
+export interface AboutProps extends WindowAppProps {}
+
+// index.css styles every <p> as 18px Millennium (the showcase body font). Inside a
+// Win95 properties dialog we want the small MSSerif look instead, and an element
+// selector beats inheritance — so each paragraph has to say so itself.
+const dialogText: React.CSSProperties = {
+    fontFamily: 'MSSerif',
+    fontSize: 11,
+    lineHeight: 1.5,
+    marginBottom: 4,
+};
 
 const About: React.FC<AboutProps> = ({ onInteract, onClose, onMinimize }) => {
     const [activeTab, setActiveTab] = useState<'general' | 'technology' | 'hobby'>('general');
@@ -15,51 +22,55 @@ const About: React.FC<AboutProps> = ({ onInteract, onClose, onMinimize }) => {
         general: {
             content: (
                 <>
-                    <p>
+                    <p style={dialogText}>
                         <strong>Objective:</strong>
                     </p>
-                    <p style={{ marginLeft: 16, marginBottom: 12 }}>
+                    <p style={{ ...dialogText, marginLeft: 16, marginBottom: 12 }}>
                         Building innovative web experiences and exploring the intersection of
                         technology and creativity.
                     </p>
 
-                    <p>
+                    <p style={dialogText}>
                         <strong>Information:</strong>
                     </p>
-                    <p style={{ marginLeft: 16 }}>Jonas Kjeldmand</p>
-                    <p style={{ marginLeft: 16 }}>Full Stack Developer & Creative Technologist</p>
-                    <p style={{ marginLeft: 16, marginBottom: 12 }}>jokje@dtu.dk</p>
+                    <p style={{ ...dialogText, marginLeft: 16 }}>Jonas Kjeldmand</p>
+                    <p style={{ ...dialogText, marginLeft: 16 }}>
+                        Full Stack Developer &amp; Creative Technologist
+                    </p>
+                    <p style={{ ...dialogText, marginLeft: 16, marginBottom: 12 }}>
+                        jokje@dtu.dk
+                    </p>
 
-                    <p>
+                    <p style={dialogText}>
                         <strong>Location:</strong>
                     </p>
-                    <p style={{ marginLeft: 16 }}>Copenhagen, Denmark</p>
-                    <p style={{ marginLeft: 16 }}>Open to opportunities</p>
-                    <p style={{ marginLeft: 16 }}>On Site / Remote / Hybrid</p>
+                    <p style={{ ...dialogText, marginLeft: 16 }}>Copenhagen, Denmark</p>
+                    <p style={{ ...dialogText, marginLeft: 16 }}>Open to opportunities</p>
+                    <p style={{ ...dialogText, marginLeft: 16 }}>On Site / Remote / Hybrid</p>
                 </>
             ),
         },
         technology: {
             content: (
                 <>
-                    <p>
+                    <p style={dialogText}>
                         I primarily use <strong>React</strong> and <strong>TypeScript</strong> to
                         create user-friendly interfaces, often incorporating{' '}
                         <strong>Tailwind CSS</strong> for styling.
                     </p>
-                    <p>
+                    <p style={dialogText}>
                         I've developed full-stack projects with <strong>Node.js</strong>,{' '}
                         <strong>Express</strong>, <strong>MongoDB</strong> and{' '}
                         <strong>PostgreSQL</strong>, bringing together frontend and backend for
                         seamless applications.
                     </p>
-                    <p>
-                        <strong>3D & Graphics:</strong> Three.js, Babylon.js, WebGL, GLSL
+                    <p style={dialogText}>
+                        <strong>3D &amp; Graphics:</strong> Three.js, Babylon.js, WebGL, GLSL
                     </p>
-                    <p>
+                    <p style={dialogText}>
                         <strong>Tools:</strong> Git, Docker, Webpack, Vite, VS Code
                     </p>
-                    <p style={{ marginTop: 12 }}>
+                    <p style={{ ...dialogText, marginTop: 12 }}>
                         I specialize in creating interactive 3D experiences and exploring the
                         creative possibilities of modern web technologies.
                     </p>
@@ -69,16 +80,16 @@ const About: React.FC<AboutProps> = ({ onInteract, onClose, onMinimize }) => {
         hobby: {
             content: (
                 <>
-                    <p>
+                    <p style={dialogText}>
                         In my free time, I love exploring creative projects including digital
                         art, generative design, and music production.
                     </p>
-                    <p>
+                    <p style={dialogText}>
                         I'm passionate about gaming, game design, and interactive storytelling.
                         When I'm not at the computer, I enjoy hiking, photography, and urban
                         exploration.
                     </p>
-                    <p>
+                    <p style={dialogText}>
                         I believe in the power of technology to create meaningful experiences.
                         Whether it's through code, art, or music, I'm constantly experimenting
                         with new ways to express ideas and connect with others.
@@ -92,6 +103,9 @@ const About: React.FC<AboutProps> = ({ onInteract, onClose, onMinimize }) => {
         container: {
             display: 'flex',
             flexDirection: 'column',
+            // Fill the Window's content box (which is itself a flex row).
+            flex: 1,
+            minWidth: 0,
             height: '100%',
             background: Colors.lightGray,
             fontFamily: 'MSSerif',
@@ -121,8 +135,14 @@ const About: React.FC<AboutProps> = ({ onInteract, onClose, onMinimize }) => {
             borderBottom: `1px solid ${Colors.white}`,
         },
         contentArea: {
+            // App.css sets `div { display: flex }` globally, so every wrapper here
+            // has to declare `column` or the paragraphs stack up side by side.
+            display: 'flex',
+            flexDirection: 'column',
             flex: 1,
-            overflow: 'auto',
+            minHeight: 0,
+            overflowY: 'auto',
+            overflowX: 'hidden',
             padding: '12px 16px',
             background: Colors.white,
             color: Colors.black,
@@ -130,6 +150,8 @@ const About: React.FC<AboutProps> = ({ onInteract, onClose, onMinimize }) => {
             lineHeight: '1.6',
         },
         content: {
+            display: 'flex',
+            flexDirection: 'column',
             maxWidth: '100%',
         },
         paragraph: {
@@ -159,6 +181,18 @@ const About: React.FC<AboutProps> = ({ onInteract, onClose, onMinimize }) => {
     };
 
     return (
+        <Window
+            top={88}
+            left={160}
+            width={440}
+            height={400}
+            windowTitle="About Jonas"
+            windowBarIcon="credits"
+            closeWindow={onClose}
+            onInteract={onInteract}
+            minimizeWindow={onMinimize}
+            bottomLeftText="Jonas Kjeldmand Jensen"
+        >
         <div style={styles.container}>
             {/* Tab Bar */}
             <div style={styles.tabContainer}>
@@ -193,6 +227,7 @@ const About: React.FC<AboutProps> = ({ onInteract, onClose, onMinimize }) => {
                 </button>
             </div>
         </div>
+        </Window>
     );
 };
 

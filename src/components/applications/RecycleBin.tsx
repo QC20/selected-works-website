@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import Window from '../os/Window';
 import Colors from '../../constants/colors';
 
 export interface RecycledFile {
@@ -11,11 +12,7 @@ export interface RecycledFile {
     imagePath?: string;
 }
 
-export interface RecycleBinProps {
-    onInteract?: () => void;
-    onClose?: () => void;
-    onMinimize?: () => void;
-}
+export interface RecycleBinProps extends WindowAppProps {}
 
 const RecycleBin: React.FC<RecycleBinProps> = ({ onInteract, onClose, onMinimize }) => {
     // Initialize with default image file
@@ -86,6 +83,9 @@ const RecycleBin: React.FC<RecycleBinProps> = ({ onInteract, onClose, onMinimize
         container: {
             display: 'flex',
             flexDirection: 'column',
+            // Fill the Window's content box (which is itself a flex row).
+            flex: 1,
+            minWidth: 0,
             height: '100%',
             background: Colors.lightGray,
             fontFamily: 'MSSerif',
@@ -127,8 +127,15 @@ const RecycleBin: React.FC<RecycleBinProps> = ({ onInteract, onClose, onMinimize
             cursor: 'not-allowed',
         },
         fileListContainer: {
+            // App.css sets `div { display: flex }` globally, so without an explicit
+            // `column` the deleted files would line up side by side.
+            display: 'flex',
+            flexDirection: 'column',
+            alignContent: 'flex-start',
             flex: 1,
-            overflow: 'auto',
+            minHeight: 0,
+            overflowY: 'auto',
+            overflowX: 'hidden',
             background: Colors.white,
             borderLeft: `2px solid ${Colors.white}`,
             borderTop: `2px solid ${Colors.white}`,
@@ -143,6 +150,7 @@ const RecycleBin: React.FC<RecycleBinProps> = ({ onInteract, onClose, onMinimize
             userSelect: 'none' as const,
             display: 'flex',
             alignItems: 'center',
+            flexShrink: 0,
             gap: 8,
             fontSize: 11,
         },
@@ -172,21 +180,14 @@ const RecycleBin: React.FC<RecycleBinProps> = ({ onInteract, onClose, onMinimize
         },
         emptyState: {
             display: 'flex',
+            flexDirection: 'column',
             alignItems: 'center',
             justifyContent: 'center',
-            height: '100%',
+            flex: 1,
             color: Colors.darkGray,
             textAlign: 'center' as const,
             padding: 16,
             fontSize: 11,
-        },
-        statusBar: {
-            padding: '2px 6px',
-            background: Colors.lightGray,
-            borderTop: `1px solid ${Colors.darkGray}`,
-            fontSize: 10,
-            display: 'flex',
-            justifyContent: 'space-between',
         },
         buttonGroup: {
             display: 'flex',
@@ -210,7 +211,26 @@ const RecycleBin: React.FC<RecycleBinProps> = ({ onInteract, onClose, onMinimize
         },
     };
 
+    const totalSize = deletedFiles.reduce((sum, f) => {
+        const size = parseInt(f.size);
+        return sum + (isNaN(size) ? 0 : size);
+    }, 0);
+
     return (
+        <Window
+            top={112}
+            left={224}
+            width={520}
+            height={380}
+            windowTitle="Recycle Bin"
+            windowBarIcon="recycleBinIcon"
+            closeWindow={onClose}
+            onInteract={onInteract}
+            minimizeWindow={onMinimize}
+            bottomLeftText={`${deletedFiles.length} object(s)${
+                deletedFiles.length > 0 ? `   ${totalSize} KB` : ''
+            }`}
+        >
         <div style={styles.container}>
             {/* Menu Bar */}
             <div style={styles.menuBar}>
@@ -266,9 +286,16 @@ const RecycleBin: React.FC<RecycleBinProps> = ({ onInteract, onClose, onMinimize
             <div style={styles.fileListContainer}>
                 {deletedFiles.length === 0 ? (
                     <div style={styles.emptyState}>
-                        <div>
+                        <div
+                            style={{
+                                flexDirection: 'column',
+                                alignItems: 'center',
+                            }}
+                        >
                             <div style={{ fontSize: 32, marginBottom: 8 }}>🗑️</div>
-                            <p>Recycle Bin is empty</p>
+                            <p style={{ fontFamily: 'MSSerif', fontSize: 11 }}>
+                                Recycle Bin is empty
+                            </p>
                         </div>
                     </div>
                 ) : (
@@ -292,18 +319,7 @@ const RecycleBin: React.FC<RecycleBinProps> = ({ onInteract, onClose, onMinimize
                 )}
             </div>
 
-            {/* Status Bar */}
-            <div style={styles.statusBar}>
-                <span>{deletedFiles.length} object(s)</span>
-                <span>
-                    {deletedFiles.length > 0
-                        ? deletedFiles.reduce((sum, f) => {
-                              const size = parseInt(f.size);
-                              return sum + (isNaN(size) ? 0 : size);
-                          }, 0) + ' KB'
-                        : ''}
-                </span>
-            </div>
+            {/* Object count / size live in the Window's bottom bar (bottomLeftText). */}
 
             {/* Button Bar */}
             <div style={styles.buttonGroup}>
@@ -332,6 +348,7 @@ const RecycleBin: React.FC<RecycleBinProps> = ({ onInteract, onClose, onMinimize
                 </button>
             </div>
         </div>
+        </Window>
     );
 };
 
