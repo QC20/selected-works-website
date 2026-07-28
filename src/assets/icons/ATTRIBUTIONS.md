@@ -6,6 +6,8 @@ The following desktop icons were adapted from **Yute (Yuteoctober)**'s
 - `msnIcon.png`
 - `githubIcon.png`
 - `displayIcon.png`
+- `jpegIcon.png`
+- `recycleBinEmptyIcon.png`
 
 MIT License — Copyright (c) 2024 Yute. The full permission notice is retained per
 the license terms:
@@ -15,8 +17,10 @@ the license terms:
 > Software without restriction... The above copyright notice and this permission
 > notice shall be included in all copies or substantial portions of the Software.
 
-The Guestbook (message board) and the taskbar screen-resolution toggle are original
-implementations inspired by ideas from the same project.
+The Guestbook (message board), the taskbar screen-resolution toggle, and the
+Recycle Bin's icon view (files shown as draggable symbols that can be dragged out
+onto the desktop and back in again) are original implementations inspired by ideas
+from the same project.
 
 The MSN Messenger and GitHub marks are trademarks of their respective owners and are
 used here nominatively for a personal, non-commercial portfolio.

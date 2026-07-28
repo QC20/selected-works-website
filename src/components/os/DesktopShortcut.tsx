@@ -11,6 +11,13 @@ export interface DesktopShortcutProps {
     onOpen: () => void;
     /** Fires with the drag delta (in desktop coords) when a drag finishes. */
     onMoved?: (dx: number, dy: number) => void;
+    /**
+     * Exposes the shortcut's own box. The wrapper Desktop positions us with
+     * collapses to 0x0 (its only child is absolutely positioned), so anything
+     * that needs to hit-test against this icon — dragging a file onto the
+     * Recycle Bin, say — has to measure this element instead.
+     */
+    innerRef?: React.Ref<HTMLDivElement>;
 }
 
 const DesktopShortcut: React.FC<DesktopShortcutProps> = ({
@@ -19,6 +26,7 @@ const DesktopShortcut: React.FC<DesktopShortcutProps> = ({
     invertText,
     onOpen,
     onMoved,
+    innerRef,
 }) => {
     const [isSelected, setIsSelected] = useState(false);
     const [shortcutId, setShortcutId] = useState('');
@@ -139,6 +147,21 @@ const DesktopShortcut: React.FC<DesktopShortcutProps> = ({
         };
     }, [isSelected, handleClickOutside]);
 
+    // The root div feeds both our own measurements and the caller's innerRef.
+    const setRefs = useCallback(
+        (el: HTMLDivElement | null) => {
+            containerRef.current = el;
+            if (typeof innerRef === 'function') {
+                innerRef(el);
+            } else if (innerRef) {
+                (innerRef as React.MutableRefObject<
+                    HTMLDivElement | null
+                >).current = el;
+            }
+        },
+        [innerRef]
+    );
+
     return (
         <div
             id={`${shortcutId}`}
@@ -155,7 +178,7 @@ const DesktopShortcut: React.FC<DesktopShortcutProps> = ({
                 }
             )}
             onPointerDown={handlePointerDown}
-            ref={containerRef}
+            ref={setRefs}
         >
             <div id={`${shortcutId}`} style={styles.iconContainer}>
                 <div

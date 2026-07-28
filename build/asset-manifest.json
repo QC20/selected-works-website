@@ -1,7 +1,7 @@
 {
   "files": {
     "main.css": "/static/css/main.d2f2e31e.css",
-    "main.js": "/static/js/main.1e4b6d49.js",
+    "main.js": "/static/js/main.6533d4e2.js",
     "static/js/453.d0e5d6a3.chunk.js": "/static/js/453.d0e5d6a3.chunk.js",
     "static/media/NChainzSoundCafeSession.mp3": "/static/media/NChainzSoundCafeSession.3ec9cd8ac986dc8f09dc.mp3",
     "static/media/NChainsQuantumSession.mp3": "/static/media/NChainsQuantumSession.0b4d4e7e3cb0bfca7fc8.mp3",
@@ -15,6 +15,7 @@
     "static/media/PrototypeDemo.mp4": "/static/media/PrototypeDemo.7d7d9993c309b5a70dd3.mp4",
     "static/media/Screen_Demo-(v.3).mp4": "/static/media/Screen_Demo-(v.3).62c03b69129513582ede.mp4",
     "static/media/diyArduinoController.gif": "/static/media/diyArduinoController.ddfba94b1c200efb70cf.gif",
+    "static/media/meDJing1.JPG": "/static/media/meDJing1.4284afd22f1024c0607d.JPG",
     "static/media/Dune2-desktop-icon.png": "/static/media/Dune2-desktop-icon.8b8cca8981cc5e2f1ef2.png",
     "static/media/Tromino-In-Game(Compressed).mp4": "/static/media/Tromino-In-Game(Compressed).b45c787ea14f8dd4d9e3.mp4",
     "static/media/currentme1.jpg": "/static/media/currentme1.ea8c47efaa5f5d9b1a91.jpg",
@@ -55,11 +56,11 @@
     "static/media/paint-brush.gif": "/static/media/paint-brush.4881379e32bfc50962aa.gif",
     "index.html": "/index.html",
     "main.d2f2e31e.css.map": "/static/css/main.d2f2e31e.css.map",
-    "main.1e4b6d49.js.map": "/static/js/main.1e4b6d49.js.map",
+    "main.6533d4e2.js.map": "/static/js/main.6533d4e2.js.map",
     "453.d0e5d6a3.chunk.js.map": "/static/js/453.d0e5d6a3.chunk.js.map"
   },
   "entrypoints": [
     "static/css/main.d2f2e31e.css",
-    "static/js/main.1e4b6d49.js"
+    "static/js/main.6533d4e2.js"
   ]
 }

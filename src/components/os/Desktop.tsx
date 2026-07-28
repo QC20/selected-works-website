@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
 import Colors from '../../constants/colors';
 import ShowcaseExplorer from '../applications/ShowcaseExplorer';
@@ -27,11 +27,21 @@ import {
 } from './resolution';
 import {
     IconPos,
+    SHORTCUT_ORIGIN,
     defaultPosition,
+    iconBounds,
     loadPositions,
     savePositions,
     snap,
 } from './iconPositions';
+import FileIcon from './FileIcon';
+import PictureViewer from '../applications/PictureViewer';
+import {
+    DesktopFile,
+    moveToRecycleBin,
+    updateFile,
+    useDesktopFiles,
+} from './desktopFiles';
 
 // Apps whose icon launches a full-screen takeover (the 3D experience) rather
 // than opening a draggable window. Keyed by their APPLICATIONS key.
@@ -186,15 +196,50 @@ const Desktop: React.FC<DesktopProps> = (props) => {
     const moveIcon = useCallback(
         (name: string, from: IconPos, dx: number, dy: number) => {
             const scale = scaleFor(loadResolution());
-            const bounds = {
-                w: window.innerWidth / scale,
-                h: window.innerHeight / scale - 40, // keep clear of the taskbar
-            };
-            const next = snap(from.x + dx, from.y + dy, bounds);
+            const next = snap(from.x + dx, from.y + dy, iconBounds(scale));
             setIconPositions((prev) => {
                 const updated = { ...prev, [name]: next };
                 savePositions(updated);
                 return updated;
+            });
+        },
+        []
+    );
+
+    // --- Desktop files (the documents, not the app shortcuts) --------------
+    // Files live either on the desktop or in the Recycle Bin, and can be dragged
+    // between the two. See `desktopFiles.ts`.
+    const files = useDesktopFiles();
+    const desktopFiles = files.filter((f) => f.location === 'desktop');
+    const binIsEmpty = !files.some((f) => f.location === 'recycleBin');
+    const [selectedFileId, setSelectedFileId] = useState<string | null>(null);
+
+    // The Recycle Bin shortcut, so a file dropped on top of it can be detected.
+    const binShortcutRef = useRef<HTMLDivElement>(null);
+
+    const onFileDropped = useCallback(
+        (file: DesktopFile, dx: number, dy: number, screen: { x: number; y: number }) => {
+            const bin = binShortcutRef.current?.getBoundingClientRect();
+            const droppedOnBin =
+                !!bin &&
+                screen.x >= bin.left &&
+                screen.x <= bin.right &&
+                screen.y >= bin.top &&
+                screen.y <= bin.bottom;
+
+            if (droppedOnBin) {
+                moveToRecycleBin(file.id);
+                setSelectedFileId(null);
+                return;
+            }
+
+            const scale = scaleFor(loadResolution());
+            updateFile(file.id, {
+                desktopPos: snap(
+                    file.desktopPos.x + dx,
+                    file.desktopPos.y + dy,
+                    iconBounds(scale)
+                ),
             });
         },
         []
@@ -326,19 +371,47 @@ const Desktop: React.FC<DesktopProps> = (props) => {
     }, [numShutdowns]);
 
     const addWindow = useCallback(
-        (key: string, element: JSX.Element) => {
+        (
+            key: string,
+            element: JSX.Element,
+            // Windows opened for a *file* rather than an app aren't in
+            // APPLICATIONS, so they bring their own taskbar name and icon.
+            meta?: { name: string; icon: IconName }
+        ) => {
             setWindows((prevState) => ({
                 ...prevState,
                 [key]: {
                     zIndex: getHighestZIndex() + 1,
                     minimized: false,
                     component: element,
-                    name: APPLICATIONS[key].name,
-                    icon: APPLICATIONS[key].shortcutIcon,
+                    name: meta ? meta.name : APPLICATIONS[key].name,
+                    icon: meta ? meta.icon : APPLICATIONS[key].shortcutIcon,
                 },
             }));
         },
         [getHighestZIndex]
+    );
+
+    /** Double-clicking a picture on the desktop opens it in the viewer. */
+    const openFile = useCallback(
+        (file: DesktopFile) => {
+            if (!file.image) return;
+            const key = `file:${file.id}`;
+            addWindow(
+                key,
+                <PictureViewer
+                    key={key}
+                    fileName={file.name}
+                    image={file.image}
+                    size={file.size}
+                    onInteract={() => onWindowInteract(key)}
+                    onMinimize={() => minimizeWindow(key)}
+                    onClose={() => removeWindow(key)}
+                />,
+                { name: file.name, icon: file.icon }
+            );
+        },
+        [addWindow, onWindowInteract, minimizeWindow, removeWindow]
     );
 
     return !shutdown ? (
@@ -398,6 +471,7 @@ const Desktop: React.FC<DesktopProps> = (props) => {
                     const pos =
                         iconPositions[shortcut.shortcutName] ||
                         defaultPosition(i);
+                    const isBin = shortcut.shortcutName === 'Recycle Bin';
                     return (
                         <div
                             style={Object.assign({}, styles.shortcutContainer, {
@@ -407,7 +481,13 @@ const Desktop: React.FC<DesktopProps> = (props) => {
                             key={`shortcut-${shortcut.shortcutName}`}
                         >
                             <DesktopShortcut
-                                icon={shortcut.icon}
+                                // The bin looks full or empty, like the real one.
+                                icon={
+                                    isBin && binIsEmpty
+                                        ? 'recycleBinEmptyIcon'
+                                        : shortcut.icon
+                                }
+                                innerRef={isBin ? binShortcutRef : undefined}
                                 shortcutName={shortcut.shortcutName}
                                 onOpen={shortcut.onOpen}
                                 onMoved={(dx, dy) =>
@@ -417,6 +497,23 @@ const Desktop: React.FC<DesktopProps> = (props) => {
                         </div>
                     );
                 })}
+
+                {/* Files sitting on the desktop — restored from the bin, or
+                    dragged onto it to throw them away again. */}
+                {desktopFiles.map((file) => (
+                    <FileIcon
+                        key={file.id}
+                        file={file}
+                        pos={file.desktopPos}
+                        variant="desktop"
+                        selected={selectedFileId === file.id}
+                        onSelect={() => setSelectedFileId(file.id)}
+                        onOpen={() => openFile(file)}
+                        onDropped={(dx, dy, screen) =>
+                            onFileDropped(file, dx, dy, screen)
+                        }
+                    />
+                ))}
             </div>
                 <Toolbar
                     windows={windows}
@@ -470,8 +567,8 @@ const styles: StyleSheetCSS = {
     },
     shortcuts: {
         position: 'absolute',
-        top: 16,
-        left: 6,
+        top: SHORTCUT_ORIGIN.y,
+        left: SHORTCUT_ORIGIN.x,
     },
     minimized: {
         pointerEvents: 'none',

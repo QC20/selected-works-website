@@ -18,6 +18,13 @@ const KEY = 'desktopIconPositions';
 /** Grid metrics — must match the spacing used for the default layout. */
 export const GRID = { w: 74, h: 104, perColumn: 8 };
 
+/**
+ * Where the icon layer sits inside the desktop. Icon positions are relative to
+ * this, so anything converting a screen point into an icon slot (dragging a
+ * file out of the Recycle Bin, say) has to subtract it.
+ */
+export const SHORTCUT_ORIGIN: IconPos = { x: 6, y: 16 };
+
 /** Where an icon sits if the user has never moved it. */
 export const defaultPosition = (index: number): IconPos => ({
     x: Math.floor(index / GRID.perColumn) * GRID.w,
@@ -53,4 +60,28 @@ export function snap(x: number, y: number, bounds: { w: number; h: number }): Ic
         x: Math.max(0, Math.min(sx, Math.max(0, bounds.w - GRID.w))),
         y: Math.max(0, Math.min(sy, Math.max(0, bounds.h - GRID.h))),
     };
+}
+
+/** The desktop area icons may occupy, in desktop coords (clear of the taskbar). */
+export function iconBounds(scale: number): { w: number; h: number } {
+    return {
+        w: window.innerWidth / scale,
+        h: window.innerHeight / scale - 40,
+    };
+}
+
+/**
+ * Turn a screen point (a drop) into a snapped icon slot, centring the icon on
+ * the cursor. Used when a file is dragged out of the Recycle Bin.
+ */
+export function screenToIconSlot(
+    screenX: number,
+    screenY: number,
+    scale: number
+): IconPos {
+    return snap(
+        screenX / scale - SHORTCUT_ORIGIN.x - GRID.w / 2,
+        screenY / scale - SHORTCUT_ORIGIN.y - GRID.h / 2,
+        iconBounds(scale)
+    );
 }
