@@ -10,45 +10,48 @@ export interface AboutProps {
 const About: React.FC<AboutProps> = ({ onInteract, onClose, onMinimize }) => {
     const [activeTab, setActiveTab] = useState<'general' | 'technology' | 'hobby'>('general');
 
-    // TODO: Change these to your actual information
+    // TODO: Customize these sections with your actual information
     const bioData = {
         general: {
-            title: 'General Information',
             content: (
                 <>
                     <p>
-                        <strong>Name:</strong> Jonas Kjeldmand
+                        <strong>Objective:</strong>
                     </p>
-                    <p>
-                        <strong>Title:</strong> Full Stack Developer & Creative Technologist
-                    </p>
-                    <p>
-                        <strong>Location:</strong> Copenhagen, Denmark
-                    </p>
-                    <p>
-                        <strong>Email:</strong> jokje@dtu.dk
-                    </p>
-                    <p>
-                        <strong>Status:</strong> Open to new opportunities
-                    </p>
-                    <p style={{ marginTop: 12 }}>
+                    <p style={{ marginLeft: 16, marginBottom: 12 }}>
                         Building innovative web experiences and exploring the intersection of
-                        technology and creativity. Passionate about creating immersive digital
-                        environments and solving complex technical challenges.
+                        technology and creativity.
                     </p>
+
+                    <p>
+                        <strong>Information:</strong>
+                    </p>
+                    <p style={{ marginLeft: 16 }}>Jonas Kjeldmand</p>
+                    <p style={{ marginLeft: 16 }}>Full Stack Developer & Creative Technologist</p>
+                    <p style={{ marginLeft: 16, marginBottom: 12 }}>jokje@dtu.dk</p>
+
+                    <p>
+                        <strong>Location:</strong>
+                    </p>
+                    <p style={{ marginLeft: 16 }}>Copenhagen, Denmark</p>
+                    <p style={{ marginLeft: 16 }}>Open to opportunities</p>
+                    <p style={{ marginLeft: 16 }}>On Site / Remote / Hybrid</p>
                 </>
             ),
         },
         technology: {
-            title: 'Technology & Skills',
             content: (
                 <>
                     <p>
-                        <strong>Frontend:</strong> React, TypeScript, Three.js, Tailwind CSS, Framer
-                        Motion
+                        I primarily use <strong>React</strong> and <strong>TypeScript</strong> to
+                        create user-friendly interfaces, often incorporating{' '}
+                        <strong>Tailwind CSS</strong> for styling.
                     </p>
                     <p>
-                        <strong>Backend:</strong> Node.js, Express, MongoDB, PostgreSQL
+                        I've developed full-stack projects with <strong>Node.js</strong>,{' '}
+                        <strong>Express</strong>, <strong>MongoDB</strong> and{' '}
+                        <strong>PostgreSQL</strong>, bringing together frontend and backend for
+                        seamless applications.
                     </p>
                     <p>
                         <strong>3D & Graphics:</strong> Three.js, Babylon.js, WebGL, GLSL
@@ -57,33 +60,25 @@ const About: React.FC<AboutProps> = ({ onInteract, onClose, onMinimize }) => {
                         <strong>Tools:</strong> Git, Docker, Webpack, Vite, VS Code
                     </p>
                     <p style={{ marginTop: 12 }}>
-                        I specialize in creating interactive 3D experiences and full-stack web
-                        applications. I'm experienced with modern JavaScript frameworks and enjoy
-                        pushing the boundaries of what's possible in the browser.
+                        I specialize in creating interactive 3D experiences and exploring the
+                        creative possibilities of modern web technologies.
                     </p>
                 </>
             ),
         },
         hobby: {
-            title: 'Hobbies & Interests',
             content: (
                 <>
                     <p>
-                        <strong>Creative Projects:</strong> Digital art, generative design, music
-                        production
+                        In my free time, I love exploring creative projects including digital
+                        art, generative design, and music production.
                     </p>
                     <p>
-                        <strong>Gaming:</strong> Exploring indie games, game design, interactive
-                        storytelling
+                        I'm passionate about gaming, game design, and interactive storytelling.
+                        When I'm not at the computer, I enjoy hiking, photography, and urban
+                        exploration.
                     </p>
                     <p>
-                        <strong>Outdoor Activities:</strong> Hiking, photography, urban exploration
-                    </p>
-                    <p>
-                        <strong>Learning:</strong> Always exploring new technologies and creative
-                        tools
-                    </p>
-                    <p style={{ marginTop: 12 }}>
                         I believe in the power of technology to create meaningful experiences.
                         Whether it's through code, art, or music, I'm constantly experimenting
                         with new ways to express ideas and connect with others.
@@ -100,16 +95,16 @@ const About: React.FC<AboutProps> = ({ onInteract, onClose, onMinimize }) => {
             height: '100%',
             background: Colors.lightGray,
             fontFamily: 'MSSerif',
-            fontSize: 12,
+            fontSize: 11,
         },
         tabContainer: {
             display: 'flex',
-            borderBottom: `1px solid ${Colors.darkGray}`,
+            gap: 2,
             background: Colors.lightGray,
-            paddingLeft: 4,
+            padding: '4px 4px 0 4px',
         },
         tab: {
-            padding: '6px 16px',
+            padding: '4px 16px',
             cursor: 'pointer',
             border: `1px solid ${Colors.white}`,
             borderRightColor: Colors.darkGray,
@@ -118,21 +113,23 @@ const About: React.FC<AboutProps> = ({ onInteract, onClose, onMinimize }) => {
             fontFamily: 'MSSerif',
             fontSize: 11,
             userSelect: 'none' as const,
-            transition: 'background 0.1s',
+            color: Colors.black,
         },
         activeTab: {
             background: Colors.white,
             borderBottomColor: Colors.white,
+            borderBottom: `1px solid ${Colors.white}`,
         },
         contentArea: {
             flex: 1,
             overflow: 'auto',
-            padding: 16,
+            padding: '12px 16px',
             background: Colors.white,
             color: Colors.black,
+            fontSize: 11,
+            lineHeight: '1.6',
         },
         content: {
-            lineHeight: 1.6,
             maxWidth: '100%',
         },
         paragraph: {
@@ -142,13 +139,13 @@ const About: React.FC<AboutProps> = ({ onInteract, onClose, onMinimize }) => {
         buttonGroup: {
             display: 'flex',
             gap: 8,
-            padding: 12,
+            padding: '8px 12px',
             justifyContent: 'flex-end',
             background: Colors.lightGray,
             borderTop: `1px solid ${Colors.darkGray}`,
         },
         button: {
-            padding: '4px 12px',
+            padding: '4px 16px',
             border: `1px solid ${Colors.white}`,
             borderRightColor: Colors.darkGray,
             borderBottomColor: Colors.darkGray,
@@ -156,12 +153,14 @@ const About: React.FC<AboutProps> = ({ onInteract, onClose, onMinimize }) => {
             fontFamily: 'MSSerif',
             fontSize: 11,
             cursor: 'pointer',
-            minWidth: 60,
+            minWidth: 50,
+            textAlign: 'center' as const,
         },
     };
 
     return (
         <div style={styles.container}>
+            {/* Tab Bar */}
             <div style={styles.tabContainer}>
                 {['general', 'technology', 'hobby'].map((tab) => (
                     <div
@@ -172,17 +171,19 @@ const About: React.FC<AboutProps> = ({ onInteract, onClose, onMinimize }) => {
                         }}
                         onClick={() => setActiveTab(tab as 'general' | 'technology' | 'hobby')}
                     >
-                        {tab.charAt(0).toUpperCase() + tab.slice(1)}
+                        {tab === 'general' && 'General'}
+                        {tab === 'technology' && 'Technology'}
+                        {tab === 'hobby' && 'Hobby'}
                     </div>
                 ))}
             </div>
 
+            {/* Content Area */}
             <div style={styles.contentArea}>
-                <div style={styles.content}>
-                    {bioData[activeTab].content}
-                </div>
+                <div style={styles.content}>{bioData[activeTab].content}</div>
             </div>
 
+            {/* Button Bar */}
             <div style={styles.buttonGroup}>
                 <button style={styles.button} onClick={onClose}>
                     OK

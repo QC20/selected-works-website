@@ -1,16 +1,11 @@
 import React, { useRef, useState } from 'react';
-import { Icon } from '../general';
 import Colors from '../../constants/colors';
 
 // Note: To make email sending work, you need to set up EmailJS
 // 1. Go to https://www.emailjs.com/
 // 2. Create a free account
-// 3. Create an email service
-// 4. Create an email template
-// 5. Replace SERVICE_ID, TEMPLATE_ID, and PUBLIC_KEY below
-
-// For now, this component shows a functional email form that validates input
-// To enable actual sending, uncomment emailjs import and sendEmail implementation
+// 3. Create an email service and template
+// 4. Replace SERVICE_ID, TEMPLATE_ID, and PUBLIC_KEY below
 
 export interface MailProps {
     onInteract?: () => void;
@@ -28,24 +23,23 @@ const Mail: React.FC<MailProps> = ({ onInteract, onClose, onMinimize }) => {
     const [status, setStatus] = useState<'idle' | 'sending' | 'success' | 'error'>('idle');
 
     // EmailJS Configuration - UPDATE THESE WITH YOUR ACTUAL EMAILJS CREDENTIALS
-    const EMAILJS_SERVICE_ID = 'YOUR_SERVICE_ID'; // Replace with your EmailJS service ID
-    const EMAILJS_TEMPLATE_ID = 'YOUR_TEMPLATE_ID'; // Replace with your EmailJS template ID
-    const EMAILJS_PUBLIC_KEY = 'YOUR_PUBLIC_KEY'; // Replace with your EmailJS public key
+    const EMAILJS_SERVICE_ID = 'YOUR_SERVICE_ID';
+    const EMAILJS_TEMPLATE_ID = 'YOUR_TEMPLATE_ID';
+    const EMAILJS_PUBLIC_KEY = 'YOUR_PUBLIC_KEY';
 
-    const handleSendEmail = async (e: React.FormEvent) => {
-        e.preventDefault();
-
+    const handleSendEmail = async () => {
         if (!senderName.trim() || !senderEmail.trim() || !message.trim()) {
             setStatus('error');
+            setTimeout(() => setStatus('idle'), 2000);
             return;
         }
 
         setStatus('sending');
 
         try {
-            // Option 1: Using EmailJS (uncomment if you set up EmailJS)
+            // UNCOMMENT THIS SECTION AFTER SETTING UP EMAILJS:
             /*
-            const emailjs = require('@emailjs/browser');
+            import emailjs from '@emailjs/browser';
 
             await emailjs.send(
                 EMAILJS_SERVICE_ID,
@@ -60,8 +54,7 @@ const Mail: React.FC<MailProps> = ({ onInteract, onClose, onMinimize }) => {
             );
             */
 
-            // Option 2: Using a backend service or fetch API
-            // Uncomment and modify if you have a backend endpoint
+            // ALTERNATIVE: Use a backend endpoint
             /*
             const response = await fetch('/api/send-email', {
                 method: 'POST',
@@ -73,26 +66,20 @@ const Mail: React.FC<MailProps> = ({ onInteract, onClose, onMinimize }) => {
                     message: message,
                 }),
             });
-
             if (!response.ok) throw new Error('Failed to send');
             */
 
-            // For now, we'll simulate success
+            // Simulate success for now
             setStatus('success');
             setSenderName('');
             setSenderEmail('');
             setMessage('');
 
-            // Reset after 3 seconds
-            setTimeout(() => {
-                setStatus('idle');
-            }, 3000);
+            setTimeout(() => setStatus('idle'), 2000);
         } catch (error) {
             console.error('Error sending email:', error);
             setStatus('error');
-            setTimeout(() => {
-                setStatus('idle');
-            }, 3000);
+            setTimeout(() => setStatus('idle'), 2000);
         }
     };
 
@@ -103,48 +90,102 @@ const Mail: React.FC<MailProps> = ({ onInteract, onClose, onMinimize }) => {
             height: '100%',
             background: Colors.lightGray,
             fontFamily: 'MSSerif',
-            fontSize: 12,
+            fontSize: 11,
         },
-        formGroup: {
+        menuBar: {
             display: 'flex',
-            flexDirection: 'column',
-            padding: 12,
+            gap: 16,
+            padding: '4px 6px',
+            background: Colors.lightGray,
             borderBottom: `1px solid ${Colors.darkGray}`,
+            fontSize: 11,
         },
-        label: {
-            marginBottom: 4,
+        menuItem: {
+            cursor: 'default',
+            userSelect: 'none' as const,
+        },
+        toContainer: {
+            display: 'flex',
+            alignItems: 'center',
+            gap: 8,
+            padding: '8px 12px',
+            borderBottom: `1px solid ${Colors.darkGray}`,
+            background: Colors.lightGray,
+        },
+        toLabel: {
+            width: 50,
             fontWeight: 'bold',
+            fontSize: 11,
+        },
+        toInput: {
+            flex: 1,
+            padding: '3px 4px',
+            border: `1px solid ${Colors.darkGray}`,
+            borderRightColor: Colors.white,
+            borderBottomColor: Colors.white,
+            background: '#d4d1d1',
+            fontFamily: 'MSSerif',
+            fontSize: 11,
+            color: Colors.darkGray,
+        },
+        fieldContainer: {
+            display: 'flex',
+            alignItems: 'center',
+            gap: 8,
+            padding: '6px 12px',
+            borderBottom: `1px solid ${Colors.darkGray}`,
+            background: Colors.lightGray,
+        },
+        fieldLabel: {
+            width: 50,
+            fontWeight: 'bold',
+            fontSize: 11,
+        },
+        fieldInput: {
+            flex: 1,
+            padding: '3px 4px',
+            border: `1px solid ${Colors.darkGray}`,
+            borderRightColor: Colors.white,
+            borderBottomColor: Colors.white,
+            background: Colors.white,
+            fontFamily: 'MSSerif',
+            fontSize: 11,
             color: Colors.black,
         },
-        input: {
-            padding: 4,
+        messageContainer: {
+            display: 'flex',
+            flexDirection: 'column',
+            flex: 1,
+            padding: '8px 12px',
+            background: Colors.lightGray,
+        },
+        messageLabel: {
+            marginBottom: 4,
+            fontWeight: 'bold',
+            fontSize: 11,
+        },
+        messageInput: {
+            flex: 1,
+            padding: '4px 4px',
             border: `1px solid ${Colors.darkGray}`,
             borderRightColor: Colors.white,
             borderBottomColor: Colors.white,
             background: Colors.white,
             fontFamily: 'MSSerif',
             fontSize: 11,
-            marginBottom: 8,
+            color: Colors.black,
+            resize: 'none' as const,
         },
-        textarea: {
-            padding: 4,
-            border: `1px solid ${Colors.darkGray}`,
-            borderRightColor: Colors.white,
-            borderBottomColor: Colors.white,
-            background: Colors.white,
-            fontFamily: 'MSSerif',
-            fontSize: 11,
-            minHeight: 120,
-            resize: 'vertical' as const,
-        },
-        buttonGroup: {
+        buttonBar: {
             display: 'flex',
             gap: 8,
-            padding: 12,
+            padding: '8px 12px',
+            background: Colors.lightGray,
+            borderTop: `1px solid ${Colors.darkGray}`,
             justifyContent: 'flex-end',
         },
         button: {
-            padding: '4px 12px',
+            padding: '4px 16px',
             border: `1px solid ${Colors.white}`,
             borderRightColor: Colors.darkGray,
             borderBottomColor: Colors.darkGray,
@@ -152,92 +193,131 @@ const Mail: React.FC<MailProps> = ({ onInteract, onClose, onMinimize }) => {
             fontFamily: 'MSSerif',
             fontSize: 11,
             cursor: 'pointer',
-            minWidth: 60,
-        },
-        disabledButton: {
-            opacity: 0.5,
-            cursor: 'not-allowed',
-        },
-        status: {
-            padding: 8,
+            minWidth: 50,
             textAlign: 'center' as const,
+        },
+        sendButton: {
+            padding: '3px 8px',
+            border: `1px solid ${Colors.white}`,
+            borderRightColor: Colors.darkGray,
+            borderBottomColor: Colors.darkGray,
+            background: Colors.lightGray,
+            fontFamily: 'MSSerif',
+            fontSize: 10,
+            cursor: 'pointer',
+            width: 50,
+        },
+        statusBar: {
+            padding: '4px 12px',
+            background:
+                status === 'success'
+                    ? '#90EE90'
+                    : status === 'error'
+                      ? '#FFB6C6'
+                      : Colors.lightGray,
+            color:
+                status === 'success'
+                    ? '#006400'
+                    : status === 'error'
+                      ? '#8B0000'
+                      : Colors.black,
+            fontSize: 10,
             fontWeight: 'bold',
-            color: Colors.black,
-        },
-        successMessage: {
-            background: '#90EE90',
-            color: '#006400',
-        },
-        errorMessage: {
-            background: '#FFB6C6',
-            color: '#8B0000',
+            textAlign: 'center' as const,
+            minHeight: 20,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
         },
     };
 
     return (
         <div style={styles.container}>
-            <div style={styles.formGroup}>
-                <label style={styles.label}>From:</label>
+            {/* Menu Bar */}
+            <div style={styles.menuBar}>
+                <span style={styles.menuItem}>
+                    File<u style={{ marginLeft: '-2px' }}>_</u>
+                </span>
+                <span style={styles.menuItem}>
+                    Edit<u style={{ marginLeft: '-2px' }}>_</u>
+                </span>
+                <span style={styles.menuItem}>
+                    View<u style={{ marginLeft: '-2px' }}>_</u>
+                </span>
+                <span style={styles.menuItem}>
+                    Help<u style={{ marginLeft: '-2px' }}>_</u>
+                </span>
+            </div>
+
+            {/* To Field - Recipient Email (disabled, shows your email) */}
+            <div style={styles.toContainer}>
+                <div style={styles.toLabel}>To:</div>
+                <input
+                    type="email"
+                    value="jokje@dtu.dk"
+                    style={styles.toInput}
+                    disabled
+                    title="Email will be sent to jokje@dtu.dk"
+                />
+            </div>
+
+            {/* From Name Field */}
+            <div style={styles.fieldContainer}>
+                <div style={styles.fieldLabel}>Name</div>
                 <input
                     ref={nameRef}
                     type="text"
-                    placeholder="Your Name"
                     value={senderName}
                     onChange={(e) => setSenderName(e.target.value)}
-                    style={styles.input}
+                    style={styles.fieldInput}
+                    placeholder="Your Name"
                     disabled={status === 'sending'}
                 />
             </div>
 
-            <div style={styles.formGroup}>
-                <label style={styles.label}>Email:</label>
+            {/* From Email Field */}
+            <div style={styles.fieldContainer}>
+                <div style={styles.fieldLabel}>Email</div>
                 <input
                     ref={emailRef}
                     type="email"
-                    placeholder="your@email.com"
                     value={senderEmail}
                     onChange={(e) => setSenderEmail(e.target.value)}
-                    style={styles.input}
+                    style={styles.fieldInput}
+                    placeholder="your@email.com"
                     disabled={status === 'sending'}
                 />
             </div>
 
-            <div style={styles.formGroup}>
-                <label style={styles.label}>Message:</label>
+            {/* Message Area */}
+            <div style={styles.messageContainer}>
+                <div style={styles.messageLabel}>Message</div>
                 <textarea
                     ref={messageRef}
-                    placeholder="Enter your message here..."
                     value={message}
                     onChange={(e) => setMessage(e.target.value)}
-                    style={styles.textarea}
+                    style={styles.messageInput}
+                    placeholder="Enter your message here..."
                     disabled={status === 'sending'}
                 />
             </div>
 
-            {status === 'success' && (
-                <div style={{ ...styles.status, ...styles.successMessage }}>
-                    Email sent successfully!
+            {/* Status Bar */}
+            {status !== 'idle' && (
+                <div style={styles.statusBar}>
+                    {status === 'sending' && 'Sending...'}
+                    {status === 'success' && 'Email sent successfully!'}
+                    {status === 'error' &&
+                        (!senderName || !senderEmail || !message
+                            ? 'Please fill in all fields'
+                            : 'Error sending email')}
                 </div>
             )}
 
-            {status === 'error' && (
-                <div style={{ ...styles.status, ...styles.errorMessage }}>
-                    {!senderName || !senderEmail || !message
-                        ? 'Please fill in all fields'
-                        : 'Error sending email. Please try again.'}
-                </div>
-            )}
-
-            <div style={styles.buttonGroup}>
-                <button
-                    style={{
-                        ...styles.button,
-                        ...(status === 'sending' ? styles.disabledButton : {}),
-                    }}
-                    onClick={handleSendEmail}
-                    disabled={status === 'sending'}
-                >
-                    {status === 'sending' ? 'Sending...' : 'Send'}
+            {/* Button Bar */}
+            <div style={styles.buttonBar}>
+                <button style={styles.button} onClick={handleSendEmail} disabled={status === 'sending'}>
+                    Send
                 </button>
                 <button
                     style={styles.button}
