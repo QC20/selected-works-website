@@ -37,9 +37,18 @@ const isoDaysAgo = (days: number): string => {
 
 export interface CurrencyConverterProps {
     open: boolean;
+    /**
+     * Renders as a plain block filling its parent instead of a popup anchored
+     * above the tray — used by the windowed copy in My Computer > Hard Disk
+     * (D:) > Utility, which is the same tool inside a Window.
+     */
+    embedded?: boolean;
 }
 
-const CurrencyConverter: React.FC<CurrencyConverterProps> = ({ open }) => {
+const CurrencyConverter: React.FC<CurrencyConverterProps> = ({
+    open,
+    embedded = false,
+}) => {
     const [rates, setRates] = useState<Rates | null>(null);
     const [error, setError] = useState(false);
     const [loading, setLoading] = useState(false);
@@ -110,7 +119,13 @@ const CurrencyConverter: React.FC<CurrencyConverterProps> = ({ open }) => {
     const eurInDkk = rates ? (1 / rates.dkkToEur).toFixed(4) : '—';
 
     return (
-        <div style={styles.panel}>
+        <div
+            style={Object.assign(
+                {},
+                styles.panel,
+                embedded && styles.panelEmbedded
+            )}
+        >
             <div style={styles.header}>
                 <Icon icon="eurIcon" size={16} />
                 <span style={styles.pair}>DKK / EUR</span>
@@ -226,6 +241,19 @@ const styles: StyleSheetCSS = {
         gap: 5,
         zIndex: 100001,
         fontFamily: 'MSSerif',
+    },
+    panelEmbedded: {
+        position: 'relative',
+        bottom: 'auto',
+        right: 'auto',
+        width: 'auto',
+        flex: 1,
+        minWidth: 0,
+        border: 'none',
+        boxShadow: 'none',
+        padding: 10,
+        gap: 8,
+        zIndex: 'auto',
     },
     header: {
         alignItems: 'center',

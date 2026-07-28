@@ -17,9 +17,19 @@ The following desktop icons were adapted from **Yute (Yuteoctober)**'s
 - `resumeFileIcon.png`
 - `ieIcon.png`
 
-`eurIcon.png` and `selectedWebsitesIcon.png` are original pixel art, not from that
-project. `selectedWebsitesIcon.png` is a placeholder — overwrite the file to change
-the Start → Resume → Selected Websites icon; no code change is needed.
+`eurIcon.png` is original pixel art, not from that project.
+
+The following are from the **win95-winxp_icons** pack (Windows 2000 / 95 system
+icons), converted from `.ico` to PNG:
+
+- `myComputerIcon.png` — `w2k_my_computer.ico`
+- `hardDriveIcon.png` — `w2k_hard_drive.ico`
+- `cdRomIcon.png` — `w2k_cd-rom_drive.ico`
+- `scrollIcon.png` — `w2k_movie_maker.ico`
+- `selectedWebsitesIcon.png` — `w2k_network_3.ico`
+
+These are Microsoft's original Windows system icons, used here nominatively in a
+personal, non-commercial portfolio recreating that interface.
 
 MIT License — Copyright (c) 2024 Yute. The full permission notice is retained per
 the license terms:

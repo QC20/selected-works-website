@@ -26,6 +26,7 @@ const START_FOLDERS: StartFolder[] = [
         items: [
             { key: 'pinPortrait', label: 'Pin Portrait', icon: 'ieIcon' },
             { key: 'emojiHeatmap', label: 'Emoji Heatmap', icon: 'ieIcon' },
+            { key: 'scroll', label: 'Scroll.', icon: 'scrollIcon' },
         ],
     },
     {

@@ -27,6 +27,9 @@ export interface WebFrameProps extends WindowAppProps {
     url: string;
     width: number;
     height: number;
+    /** Defaults to the usual cascade corner when not given. */
+    top?: number;
+    left?: number;
     windowBarIcon?: IconName;
     allowCamera?: boolean;
 }
@@ -36,6 +39,8 @@ const WebFrame: React.FC<WebFrameProps> = ({
     url,
     width,
     height,
+    top = 44,
+    left = 80,
     windowBarIcon = 'internetExplorerIcon',
     allowCamera = false,
     onInteract,
@@ -55,8 +60,8 @@ const WebFrame: React.FC<WebFrameProps> = ({
 
     return (
         <Window
-            top={44}
-            left={80}
+            top={top}
+            left={left}
             width={width}
             height={height}
             windowTitle={`${title} — Internet Explorer`}

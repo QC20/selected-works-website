@@ -27,6 +27,8 @@ import ProgramsFolder from '../applications/ProgramsFolder';
 import Minesweeper from '../applications/Minesweeper';
 import WebFrame from '../applications/WebFrame';
 import ResumeFile from '../applications/ResumeFile';
+import MyComputer from '../applications/MyComputer';
+import Converter from '../applications/Converter';
 import { useTheme } from './theme';
 import {
     Resolution,
@@ -103,6 +105,15 @@ const APPLICATIONS: {
         name: 'Internet Explorer',
         shortcutIcon: 'internetExplorerIcon',
         component: ThisComputerApp,
+    },
+
+    // Sits directly after Internet Explorer on the desktop; everything below
+    // shifts down one grid slot to make room (see defaultPosition).
+    myComputer: {
+        key: 'myComputer',
+        name: 'My Computer',
+        shortcutIcon: 'myComputerIcon',
+        component: MyComputer,
     },
 
     trail: {
@@ -253,6 +264,23 @@ const APPLICATIONS: {
         component: WebFrame,
         noDesktopIcon: true,
     },
+
+    scroll: {
+        key: 'scroll',
+        name: 'Scroll.',
+        shortcutIcon: 'scrollIcon',
+        component: WebFrame,
+        noDesktopIcon: true,
+    },
+
+    // Lives inside My Computer > Hard Disk (D:) > Utility.
+    converter: {
+        key: 'converter',
+        name: 'EUR/DKK Converter',
+        shortcutIcon: 'eurIcon',
+        component: Converter,
+        noDesktopIcon: true,
+    },
 };
 
 /**
@@ -265,6 +293,16 @@ const WEB_APPS: {
         width: number;
         height: number;
         allowCamera?: boolean;
+        /**
+         * Overrides the window's default corner. Computed from the viewport at
+         * open time, in desktop (scale-aware) coordinates.
+         */
+        placement?: (vw: number, vh: number) => {
+            width: number;
+            height: number;
+            top: number;
+            left: number;
+        };
     };
 } = {
     // 3/4 of the My Showcase window (1100 x 800).
@@ -286,6 +324,25 @@ const WEB_APPS: {
         url: 'https://creative-technologist-showcase.vercel.app/',
         width: 900,
         height: 650,
+    },
+    // Opens large but inset, horizontally centred, sitting in the lower half
+    // of the desktop rather than butting up against any edge.
+    scroll: {
+        url: 'https://qc20.github.io/Scroll./',
+        width: 900,
+        height: 400,
+        placement: (vw, vh) => {
+            const width = Math.round(Math.min(1000, vw * 0.72));
+            // Fill the lower half, minus the taskbar and a comfortable margin.
+            const lower = vh / 2;
+            const height = Math.round(Math.min(520, lower - 60));
+            return {
+                width,
+                height,
+                top: Math.round(lower + (lower - height - 32) / 2),
+                left: Math.round((vw - width) / 2),
+            };
+        },
     },
 };
 
@@ -360,6 +417,10 @@ const Desktop: React.FC<DesktopProps> = (props) => {
 
     // Always the latest openApp, for the shortcut closures built on mount.
     const openAppRef = useRef<(key: string) => void>(() => {});
+    // Same, for windows that need to open a picture (My Computer's Pictures).
+    const openPictureRef = useRef<
+        (name: string, image: string, size: number) => void
+    >(() => {});
 
     const onFileDropped = useCallback(
         (file: DesktopFile, dx: number, dy: number, screen: { x: number; y: number }) => {
@@ -612,16 +673,39 @@ const Desktop: React.FC<DesktopProps> = (props) => {
                 return;
             }
 
+            if (app.key === 'myComputer') {
+                addWindow(
+                    app.key,
+                    <MyComputer
+                        {...shared}
+                        openApp={(target) => openAppRef.current(target)}
+                        openPicture={(name, full, size) =>
+                            openPictureRef.current(name, full, size)
+                        }
+                    />
+                );
+                return;
+            }
+
             const site = WEB_APPS[app.key];
             if (site) {
+                const scale = scaleFor(loadResolution());
+                const box = site.placement
+                    ? site.placement(
+                          window.innerWidth / scale,
+                          window.innerHeight / scale
+                      )
+                    : { width: site.width, height: site.height, top: 44, left: 80 };
                 addWindow(
                     app.key,
                     <WebFrame
                         {...shared}
                         title={app.name}
                         url={site.url}
-                        width={site.width}
-                        height={site.height}
+                        width={box.width}
+                        height={box.height}
+                        top={box.top}
+                        left={box.left}
                         windowBarIcon={app.shortcutIcon}
                         allowCamera={site.allowCamera}
                     />
@@ -644,26 +728,38 @@ const Desktop: React.FC<DesktopProps> = (props) => {
 
     openAppRef.current = openApp;
 
-    /** Double-clicking a picture on the desktop opens it in the viewer. */
-    const openFile = useCallback(
-        (file: DesktopFile) => {
-            if (!file.image) return;
-            const key = `file:${file.id}`;
+    /**
+     * Opens any image in the picture viewer — used both by desktop file icons
+     * and by the Pictures folder inside My Computer.
+     */
+    const openPicture = useCallback(
+        (name: string, image: string, size: number, icon: IconName = 'jpegIcon') => {
+            const key = `picture:${name}`;
             addWindow(
                 key,
                 <PictureViewer
                     key={key}
-                    fileName={file.name}
-                    image={file.image}
-                    size={file.size}
+                    fileName={name}
+                    image={image}
+                    size={size}
                     onInteract={() => onWindowInteract(key)}
                     onMinimize={() => minimizeWindow(key)}
                     onClose={() => removeWindow(key)}
                 />,
-                { name: file.name, icon: file.icon }
+                { name, icon }
             );
         },
         [addWindow, onWindowInteract, minimizeWindow, removeWindow]
+    );
+    openPictureRef.current = openPicture;
+
+    /** Double-clicking a picture on the desktop opens it in the viewer. */
+    const openFile = useCallback(
+        (file: DesktopFile) => {
+            if (!file.image) return;
+            openPicture(file.name, file.image, file.size, file.icon);
+        },
+        [openPicture]
     );
 
     return !shutdown ? (

@@ -36,6 +36,10 @@ import folderResumeIcon from './folderResumeIcon.png';
 import resumeFileIcon from './resumeFileIcon.png';
 import ieIcon from './ieIcon.png';
 import selectedWebsitesIcon from './selectedWebsitesIcon.png';
+import myComputerIcon from './myComputerIcon.png';
+import hardDriveIcon from './hardDriveIcon.png';
+import cdRomIcon from './cdRomIcon.png';
+import scrollIcon from './scrollIcon.png';
 import settingsIcon from './settingsIcon.png';
 import runIcon from './runIcon.png';
 
@@ -83,6 +87,10 @@ const icons = {
     resumeFileIcon: resumeFileIcon,
     ieIcon: ieIcon,
     selectedWebsitesIcon: selectedWebsitesIcon,
+    myComputerIcon: myComputerIcon,
+    hardDriveIcon: hardDriveIcon,
+    cdRomIcon: cdRomIcon,
+    scrollIcon: scrollIcon,
     settingsIcon: settingsIcon,
     runIcon: runIcon,
 };
