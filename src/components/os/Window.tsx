@@ -8,6 +8,7 @@ import Button from './Button';
 import DragIndicator from './DragIndicator';
 import ResizeIndicator from './ResizeIndicator';
 import { getResolutionScale } from './resolution';
+import { useTheme } from './theme';
 
 export interface WindowProps {
     closeWindow: () => void;
@@ -28,6 +29,8 @@ export interface WindowProps {
 }
 
 const Window: React.FC<WindowProps> = (props) => {
+    // Title-bar colour follows Display Properties → Appearance.
+    const theme = useTheme();
     const windowRef = useRef<any>(null);
     const dragRef = useRef<any>(null);
     const contentRef = useRef<any>(null);
@@ -229,6 +232,7 @@ const Window: React.FC<WindowProps> = (props) => {
                             style={Object.assign(
                                 {},
                                 styles.topBar,
+                                { backgroundColor: theme.titleBar },
                                 props.windowBarColor && {
                                     backgroundColor: props.windowBarColor,
                                 },

@@ -9,6 +9,8 @@ export interface ToolbarProps {
     shutdown: () => void;
     resolution: Resolution;
     setResolution: (r: Resolution) => void;
+    /** Opens an app by its APPLICATIONS key (see Desktop.tsx). */
+    openApp: (key: string) => void;
 }
 
 const Toolbar: React.FC<ToolbarProps> = ({
@@ -17,6 +19,7 @@ const Toolbar: React.FC<ToolbarProps> = ({
     shutdown,
     resolution,
     setResolution,
+    openApp,
 }) => {
     const [resMenuOpen, setResMenuOpen] = useState(false);
     const getTime = () => {
@@ -104,6 +107,23 @@ const Toolbar: React.FC<ToolbarProps> = ({
         }
     };
 
+    /**
+     * Runs a Start-menu item's action and closes the menu.
+     *
+     * The stopPropagation matters: without it the press bubbles to the menu
+     * container's own `onStartWindowClicked`, which sets `lastClickInside` and
+     * re-opens the menu immediately after the item closed it — leaving it
+     * stuck open behind whatever just launched, and swallowing the next click
+     * on Start.
+     */
+    const chooseStartMenuItem =
+        (action: () => void) => (e: React.PointerEvent) => {
+            e.stopPropagation();
+            lastClickInside.current = false;
+            setStartWindowOpen(false);
+            action();
+        };
+
     return (
         <div style={styles.toolbarOuter}>
             {startWindowOpen && (
@@ -121,10 +141,13 @@ const Toolbar: React.FC<ToolbarProps> = ({
                             <div
                                 className="start-menu-option"
                                 style={styles.startMenuOption}
-                                onPointerDown={() => {
-                                    window.open('https://github.com/QC20', '_blank', 'noopener,noreferrer');
-                                    setStartWindowOpen(false);
-                                }}
+                                onPointerDown={chooseStartMenuItem(() =>
+                                    window.open(
+                                        'https://github.com/QC20',
+                                        '_blank',
+                                        'noopener,noreferrer'
+                                    )
+                                )}
                                 title="Open GitHub profile"
                             >
                                 <Icon
@@ -139,11 +162,10 @@ const Toolbar: React.FC<ToolbarProps> = ({
                             <div
                                 className="start-menu-option"
                                 style={styles.startMenuOption}
-                                onPointerDown={() => {
-                                    // TODO: Open Settings
-                                    setStartWindowOpen(false);
-                                }}
-                                title="Open Settings"
+                                onPointerDown={chooseStartMenuItem(() =>
+                                    openApp('settings')
+                                )}
+                                title="Open Display Properties"
                             >
                                 <Icon
                                     style={styles.startMenuIcon}
@@ -156,10 +178,9 @@ const Toolbar: React.FC<ToolbarProps> = ({
                             <div
                                 className="start-menu-option"
                                 style={styles.startMenuOption}
-                                onPointerDown={() => {
-                                    // TODO: Open Run dialog
-                                    setStartWindowOpen(false);
-                                }}
+                                onPointerDown={chooseStartMenuItem(() =>
+                                    openApp('run')
+                                )}
                                 title="Run a program"
                             >
                                 <Icon
@@ -174,7 +195,8 @@ const Toolbar: React.FC<ToolbarProps> = ({
                             <div
                                 className="start-menu-option"
                                 style={styles.startMenuOption}
-                                onPointerDown={shutdown}
+                                onPointerDown={chooseStartMenuItem(shutdown)}
+                                title="Shut down the computer"
                             >
                                 <Icon
                                     style={styles.startMenuIcon}

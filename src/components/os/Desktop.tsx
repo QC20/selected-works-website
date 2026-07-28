@@ -18,6 +18,9 @@ import Experience3D from '../experience/Experience3D';
 import Mail from '../applications/Mail';
 import About from '../applications/About';
 import RecycleBin from '../applications/RecycleBin';
+import Settings from '../applications/Settings';
+import Run from '../applications/Run';
+import { useTheme } from './theme';
 import {
     Resolution,
     scaleFor,
@@ -73,6 +76,8 @@ const APPLICATIONS: {
         name: string;
         shortcutIcon: IconName;
         component: React.FC<ExtendedWindowAppProps<any>>;
+        /** Reachable from the Start menu only — no icon on the desktop. */
+        startMenuOnly?: boolean;
     };
 } = {
     showcase: {
@@ -166,7 +171,37 @@ const APPLICATIONS: {
         component: RecycleBin,
     },
 
+    // Start-menu entries. They open real windows (taskbar entry, minimize,
+    // drag) but deliberately have no desktop icon, same as Windows 95.
+    settings: {
+        key: 'settings',
+        name: 'Display Properties',
+        shortcutIcon: 'settingsIcon',
+        component: Settings,
+        startMenuOnly: true,
+    },
+
+    run: {
+        key: 'run',
+        name: 'Run',
+        shortcutIcon: 'runIcon',
+        component: Run,
+        startMenuOnly: true,
+    },
 };
+
+/**
+ * What you can type into Run. Everything except Run itself, and no "Step
+ * Outside" when we're already inside the 3D monitor.
+ */
+const runnablePrograms = Object.keys(APPLICATIONS)
+    .map((key) => APPLICATIONS[key])
+    .filter(
+        (app) =>
+            app.key !== 'run' &&
+            !(IS_EMBEDDED_IN_CRT && FULLSCREEN_EXPERIENCES.includes(app.key))
+    )
+    .map((app) => ({ key: app.key, name: app.name }));
 
 const Desktop: React.FC<DesktopProps> = (props) => {
     const [windows, setWindows] = useState<DesktopWindows>({});
@@ -178,6 +213,9 @@ const Desktop: React.FC<DesktopProps> = (props) => {
 
     // When true, the 2D desktop recedes and the 3D CRT-room experience takes over.
     const [experienceOpen, setExperienceOpen] = useState(false);
+
+    // Desktop appearance, changed from Start → Settings (persisted).
+    const theme = useTheme();
 
     // Retro "screen resolution" — scales the 2D desktop only (persisted).
     const [resolution, setResolutionState] = useState<Resolution>(loadResolution());
@@ -258,6 +296,10 @@ const Desktop: React.FC<DesktopProps> = (props) => {
             const app = APPLICATIONS[key];
             // Don't offer the 3D experience from inside the 3D monitor.
             if (IS_EMBEDDED_IN_CRT && FULLSCREEN_EXPERIENCES.includes(app.key)) {
+                return;
+            }
+            // Settings / Run live in the Start menu, not on the desktop.
+            if (app.startMenuOnly) {
                 return;
             }
             newShortcuts.push({
@@ -392,6 +434,74 @@ const Desktop: React.FC<DesktopProps> = (props) => {
         [getHighestZIndex]
     );
 
+    /**
+     * Opens any app by its APPLICATIONS key. Used by the Start menu and by the
+     * Run dialog; the desktop shortcuts have their own closures built above.
+     * Handles the same fullscreen/external-link special cases as a shortcut,
+     * and injects the extra props Settings and Run need.
+     */
+    const openApp = useCallback(
+        (key: string) => {
+            const app = APPLICATIONS[key];
+            if (!app) return;
+
+            if (FULLSCREEN_EXPERIENCES.includes(app.key)) {
+                setExperienceOpen(true);
+                return;
+            }
+            if (EXTERNAL_LINKS[app.key]) {
+                window.open(
+                    EXTERNAL_LINKS[app.key],
+                    '_blank',
+                    'noopener,noreferrer'
+                );
+                return;
+            }
+
+            const shared = {
+                key: app.key,
+                onInteract: () => onWindowInteract(app.key),
+                onMinimize: () => minimizeWindow(app.key),
+                onClose: () => removeWindow(app.key),
+            };
+
+            if (app.key === 'settings') {
+                addWindow(
+                    app.key,
+                    <Settings
+                        {...shared}
+                        resolution={resolution}
+                        setResolution={setResolution}
+                    />
+                );
+                return;
+            }
+
+            if (app.key === 'run') {
+                addWindow(
+                    app.key,
+                    <Run
+                        {...shared}
+                        programs={runnablePrograms}
+                        launch={(target) => openApp(target)}
+                    />
+                );
+                return;
+            }
+
+            addWindow(app.key, <app.component {...shared} />);
+        },
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+        [
+            addWindow,
+            onWindowInteract,
+            minimizeWindow,
+            removeWindow,
+            resolution,
+            setResolution,
+        ]
+    );
+
     /** Double-clicking a picture on the desktop opens it in the viewer. */
     const openFile = useCallback(
         (file: DesktopFile) => {
@@ -422,6 +532,7 @@ const Desktop: React.FC<DesktopProps> = (props) => {
             <motion.div
                 style={Object.assign({}, styles.desktopStage, {
                     pointerEvents: experienceOpen ? 'none' : 'auto',
+                    backgroundColor: theme.background,
                 })}
                 animate={
                     experienceOpen
@@ -521,6 +632,7 @@ const Desktop: React.FC<DesktopProps> = (props) => {
                     shutdown={startShutdown}
                     resolution={resolution}
                     setResolution={setResolution}
+                    openApp={openApp}
                 />
               </div>
             </motion.div>
