@@ -25,7 +25,13 @@ export interface WindowProps {
     windowBarIcon?: IconName;
     onWidthChange?: (width: number) => void;
     onHeightChange?: (height: number) => void;
-    children?: ReactNode; 
+    /**
+     * Replaces the maximize button's normal behaviour. The GitHub window uses
+     * this to open the real github.com in a new tab — the one place on this
+     * desktop where a control deliberately leaves the site.
+     */
+    onMaximize?: () => void;
+    children?: ReactNode;
 }
 
 const Window: React.FC<WindowProps> = (props) => {
@@ -167,6 +173,10 @@ const Window: React.FC<WindowProps> = (props) => {
     }, [height]);
 
     const maximize = () => {
+        if (props.onMaximize) {
+            props.onMaximize();
+            return;
+        }
         if (isMaximized) {
             setWidth(preMaxSize.width);
             setHeight(preMaxSize.height);

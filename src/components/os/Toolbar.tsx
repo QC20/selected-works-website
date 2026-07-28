@@ -2,6 +2,8 @@ import React, { useEffect, useRef, useState } from 'react';
 import Colors from '../../constants/colors';
 import { Icon } from '../general';
 import { Resolution, RESOLUTIONS } from './resolution';
+import CurrencyConverter from './CurrencyConverter';
+import { openExternal } from './openExternal';
 
 export interface ToolbarProps {
     windows: DesktopWindows;
@@ -22,6 +24,7 @@ const Toolbar: React.FC<ToolbarProps> = ({
     openApp,
 }) => {
     const [resMenuOpen, setResMenuOpen] = useState(false);
+    const [fxOpen, setFxOpen] = useState(false);
     const getTime = () => {
         const date = new Date();
         let hours = date.getHours();
@@ -80,6 +83,7 @@ const Toolbar: React.FC<ToolbarProps> = ({
         };
     }, []);
 
+    // Clicking anywhere outside the tray dismisses whichever tray popup is open.
     const resAreaRef = useRef<HTMLDivElement>(null);
     useEffect(() => {
         const onDown = (e: PointerEvent) => {
@@ -88,6 +92,7 @@ const Toolbar: React.FC<ToolbarProps> = ({
                 !resAreaRef.current.contains(e.target as Node)
             ) {
                 setResMenuOpen(false);
+                setFxOpen(false);
             }
         };
         window.addEventListener('pointerdown', onDown);
@@ -141,12 +146,10 @@ const Toolbar: React.FC<ToolbarProps> = ({
                             <div
                                 className="start-menu-option"
                                 style={styles.startMenuOption}
+                                // Start -> Github goes straight to the real site,
+                                // unlike the desktop icon (which opens a window).
                                 onPointerDown={chooseStartMenuItem(() =>
-                                    window.open(
-                                        'https://github.com/QC20',
-                                        '_blank',
-                                        'noopener,noreferrer'
-                                    )
+                                    openExternal('https://github.com/QC20')
                                 )}
                                 title="Open GitHub profile"
                             >
@@ -295,11 +298,24 @@ const Toolbar: React.FC<ToolbarProps> = ({
                             ))}
                         </div>
                     )}
+                    <CurrencyConverter open={fxOpen} />
                     <div
-                        style={styles.displayIconWrap}
+                        style={styles.trayIconWrap}
+                        title="DKK / EUR converter"
+                        onPointerDown={(e) => {
+                            e.stopPropagation();
+                            setResMenuOpen(false);
+                            setFxOpen((o) => !o);
+                        }}
+                    >
+                        <Icon icon="eurIcon" size={16} />
+                    </div>
+                    <div
+                        style={styles.trayIconWrap}
                         title="Screen resolution"
                         onPointerDown={(e) => {
                             e.stopPropagation();
+                            setFxOpen(false);
                             setResMenuOpen((o) => !o);
                         }}
                     >
@@ -391,6 +407,9 @@ const styles: StyleSheetCSS = {
         // flex: 1,
         height: 24,
         padding: 12,
+        cursor: 'pointer',
+        // Instant taps on touch devices (no 300ms double-tap-zoom wait).
+        touchAction: 'manipulation',
     },
     startMenuSpace: {
         flex: 1,
@@ -476,7 +495,8 @@ const styles: StyleSheetCSS = {
     time: {
         position: 'relative',
         flexShrink: 1,
-        width: 112,
+        // Wide enough for the EUR coin, the display icon, volume and the clock.
+        width: 136,
         height: 24,
         boxSizing: 'border-box',
         marginRight: 4,
@@ -489,11 +509,13 @@ const styles: StyleSheetCSS = {
         alignItems: 'center',
         borderLeftColor: Colors.darkGray,
     },
-    displayIconWrap: {
+    trayIconWrap: {
         cursor: 'pointer',
         alignItems: 'center',
         justifyContent: 'center',
-        marginRight: 2,
+        marginRight: 4,
+        // Instant taps on touch devices (no 300ms double-tap-zoom wait).
+        touchAction: 'manipulation',
     },
     resMenu: {
         position: 'absolute',

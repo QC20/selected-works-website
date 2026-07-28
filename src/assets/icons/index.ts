@@ -27,6 +27,7 @@ import mailIcon from './mailIcon.png';
 import recycleBinIcon from './recycleBinIcon.png';
 import recycleBinEmptyIcon from './recycleBinEmptyIcon.png';
 import jpegIcon from './jpegIcon.png';
+import eurIcon from './eurIcon.png';
 import settingsIcon from './settingsIcon.png';
 import runIcon from './runIcon.png';
 
@@ -65,6 +66,7 @@ const icons = {
     recycleBinIcon: recycleBinIcon,
     recycleBinEmptyIcon: recycleBinEmptyIcon,
     jpegIcon: jpegIcon,
+    eurIcon: eurIcon,
     settingsIcon: settingsIcon,
     runIcon: runIcon,
 };

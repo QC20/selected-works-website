@@ -20,6 +20,7 @@ import About from '../applications/About';
 import RecycleBin from '../applications/RecycleBin';
 import Settings from '../applications/Settings';
 import Run from '../applications/Run';
+import GitHubViewer from '../applications/GitHubViewer';
 import { useTheme } from './theme';
 import {
     Resolution,
@@ -50,10 +51,10 @@ import {
 // than opening a draggable window. Keyed by their APPLICATIONS key.
 const FULLSCREEN_EXPERIENCES = ['stepOutside'];
 
-// Apps whose icon just opens an external URL in a new tab.
-const EXTERNAL_LINKS: { [key: string]: string } = {
-    github: 'https://github.com/QC20',
-};
+// Apps whose icon just opens an external URL in a new tab. (The GitHub desktop
+// icon deliberately isn't here any more — it opens a window instead, and only
+// its maximize button leaves the site. Start -> Github still links out.)
+const EXTERNAL_LINKS: { [key: string]: string } = {};
 
 // True when this desktop is the *embedded* copy living inside the 3D monitor's
 // CSS3D iframe. In that case we hide "Step Outside" so you can't recurse into
@@ -132,13 +133,13 @@ const APPLICATIONS: {
         shortcutIcon: 'floatingSphere',
         component: floatingSphere,
     },
-    // Opens my GitHub overview in a new tab (see EXTERNAL_LINKS / render).
-    // `component` is unused; kept only to satisfy the map's type.
+    // Browses my repositories inside a window (github.com can't be iframed —
+    // it sends X-Frame-Options: deny — so GitHubViewer reads their REST API).
     github: {
         key: 'github',
         name: 'GitHub',
         shortcutIcon: 'githubIcon',
-        component: floatingSphere,
+        component: GitHubViewer,
     },
 
     // Launches the 3D CRT-room experience instead of a window (see Desktop render).

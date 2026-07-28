@@ -57,10 +57,13 @@ const Run: React.FC<RunProps> = ({
 
     return (
         <Window
-            top={200}
+            top={180}
             left={120}
             width={400}
-            height={215}
+            // Taller than a real Win95 Run box on purpose: the program list
+            // drops down *inside* the window here (our Window clips its
+            // content), so it needs somewhere to go.
+            height={300}
             windowTitle="Run"
             windowBarIcon="runIcon"
             closeWindow={onClose}
@@ -256,7 +259,7 @@ const styles: StyleSheetCSS = {
         top: '100%',
         left: 0,
         right: 18,
-        maxHeight: 120,
+        maxHeight: 150,
         overflowY: 'auto',
         overflowX: 'hidden',
         flexDirection: 'column',
