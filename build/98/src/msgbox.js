@@ -6,7 +6,9 @@
 // Note `defaultMessageBoxTitle` handling in make_iframe_window
 // Any other default parameters need to be handled there (as it works now)
 
-var chord_audio = new Audio("/audio/CHORD.WAV");
+// PORTFOLIO CHANGE: upstream this is "/audio/CHORD.WAV", the site root. The 98
+// programs live under /98/ here, so the sounds moved with them.
+var chord_audio = new Audio("/98/audio/CHORD.WAV");
 
 window.showMessageBox = window.showMessageBox || (({
 	title = window.defaultMessageBoxTitle ?? "Alert",

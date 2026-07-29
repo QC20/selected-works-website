@@ -18,6 +18,13 @@ var menus = {
 			description: "Opens an existing document.",
 		},
 		{
+			// PORTFOLIO ADDITION: Open now reads My Documents on the fake C:
+			// drive, so this keeps a way to reach files on the real machine.
+			label: "Open from t&his computer...",
+			action: file_open_from_device,
+			description: "Opens a document from your device.",
+		},
+		{
 			label: "&Save",
 			shortcutLabel: "Ctrl+S",
 			ariaKeyShortcuts: "Control+S",

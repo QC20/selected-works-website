@@ -39,6 +39,9 @@
 		<script>defaultMessageBoxTitle = "Notepad";</script>
 		<script src="lib/moment.js"></script>
 		<script src="lib/FileSaver.js"></script>
+		<!-- PORTFOLIO ADDITION: the Open / Save As file boxes. Must load before
+		     app.js, which calls into them. -->
+		<script src="src/file-dialogs.js"></script>
 		<script src="src/app.js"></script>
 		<script src="src/menus.js"></script>
 		<style>
@@ -95,6 +98,77 @@
 					flex-direction: column;
 				}
 			}
+			/* PORTFOLIO ADDITION: the Open / Save As file boxes (file-dialogs.js). */
+			.file-dialog {
+				display: flex;
+				flex-direction: column;
+				gap: 8px;
+				padding: 10px;
+				font-family: "MS Sans Serif", Arial, sans-serif;
+				font-size: 12px;
+				/* Notepad's window can be short — smaller than this dialog would
+				   like to be. Capping the form here and letting the file list be
+				   the part that gives way keeps the Save and Cancel buttons on
+				   screen at any window size. */
+				box-sizing: border-box;
+				max-height: calc(100vh - 44px);
+			}
+			.file-dialog .fd-row {
+				display: flex;
+				align-items: center;
+				gap: 8px;
+			}
+			.file-dialog .fd-label {
+				width: 84px;
+				flex-shrink: 0;
+				text-align: right;
+			}
+			.file-dialog .fd-select,
+			.file-dialog .fd-input {
+				flex: 1;
+				min-width: 0;
+				font-family: inherit;
+				font-size: inherit;
+				padding: 2px 3px;
+			}
+			.file-dialog .fd-list {
+				/* Preferred height, but flex-shrink lets it give way first. */
+				height: 150px;
+				flex: 1 1 150px;
+				min-height: 44px;
+				overflow: auto;
+				background: var(--Window, #fff);
+				padding: 2px;
+			}
+			.file-dialog .fd-item {
+				display: flex;
+				align-items: center;
+				gap: 6px;
+				padding: 2px 4px;
+				cursor: default;
+				-webkit-user-select: none;
+				user-select: none;
+			}
+			.file-dialog .fd-item.selected {
+				background: var(--Highlight, #000080);
+				color: var(--HighlightText, #fff);
+			}
+			.file-dialog .fd-empty {
+				margin: 0;
+				padding: 6px;
+				color: var(--GrayText, #808080);
+			}
+			.file-dialog .fd-buttons {
+				display: flex;
+				justify-content: flex-end;
+				gap: 6px;
+				margin-top: 2px;
+			}
+			.file-dialog .fd-buttons button {
+				min-width: 75px;
+				height: 23px;
+			}
+
 			@media print {
 				#app {
 					display: none;
