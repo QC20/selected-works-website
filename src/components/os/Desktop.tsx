@@ -29,6 +29,8 @@ import WebFrame from '../applications/WebFrame';
 import ResumeFile from '../applications/ResumeFile';
 import MyComputer from '../applications/MyComputer';
 import Converter from '../applications/Converter';
+import ProgramFrame from '../applications/ProgramFrame';
+import { WIN98_PROGRAMS, win98ProgramByKey } from '../applications/win98Programs';
 import { useTheme } from './theme';
 import {
     Resolution,
@@ -141,12 +143,14 @@ const APPLICATIONS: {
         component: Scrabble,
     },
 
-    // The desktop shows the folder; Credits and Minesweeper live inside it and
-    // are launched from there (or from Run), so neither gets its own icon.
+    // The desktop shows the folder; everything inside it (Paint, Notepad,
+    // Solitaire, Credits, …) is launched from there — or from the Start menu,
+    // from My Computer > Hard Disk (C:), or from Run — so none of its contents
+    // gets a desktop icon of its own.
     programs: {
         key: 'programs',
-        name: 'My Programs',
-        shortcutIcon: 'folderIcon',
+        name: 'Programs',
+        shortcutIcon: 'programsFolderIcon',
         component: ProgramsFolder,
     },
 
@@ -282,6 +286,26 @@ const APPLICATIONS: {
         noDesktopIcon: true,
     },
 };
+
+/**
+ * The Windows 98 programs vendored from 98.js — Paint, Notepad, Pinball and
+ * the rest (see `win98Programs.ts`). They all open the same way, a
+ * ProgramFrame around a static page under `public/98/`, so they're registered
+ * from that one list rather than spelled out here.
+ *
+ * None of them gets a desktop icon. Like the real Windows 98, they're reached
+ * from the Programs folder — on the desktop, in the Start menu, or inside My
+ * Computer > Hard Disk (C:) — and, as always here, by typing the name into Run.
+ */
+WIN98_PROGRAMS.forEach((program) => {
+    APPLICATIONS[program.key] = {
+        key: program.key,
+        name: program.name,
+        shortcutIcon: program.icon,
+        component: ProgramFrame,
+        noDesktopIcon: true,
+    };
+});
 
 /**
  * The sites that open in an Internet Explorer window, with the window size
@@ -683,6 +707,17 @@ const Desktop: React.FC<DesktopProps> = (props) => {
                             openPictureRef.current(name, full, size)
                         }
                     />
+                );
+                return;
+            }
+
+            // Paint, Notepad, Pinball, … — the vendored 98.js programs, each
+            // one a static page hosted in a window of its own.
+            const program = win98ProgramByKey(app.key);
+            if (program) {
+                addWindow(
+                    app.key,
+                    <ProgramFrame {...shared} program={program} />
                 );
                 return;
             }

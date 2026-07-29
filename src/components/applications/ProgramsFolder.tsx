@@ -3,6 +3,7 @@ import Window from '../os/Window';
 import Colors from '../../constants/colors';
 import { Icon } from '../general';
 import { IconName } from '../../assets/icons';
+import { WIN98_PROGRAMS } from './win98Programs';
 
 /**
  * A folder window, in the spirit of the folders in Yute (Yuteoctober)'s
@@ -12,6 +13,10 @@ import { IconName } from '../../assets/icons';
  * It doesn't own the apps it lists — it asks the Desktop to launch them by key
  * (`openApp`), so a program opens in exactly the same window it would from a
  * desktop shortcut.
+ *
+ * `PROGRAMS_CONTENTS` is the single source of truth for what's in Programs.
+ * The Start menu's Programs fly-out and My Computer > Hard Disk (C:) > Programs
+ * both read it, so the folder has the same contents wherever you open it from.
  */
 
 export interface FolderItem {
@@ -24,13 +29,24 @@ export interface FolderItem {
     type: string;
 }
 
-export const PROGRAMS_CONTENTS: FolderItem[] = [
+/**
+ * Programs that are native to this portfolio rather than vendored from 98.js:
+ * this desktop's own React Minesweeper and Internet Explorer, and the Credits.
+ */
+const NATIVE_PROGRAMS: FolderItem[] = [
     {
         key: 'credits',
         name: 'Credits',
         icon: 'credits',
         size: 12,
         type: 'Document',
+    },
+    {
+        key: 'internet',
+        name: 'Internet Explorer',
+        icon: 'internetExplorerIcon',
+        size: 640,
+        type: 'Application',
     },
     {
         key: 'minesweeper',
@@ -40,6 +56,18 @@ export const PROGRAMS_CONTENTS: FolderItem[] = [
         type: 'Application',
     },
 ];
+
+/** Sorted the way Windows sorts a folder by name: case-insensitively. */
+export const PROGRAMS_CONTENTS: FolderItem[] = [
+    ...NATIVE_PROGRAMS,
+    ...WIN98_PROGRAMS.map((p) => ({
+        key: p.key,
+        name: p.name,
+        icon: p.icon,
+        size: p.size,
+        type: 'Application',
+    })),
+].sort((a, b) => a.name.localeCompare(b.name, 'en', { sensitivity: 'base' }));
 
 export interface ProgramsFolderProps extends WindowAppProps {
     openApp: (key: string) => void;
@@ -74,19 +102,25 @@ const ProgramsFolder: React.FC<ProgramsFolderProps> = ({
         }, 300);
     };
 
+    // Paint alone is tens of megabytes, so KB stopped being readable.
+    const formatSize = (kb: number) =>
+        kb >= 1000 ? `${(kb / 1000).toFixed(1)} MB` : `${kb} KB`;
+
     const totalSize = PROGRAMS_CONTENTS.reduce((sum, i) => sum + i.size, 0);
     const status = current
-        ? `${current.name} — ${current.type}, ${current.size} KB`
-        : `${PROGRAMS_CONTENTS.length} object(s)   ${totalSize} KB`;
+        ? `${current.name} — ${current.type}, ${formatSize(current.size)}`
+        : `${PROGRAMS_CONTENTS.length} object(s)   ${formatSize(totalSize)}`;
 
     return (
         <Window
             top={70}
             left={130}
-            width={440}
-            height={330}
-            windowTitle="My Programs"
-            windowBarIcon="folderIcon"
+            // Sized so all thirteen programs land in a 5x3 grid without the
+            // contents pane needing to scroll.
+            width={512}
+            height={416}
+            windowTitle="Programs"
+            windowBarIcon="programsFolderIcon"
             closeWindow={onClose}
             onInteract={onInteract}
             minimizeWindow={onMinimize}

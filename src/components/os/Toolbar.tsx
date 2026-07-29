@@ -1,13 +1,14 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import Colors from '../../constants/colors';
 import { Icon } from '../general';
 import { IconName } from '../../assets/icons';
-import { Resolution, RESOLUTIONS } from './resolution';
+import { Resolution, RESOLUTIONS, scaleFor } from './resolution';
 import CurrencyConverter from './CurrencyConverter';
 import { openExternal } from './openExternal';
+import { PROGRAMS_CONTENTS } from '../applications/ProgramsFolder';
 
 /**
- * The two folders at the top of the Start menu. Each opens a fly-out on hover
+ * The folders at the top of the Start menu. Each opens a fly-out on hover
  * (or tap), listing entries that launch by their APPLICATIONS key — so a
  * Start-menu entry opens exactly the window its desktop counterpart would.
  */
@@ -19,6 +20,19 @@ interface StartFolder {
 }
 
 const START_FOLDERS: StartFolder[] = [
+    {
+        // Programs sits at the top, where Windows 98 puts it. Its contents come
+        // straight from the Programs folder, so the fly-out and the folder
+        // window can't drift apart.
+        id: 'programs',
+        label: 'Programs',
+        icon: 'programsFolderIcon',
+        items: PROGRAMS_CONTENTS.map((item) => ({
+            key: item.key,
+            label: item.name,
+            icon: item.icon,
+        })),
+    },
     {
         id: 'projects',
         label: 'Projects',
@@ -180,6 +194,28 @@ const Toolbar: React.FC<ToolbarProps> = ({
     // the way a real Start menu behaves.
     const closeFolders = () => setOpenFolder(null);
 
+    /**
+     * Fly-outs open downwards from their row. Programs lists every program on
+     * the machine, which on a short screen (or a low "resolution", where the
+     * desktop's coordinate space shrinks) is tall enough to run off the bottom.
+     * So on open it measures where it landed and caps its height there.
+     *
+     * The rect is in screen pixels and `maxHeight` is in the desktop's scaled
+     * pixels, hence the divide.
+     */
+    const fitFlyout = useCallback(
+        (el: HTMLDivElement | null) => {
+            if (!el) return;
+            el.style.maxHeight = '';
+            const room = window.innerHeight - el.getBoundingClientRect().top - 8;
+            const scale = scaleFor(resolution);
+            if (el.scrollHeight > room / scale) {
+                el.style.maxHeight = `${Math.max(80, room / scale)}px`;
+            }
+        },
+        [resolution]
+    );
+
     // Don't leave a fly-out armed for the next time the menu is opened.
     useEffect(() => {
         if (!startWindowOpen) setOpenFolder(null);
@@ -233,7 +269,10 @@ const Toolbar: React.FC<ToolbarProps> = ({
                                     <span style={styles.submenuArrow}>▶</span>
 
                                     {openFolder === folder.id && (
-                                        <div style={styles.submenu}>
+                                        <div
+                                            ref={fitFlyout}
+                                            style={styles.submenu}
+                                        >
                                             {folder.items.map((item) => (
                                                 <div
                                                     key={item.key}
@@ -565,18 +604,22 @@ const styles: StyleSheetCSS = {
         boxShadow: '1px 1px 0 rgba(0,0,0,0.4)',
         padding: 2,
         zIndex: 100002,
+        // Only ever reached on a screen too short for the Programs list; see
+        // fitFlyout, which is what sets the height it scrolls within.
+        overflowY: 'auto',
     },
     submenuItem: {
         alignItems: 'center',
         gap: 8,
-        padding: '5px 8px',
+        padding: '4px 8px',
         cursor: 'pointer',
         color: Colors.black,
         touchAction: 'manipulation',
+        flexShrink: 0,
     },
     submenuIcon: {
-        width: 20,
-        height: 20,
+        width: 18,
+        height: 18,
         objectFit: 'contain',
         flexShrink: 0,
     },

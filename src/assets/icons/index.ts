@@ -42,6 +42,20 @@ import cdRomIcon from './cdRomIcon.png';
 import scrollIcon from './scrollIcon.png';
 import settingsIcon from './settingsIcon.png';
 import runIcon from './runIcon.png';
+// The Windows 98 programs vendored under public/98 (see ProgramFrame.tsx).
+// These are the original 32x32 icons from 98.js, so they match the windows
+// they open. 3D Flower Box deliberately reuses the pipes icon — 98.js does the
+// same, there was never a distinct one.
+import paintIcon from './paintIcon.png';
+import soundRecorderIcon from './soundRecorderIcon.png';
+import pinballIcon from './pinballIcon.png';
+import calculatorIcon from './calculatorIcon.png';
+import notepadIcon from './notepadIcon.png';
+import winampIcon from './winampIcon.png';
+import pipesIcon from './pipesIcon.png';
+import solitaireIcon from './solitaireIcon.png';
+import msDosIcon from './msDosIcon.png';
+import programsFolderIcon from './programsFolderIcon.png';
 
 const getIconByName = (
     iconName: IconName
@@ -93,6 +107,16 @@ const icons = {
     scrollIcon: scrollIcon,
     settingsIcon: settingsIcon,
     runIcon: runIcon,
+    paintIcon: paintIcon,
+    soundRecorderIcon: soundRecorderIcon,
+    pinballIcon: pinballIcon,
+    calculatorIcon: calculatorIcon,
+    notepadIcon: notepadIcon,
+    winampIcon: winampIcon,
+    pipesIcon: pipesIcon,
+    solitaireIcon: solitaireIcon,
+    msDosIcon: msDosIcon,
+    programsFolderIcon: programsFolderIcon,
 };
 
 

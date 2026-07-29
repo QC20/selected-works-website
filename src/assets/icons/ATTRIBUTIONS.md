@@ -31,6 +31,21 @@ icons), converted from `.ico` to PNG:
 These are Microsoft's original Windows system icons, used here nominatively in a
 personal, non-commercial portfolio recreating that interface.
 
+The following are the 32x32 icons from **98.js** (<https://98.js.org>, by Isaiah
+Odhner, MIT License), which ship alongside the programs vendored into
+`public/98/` — see `public/98/README.md`:
+
+- `paintIcon.png` — `paint-32x32.png`
+- `notepadIcon.png` — `notepad-32x32.png`
+- `soundRecorderIcon.png` — `speaker-32x32.png`
+- `calculatorIcon.png` — `calculator-32x32.png`
+- `solitaireIcon.png` — `solitaire-32x32.png`
+- `pinballIcon.png` — `pinball-32x32.png`
+- `msDosIcon.png` — `msdos-32x32.png`
+- `winampIcon.png` — `winamp2-32x32.png`
+- `pipesIcon.png` — `pipes-32x32.png` (also used for 3D Flower Box, as 98.js does)
+- `programsFolderIcon.png` — `programs-folder-32x32.png`
+
 MIT License — Copyright (c) 2024 Yute. The full permission notice is retained per
 the license terms:
 

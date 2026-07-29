@@ -4,6 +4,7 @@ import Colors from '../../constants/colors';
 import { Icon } from '../general';
 import { IconName } from '../../assets/icons';
 import pictures from '../os/pictures';
+import { PROGRAMS_CONTENTS } from './ProgramsFolder';
 
 /**
  * My Computer — one window that browses a small fake filesystem, modelled on
@@ -16,7 +17,8 @@ import pictures from '../os/pictures';
  * navigate the same view.
  *
  *   My Computer
- *   ├── Hard Disk (C:) → Pictures → 19 photos
+ *   ├── Hard Disk (C:) → Programs → Paint, Notepad, Solitaire, …
+ *   │                  → Pictures → 19 photos
  *   ├── Hard Disk (D:) → Utility  → EUR/DKK Converter
  *   └── CD-ROM (empty)
  */
@@ -27,6 +29,7 @@ type FolderId =
     | 'diskC'
     | 'diskD'
     | 'cdRom'
+    | 'programs'
     | 'pictures'
     | 'utility';
 
@@ -42,6 +45,7 @@ interface FolderDef {
 const FOLDERS: FolderDef[] = [
     { id: 'myComputer', label: 'My Computer', icon: 'myComputerIcon', parent: null, depth: 0 },
     { id: 'diskC', label: 'Hard Disk (C:)', icon: 'hardDriveIcon', parent: 'myComputer', depth: 1 },
+    { id: 'programs', label: 'Programs', icon: 'programsFolderIcon', parent: 'diskC', depth: 2 },
     { id: 'pictures', label: 'Pictures', icon: 'folderIcon', parent: 'diskC', depth: 2 },
     { id: 'diskD', label: 'Hard Disk (D:)', icon: 'hardDriveIcon', parent: 'myComputer', depth: 1 },
     { id: 'utility', label: 'Utility', icon: 'folderIcon', parent: 'diskD', depth: 2 },
@@ -78,9 +82,22 @@ const CONTENTS: { [key in FolderId]: Entry[] } = {
         folderEntry('diskD', 1_400_000, 'Local Disk'),
         folderEntry('cdRom', 0, 'CD-ROM Drive'),
     ],
-    diskC: [folderEntry('pictures', 4300, 'File Folder')],
+    diskC: [
+        folderEntry('programs', 42_000, 'File Folder'),
+        folderEntry('pictures', 4300, 'File Folder'),
+    ],
     diskD: [folderEntry('utility', 40, 'File Folder')],
     cdRom: [],
+    // The same list the Programs folder window shows, so C:\Programs and the
+    // Programs folder on the desktop can't disagree about what's installed.
+    programs: PROGRAMS_CONTENTS.map((item) => ({
+        key: item.key,
+        label: item.name,
+        icon: item.icon,
+        size: item.size,
+        type: item.type,
+        launch: item.key,
+    })),
     pictures: pictures.map((p) => ({
         key: p.id,
         label: p.name,

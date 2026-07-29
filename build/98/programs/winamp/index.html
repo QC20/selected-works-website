@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8">
+		<title>Winamp</title>
+		<link rel="icon" href="../../images/icons/winamp2-16x16.png" sizes="16x16" type="image/png">
+		<link rel="icon" href="../../images/icons/winamp2-32x32.png" sizes="32x32" type="image/png">
+		<meta name="viewport" content="width=device-width, user-scalable=no">
+		<style>
+			html, body {
+				width: 100%;
+				height: 100%;
+				margin: 0;
+				padding: 0;
+				border: 0;
+				overflow: hidden;
+				background: #000;
+			}
+			#webamp-container {
+				position: absolute;
+				top: 0;
+				left: 0;
+				right: 0;
+				bottom: 0;
+			}
+			#loading {
+				position: absolute;
+				top: 0;
+				left: 0;
+				right: 0;
+				bottom: 0;
+				display: flex;
+				align-items: center;
+				justify-content: center;
+				color: #00ff4c;
+				font-family: monospace;
+				font-size: 12px;
+			}
+		</style>
+	</head>
+	<body>
+		<div id="webamp-container"></div>
+		<div id="loading">Loading Winamp&hellip;</div>
+
+		<!--
+			Upstream (98.js) loads Webamp straight into the desktop document and
+			lets its windows float over everything. This portfolio gives every
+			program a real Window instead, so Webamp is hosted in its own page
+			and confined to the frame. Closing Webamp tells the parent to close
+			the surrounding window, so the two stay in sync.
+		-->
+		<script src="lib/webamp.bundle.min.js"></script>
+		<script src="lib/butterchurn.min.js"></script>
+		<script src="lib/butterchurnPresets.min.js"></script>
+		<script>
+			// Same check Butterchurn itself uses. Creating a WebGL context is not
+			// free, so this runs once, before Webamp is constructed.
+			var butterchurnSupported = (function () {
+				var gl;
+				try {
+					gl = document.createElement("canvas").getContext("webgl2");
+				} catch (e) {
+					gl = null;
+				}
+				return !!gl && !!(window.AudioContext || window.webkitAudioContext);
+			})();
+
+			var options = {
+				initialTracks: [{
+					metaData: {
+						artist: "DJ Mike Llama",
+						title: "Llama Whippin' Intro",
+					},
+					url: "mp3/llama-2.91.mp3",
+					duration: 5.322286,
+				}],
+				enableHotkeys: true,
+			};
+
+			if (butterchurnSupported) {
+				options.__butterchurnOptions = {
+					importButterchurn: function () {
+						return Promise.resolve(window.butterchurn);
+					},
+					getPresets: function () {
+						var presets = window.butterchurnPresets.getPresets();
+						return Object.keys(presets).map(function (name) {
+							return { name: name, butterchurnPresetObject: presets[name] };
+						});
+					},
+					// Left closed so no WebGL context is created until the user
+					// opens the visualizer from Winamp's own menu.
+					butterchurnOpen: false,
+				};
+			}
+
+			// Stacked in the top-left corner, the way Winamp 2.9 opens.
+			options.__initialWindowLayout = {
+				main: { position: { x: 0, y: 0 } },
+				equalizer: { position: { x: 0, y: 116 } },
+				playlist: { position: { x: 0, y: 232 }, size: [0, 4] },
+			};
+
+			var webamp = new Webamp(options);
+			var container = document.getElementById("webamp-container");
+
+			webamp.onClose(function () {
+				// Ask the desktop to close the window this page lives in.
+				try {
+					window.parent.postMessage({ type: "win98:close" }, "*");
+				} catch (e) { /* not framed */ }
+			});
+			webamp.onMinimize(function () {
+				try {
+					window.parent.postMessage({ type: "win98:minimize" }, "*");
+				} catch (e) { /* not framed */ }
+			});
+
+			webamp.renderWhenReady(container).then(function () {
+				var loading = document.getElementById("loading");
+				if (loading) loading.remove();
+			});
+		</script>
+	</body>
+</html>
