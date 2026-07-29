@@ -108,3 +108,28 @@ body {
         background-color: white;
     }
 }
+
+/*
+ * MSN Messenger's nudge, straight from the Windows95 Portfolio it follows: the
+ * whole window rattles for about half a second. Applied by Window's `shake`
+ * prop; the window clears the prop on animationend so the next nudge replays it.
+ */
+.window-shake {
+    animation: msnShake 0.6s ease-in-out;
+}
+
+@keyframes msnShake {
+    0%   { margin-left: 0; }
+    5%   { margin-left: -10px; }
+    10%  { margin-left: 10px; }
+    15%  { margin-left: -10px; }
+    20%  { margin-left: 10px; }
+    35%  { margin-left: -8px; }
+    40%  { margin-left: 8px; }
+    45%  { margin-left: -6px; }
+    50%  { margin-left: 6px; }
+    70%  { margin-left: -4px; }
+    80%  { margin-left: 4px; }
+    90%  { margin-left: -2px; }
+    100% { margin-left: 0; }
+}

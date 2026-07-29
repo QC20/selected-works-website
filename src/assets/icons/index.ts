@@ -56,6 +56,10 @@ import pipesIcon from './pipesIcon.png';
 import solitaireIcon from './solitaireIcon.png';
 import msDosIcon from './msDosIcon.png';
 import programsFolderIcon from './programsFolderIcon.png';
+// MSN Messenger's toolbar buttons, from the same Windows95 Portfolio the rest
+// of this desktop follows.
+import msnChatIcon from './msnChatIcon.png';
+import msnNudgeIcon from './msnNudgeIcon.png';
 
 const getIconByName = (
     iconName: IconName
@@ -117,6 +121,8 @@ const icons = {
     solitaireIcon: solitaireIcon,
     msDosIcon: msDosIcon,
     programsFolderIcon: programsFolderIcon,
+    msnChatIcon: msnChatIcon,
+    msnNudgeIcon: msnNudgeIcon,
 };
 
 

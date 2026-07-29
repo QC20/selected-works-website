@@ -31,6 +31,13 @@ export interface WindowProps {
      * desktop where a control deliberately leaves the site.
      */
     onMaximize?: () => void;
+    /**
+     * Rattles the whole window once, for MSN Messenger's nudge. Set it true and
+     * clear it again from `onShakeEnd` — re-setting it is what replays the
+     * animation.
+     */
+    shake?: boolean;
+    onShakeEnd?: () => void;
     children?: ReactNode;
 }
 
@@ -223,6 +230,8 @@ const Window: React.FC<WindowProps> = (props) => {
     return (
         <div onPointerDown={onWindowInteract} style={styles.container}>
             <div
+                className={props.shake ? 'window-shake' : ''}
+                onAnimationEnd={props.onShakeEnd}
                 style={Object.assign({}, styles.window, {
                     width,
                     height,

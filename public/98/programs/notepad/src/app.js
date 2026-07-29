@@ -132,7 +132,26 @@ function load_from_blob(blob) {
 	file_reader.readAsText(blob);
 }
 
+// PORTFOLIO CHANGE: Open used to be only the machine's file picker, and Save As
+// downloaded "Untitled.txt" without asking. Both now go through the Windows 98
+// file box in file-dialogs.js, which can also read and write My Documents on
+// the fake C: drive so a note survives until you come back. The old device
+// picker is still here as "Open from this computer".
 function file_open() {
+	are_you_sure(function () {
+		show_open_dialog(function (name, content, path) {
+			$textarea.val(content);
+			update_print_helper();
+			saved = true;
+			file_path = path;
+			file_name = name;
+			local_storage_document_id = null;
+			update_title();
+		});
+	});
+}
+
+function file_open_from_device() {
 	are_you_sure(function () {
 		// no accept='text/*' because it hides many many types of text files, especially source code
 		// although Notepad in Windows 98 shows only *.txt files
@@ -146,7 +165,7 @@ function file_open() {
 
 function file_save(saved_callback) {
 	if (!file_path) {
-		return file_save_as();
+		return file_save_as(saved_callback);
 	}
 
 	var content = $textarea.val();
@@ -155,8 +174,12 @@ function file_save(saved_callback) {
 		var fs = BrowserFS.BFSRequire('fs');
 		fs.writeFile(file_path, content, "utf8", function (error) {
 			if (error) {
-				alert("Failed to save file: " + error);
-				throw error;
+				showMessageBox({
+					title: "Notepad",
+					message: "Failed to save file: " + error,
+					iconID: "error",
+				});
+				return;
 			}
 			saved = true;
 			saved_callback?.();
@@ -164,14 +187,22 @@ function file_save(saved_callback) {
 	});
 }
 
-function file_save_as() {
+function file_save_as(saved_callback) {
 	var content = $textarea.val();
-	var blob = new Blob([content], { type: "text/plain" });
-	var file_saver = saveAs(blob, (file_name || default_file_name_for_saving));
-	// file_saver.onwriteend = function(){
-	// NOTE: this won't fire in chrome
-	// saved = true;
-	// };
+	show_save_as_dialog(
+		file_name || default_file_name_for_saving,
+		content,
+		function (name, location, path) {
+			saved = true;
+			file_name = name;
+			// A download has no path on the fake drive, so a later plain "Save"
+			// asks again rather than silently writing somewhere unexpected.
+			file_path = location === "documents" ? path : null;
+			local_storage_document_id = null;
+			update_title();
+			saved_callback?.();
+		}
+	);
 }
 
 function select_all() {

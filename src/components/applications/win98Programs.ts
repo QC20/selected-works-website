@@ -116,8 +116,11 @@ export const WIN98_PROGRAMS: Win98Program[] = [
         name: 'Notepad',
         icon: 'notepadIcon',
         src: '/98/programs/notepad/index.html',
-        innerWidth: 468,
-        innerHeight: 300,
+        // Upstream opens at 480x321 outer. A little taller here so the Open and
+        // Save As file boxes (a portfolio addition — see the notepad folder)
+        // have room to sit inside the window rather than being squeezed.
+        innerWidth: 520,
+        innerHeight: 390,
         size: 160,
     }),
     frame({

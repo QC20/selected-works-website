@@ -26,7 +26,20 @@ icons), converted from `.ico` to PNG:
 - `hardDriveIcon.png` — `w2k_hard_drive.ico`
 - `cdRomIcon.png` — `w2k_cd-rom_drive.ico`
 - `scrollIcon.png` — `w2k_movie_maker.ico`
-- `selectedWebsitesIcon.png` — `w2k_network_3.ico`
+
+These come from the same family, extracted at their native size from
+`public/WIN95-OS_-_Style-Logos` (so they are pixel-exact rather than scaled):
+
+- `mailIcon.png` — `w98_envelope_closed.ico` @32 (replaced a chart-on-a-document
+  icon that had nothing to do with mail)
+- `settingsIcon.png` — `w98_display_properties.ico` @32, and `displayIcon.png`
+  the 16px frame of the same icon for the taskbar tray (both replaced generic
+  gears; the window they open is literally Display Properties)
+- `runIcon.png` — `w2k_run.ico` @32
+- `selectedWebsitesIcon.png` — `w2k_globe.ico` @32 (replaced
+  `w2k_network_3.ico`, which reads as a local network rather than the web)
+- `jpegIcon.png` — `w2k_jpeg_image.ico` @32 (same artwork as before, but the
+  native 32px frame instead of a 300px upscale)
 
 These are Microsoft's original Windows system icons, used here nominatively in a
 personal, non-commercial portfolio recreating that interface.
