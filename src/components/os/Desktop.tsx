@@ -7,7 +7,6 @@ import OregonTrail from '../applications/OregonTrail';
 import ShutdownSequence from './ShutdownSequence';
 import ShutdownDialog, { ShutdownChoice } from './ShutdownDialog';
 import LogonScreen from './LogonScreen';
-import ThisComputerApp from '../applications/ThisComputer';
 
 import Toolbar from './Toolbar';
 import DesktopShortcut, { DesktopShortcutProps } from './DesktopShortcut';
@@ -29,6 +28,9 @@ import WebFrame from '../applications/WebFrame';
 import ResumeFile from '../applications/ResumeFile';
 import MyComputer from '../applications/MyComputer';
 import Converter from '../applications/Converter';
+import TaskManager from '../applications/TaskManager';
+import PatchNotes from '../applications/PatchNotes';
+import ResetStorage from '../applications/ResetStorage';
 import ProgramFrame from '../applications/ProgramFrame';
 import { WIN98_PROGRAMS, win98ProgramByKey } from '../applications/win98Programs';
 import { useTheme } from './theme';
@@ -50,6 +52,7 @@ import {
 } from './iconPositions';
 import FileIcon from './FileIcon';
 import PictureViewer from '../applications/PictureViewer';
+import { siteByKey } from './websites';
 import {
     DesktopFile,
     moveToRecycleBin,
@@ -64,7 +67,13 @@ const FULLSCREEN_EXPERIENCES = ['stepOutside'];
 // Apps whose icon just opens an external URL in a new tab. (The GitHub desktop
 // icon deliberately isn't here any more — it opens a window instead, and only
 // its maximize button leaves the site. Start -> Github still links out.)
-const EXTERNAL_LINKS: { [key: string]: string } = {};
+//
+// LinkedIn has to be one of these: linkedin.com sends `X-Frame-Options:
+// SAMEORIGIN`, so it cannot be shown in the Internet Explorer window at all —
+// an iframe of it renders an empty box. A new tab is the only thing that works.
+const EXTERNAL_LINKS: { [key: string]: string } = {
+    linkedin: 'https://www.linkedin.com/in/jonas-kjeldmand/',
+};
 
 // True when this desktop is the *embedded* copy living inside the 3D monitor's
 // CSS3D iframe. In that case we hide "Step Outside" so you can't recurse into
@@ -102,11 +111,13 @@ const APPLICATIONS: {
         component: ShowcaseExplorer,
     },
 
+    // Opens the browser at its home page (see IE_HOME in websites.ts). Same
+    // window every other site on this desktop opens in.
     internet: {
         key: 'internet',
         name: 'Internet Explorer',
         shortcutIcon: 'internetExplorerIcon',
-        component: ThisComputerApp,
+        component: WebFrame,
     },
 
     // Sits directly after Internet Explorer on the desktop; everything below
@@ -277,12 +288,46 @@ const APPLICATIONS: {
         noDesktopIcon: true,
     },
 
-    // Lives inside My Computer > Hard Disk (D:) > Utility.
+    // Start -> Resume. linkedin.com refuses to be framed, so this one leaves for
+    // a real tab rather than opening a window (see EXTERNAL_LINKS).
+    linkedin: {
+        key: 'linkedin',
+        name: 'LinkedIn',
+        shortcutIcon: 'linkedinIcon',
+        component: WebFrame,
+        noDesktopIcon: true,
+    },
+
+    // --- My Computer > Hard Disk (D:) > Utility ----------------------------
     converter: {
         key: 'converter',
         name: 'EUR/DKK Converter',
         shortcutIcon: 'eurIcon',
         component: Converter,
+        noDesktopIcon: true,
+    },
+
+    taskManager: {
+        key: 'taskManager',
+        name: 'Task Manager',
+        shortcutIcon: 'taskManagerIcon',
+        component: TaskManager,
+        noDesktopIcon: true,
+    },
+
+    patchNotes: {
+        key: 'patchNotes',
+        name: 'Patch Notes',
+        shortcutIcon: 'patchNotesIcon',
+        component: PatchNotes,
+        noDesktopIcon: true,
+    },
+
+    resetStorage: {
+        key: 'resetStorage',
+        name: 'Reset Storage',
+        shortcutIcon: 'resetStorageIcon',
+        component: ResetStorage,
         noDesktopIcon: true,
     },
 };
@@ -306,69 +351,6 @@ WIN98_PROGRAMS.forEach((program) => {
         noDesktopIcon: true,
     };
 });
-
-/**
- * The sites that open in an Internet Explorer window, with the window size
- * each one was asked for.
- */
-const WEB_APPS: {
-    [key: string]: {
-        url: string;
-        width: number;
-        height: number;
-        allowCamera?: boolean;
-        /**
-         * Overrides the window's default corner. Computed from the viewport at
-         * open time, in desktop (scale-aware) coordinates.
-         */
-        placement?: (vw: number, vh: number) => {
-            width: number;
-            height: number;
-            top: number;
-            left: number;
-        };
-    };
-} = {
-    // 3/4 of the My Showcase window (1100 x 800).
-    pinPortrait: {
-        url: 'https://qc20.github.io/PinPortrait/',
-        width: 825,
-        height: 600,
-        // The site asks for the webcam; without this the iframe can't even
-        // prompt. The browser still shows its own permission dialog.
-        allowCamera: true,
-    },
-    // Roughly a fifth of the desktop's area.
-    emojiHeatmap: {
-        url: 'https://qc20.github.io/EmojiHeatmap/',
-        width: 560,
-        height: 380,
-    },
-    selectedWebsites: {
-        url: 'https://creative-technologist-showcase.vercel.app/',
-        width: 900,
-        height: 650,
-    },
-    // Opens large but inset, horizontally centred, sitting in the lower half
-    // of the desktop rather than butting up against any edge.
-    scroll: {
-        url: 'https://qc20.github.io/Scroll./',
-        width: 900,
-        height: 400,
-        placement: (vw, vh) => {
-            const width = Math.round(Math.min(1000, vw * 0.72));
-            // Fill the lower half, minus the taskbar and a comfortable margin.
-            const lower = vh / 2;
-            const height = Math.round(Math.min(520, lower - 60));
-            return {
-                width,
-                height,
-                top: Math.round(lower + (lower - height - 32) / 2),
-                left: Math.round((vw - width) / 2),
-            };
-        },
-    },
-};
 
 /**
  * What you can type into Run. Everything except Run itself, and no "Step
@@ -711,6 +693,12 @@ const Desktop: React.FC<DesktopProps> = (props) => {
                 return;
             }
 
+            // Task Manager deliberately falls through to the generic case below.
+            // Its `tasks` list has to stay current as windows open and close, so
+            // the props are injected at render time instead of here — see the
+            // cloneElement call in the render, which re-runs on every change to
+            // `windows`. Passing a snapshot here would freeze the list.
+
             // Paint, Notepad, Pinball, … — the vendored 98.js programs, each
             // one a static page hosted in a window of its own.
             const program = win98ProgramByKey(app.key);
@@ -722,7 +710,7 @@ const Desktop: React.FC<DesktopProps> = (props) => {
                 return;
             }
 
-            const site = WEB_APPS[app.key];
+            const site = siteByKey(app.key);
             if (site) {
                 const scale = scaleFor(loadResolution());
                 const box = site.placement
@@ -735,7 +723,6 @@ const Desktop: React.FC<DesktopProps> = (props) => {
                     app.key,
                     <WebFrame
                         {...shared}
-                        title={app.name}
                         url={site.url}
                         width={box.width}
                         height={box.height}
@@ -844,6 +831,21 @@ const Desktop: React.FC<DesktopProps> = (props) => {
                             key,
                             onInteract: () => onWindowInteract(key),
                             onClose: () => removeWindow(key),
+                            // Task Manager's list must reflect what's open right
+                            // now, so it's rebuilt here on every render rather
+                            // than captured when the window was created.
+                            ...(key === 'taskManager'
+                                ? {
+                                      tasks: Object.keys(windows).map((k) => ({
+                                          key: k,
+                                          name: windows[k].name,
+                                          icon: windows[k].icon,
+                                          minimized: !!windows[k].minimized,
+                                      })),
+                                      endTask: removeWindow,
+                                      shutdown: startShutdown,
+                                  }
+                                : {}),
                         })}
                     </div>
                 );

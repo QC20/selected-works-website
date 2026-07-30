@@ -42,6 +42,12 @@ import cdRomIcon from './cdRomIcon.png';
 import scrollIcon from './scrollIcon.png';
 import settingsIcon from './settingsIcon.png';
 import runIcon from './runIcon.png';
+// My Computer > Hard Disk (D:) > Utility. Converted from the Windows 95/98
+// icon set in `public/WIN95-OS_-_Style-Logos` so they match the era.
+import taskManagerIcon from './taskManagerIcon.png';
+import patchNotesIcon from './patchNotesIcon.png';
+import resetStorageIcon from './resetStorageIcon.png';
+import linkedinIcon from './linkedinIcon.png';
 // The Windows 98 programs vendored under public/98 (see ProgramFrame.tsx).
 // These are the original 32x32 icons from 98.js, so they match the windows
 // they open. 3D Flower Box deliberately reuses the pipes icon — 98.js does the
@@ -111,6 +117,10 @@ const icons = {
     scrollIcon: scrollIcon,
     settingsIcon: settingsIcon,
     runIcon: runIcon,
+    taskManagerIcon: taskManagerIcon,
+    patchNotesIcon: patchNotesIcon,
+    resetStorageIcon: resetStorageIcon,
+    linkedinIcon: linkedinIcon,
     paintIcon: paintIcon,
     soundRecorderIcon: soundRecorderIcon,
     pinballIcon: pinballIcon,

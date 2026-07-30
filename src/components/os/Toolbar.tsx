@@ -54,6 +54,8 @@ const START_FOLDERS: StartFolder[] = [
                 icon: 'resumeFileIcon',
             },
             { key: 'showcase', label: 'My Showcase', icon: 'showcaseIcon' },
+            // Leaves for a real tab: linkedin.com won't load in a frame.
+            { key: 'linkedin', label: 'LinkedIn', icon: 'linkedinIcon' },
             {
                 key: 'selectedWebsites',
                 label: 'Selected Websites',

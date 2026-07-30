@@ -19,7 +19,6 @@ import prototype3 from "../../../assets/pictures/projects/art/Prototype3.jpg";
 // @ts-ignore
 import LDRParticleSim from "../../../assets/pictures/projects/art/LDRParticleSimulation.mp4";
 
-import ThisComputerApp from "../../applications/ThisComputer";
 // @ts-ignore
 import TromnoStartScreen from "../../../assets/pictures/projects/software/Tromino_StartScreen1.jpg";
 // @ts-ignore

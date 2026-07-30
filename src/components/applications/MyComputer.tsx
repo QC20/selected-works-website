@@ -19,7 +19,8 @@ import { PROGRAMS_CONTENTS } from './ProgramsFolder';
  *   My Computer
  *   ├── Hard Disk (C:) → Programs → Paint, Notepad, Solitaire, …
  *   │                  → Pictures → 19 photos
- *   ├── Hard Disk (D:) → Utility  → EUR/DKK Converter
+ *   ├── Hard Disk (D:) → Utility  → EUR/DKK Converter, Task Manager,
+ *   │                               Patch Notes, Reset Storage
  *   └── CD-ROM (empty)
  */
 
@@ -106,6 +107,7 @@ const CONTENTS: { [key in FolderId]: Entry[] } = {
         type: 'JPEG Image',
         picture: { name: p.name, full: p.full, size: p.size },
     })),
+    // The four utilities, matching the set in Yute's Utility folder.
     utility: [
         {
             key: 'converter',
@@ -114,6 +116,30 @@ const CONTENTS: { [key in FolderId]: Entry[] } = {
             size: 40,
             type: 'Application',
             launch: 'converter',
+        },
+        {
+            key: 'taskManager',
+            label: 'Task Manager',
+            icon: 'taskManagerIcon',
+            size: 3500,
+            type: 'Application',
+            launch: 'taskManager',
+        },
+        {
+            key: 'patchNotes',
+            label: 'Patch Notes',
+            icon: 'patchNotesIcon',
+            size: 500,
+            type: 'Application',
+            launch: 'patchNotes',
+        },
+        {
+            key: 'resetStorage',
+            label: 'Reset Storage',
+            icon: 'resetStorageIcon',
+            size: 20,
+            type: 'Application',
+            launch: 'resetStorage',
         },
     ],
 };
