@@ -135,7 +135,10 @@ function show_file_dialog(options) {
 			$list.empty();
 			if (!names.length) {
 				$list.append(
-					$("<p class='fd-empty'>").text("This folder is empty.")
+					$("<p class='fd-empty'>").text(
+						"This folder is empty. Whatever you save here also shows " +
+							"up in My Computer > Hard Disk (C:) > My Documents."
+					)
 				);
 				return;
 			}

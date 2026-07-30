@@ -35,6 +35,14 @@ import shutdownPcIcon from './shutdownPcIcon.png';
 import folderResumeIcon from './folderResumeIcon.png';
 import resumeFileIcon from './resumeFileIcon.png';
 import ieIcon from './ieIcon.png';
+// Internet Explorer's own toolbar buttons, from Yute's Windows95 Portfolio —
+// the same art its IE window uses, so ours reads as the real toolbar rather
+// than a row of text glyphs (see WebFrame.tsx).
+import ieBackIcon from './ieBackIcon.png';
+import ieForwardIcon from './ieForwardIcon.png';
+import ieStopIcon from './ieStopIcon.png';
+import ieRefreshIcon from './ieRefreshIcon.png';
+import ieHomeIcon from './ieHomeIcon.png';
 import selectedWebsitesIcon from './selectedWebsitesIcon.png';
 import myComputerIcon from './myComputerIcon.png';
 import hardDriveIcon from './hardDriveIcon.png';
@@ -110,6 +118,11 @@ const icons = {
     folderResumeIcon: folderResumeIcon,
     resumeFileIcon: resumeFileIcon,
     ieIcon: ieIcon,
+    ieBackIcon: ieBackIcon,
+    ieForwardIcon: ieForwardIcon,
+    ieStopIcon: ieStopIcon,
+    ieRefreshIcon: ieRefreshIcon,
+    ieHomeIcon: ieHomeIcon,
     selectedWebsitesIcon: selectedWebsitesIcon,
     myComputerIcon: myComputerIcon,
     hardDriveIcon: hardDriveIcon,

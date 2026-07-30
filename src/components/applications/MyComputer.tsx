@@ -1,10 +1,15 @@
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import Window from '../os/Window';
 import Colors from '../../constants/colors';
 import { Icon } from '../general';
 import { IconName } from '../../assets/icons';
 import pictures from '../os/pictures';
 import { PROGRAMS_CONTENTS } from './ProgramsFolder';
+import {
+    Win98File,
+    downloadDocument,
+    listDocuments,
+} from '../os/win98fs';
 
 /**
  * My Computer — one window that browses a small fake filesystem, modelled on
@@ -17,11 +22,16 @@ import { PROGRAMS_CONTENTS } from './ProgramsFolder';
  * navigate the same view.
  *
  *   My Computer
- *   ├── Hard Disk (C:) → Programs → Paint, Notepad, Solitaire, …
- *   │                  → Pictures → 19 photos
- *   ├── Hard Disk (D:) → Utility  → EUR/DKK Converter, Task Manager,
- *   │                               Patch Notes, Reset Storage
+ *   ├── Hard Disk (C:) → Programs     → Paint, Notepad, Solitaire, …
+ *   │                  → My Documents → whatever Notepad has saved
+ *   │                  → Pictures     → 19 photos
+ *   ├── Hard Disk (D:) → Utility      → EUR/DKK Converter, Task Manager,
+ *   │                                   Patch Notes, Reset Storage
  *   └── CD-ROM (empty)
+ *
+ * My Documents is the only folder whose contents aren't known up front: it
+ * shows what Notepad has actually written to the fake C: drive, read out of the
+ * same BrowserFS store the program writes to (see `win98fs.ts`).
  */
 
 /** A node you can navigate into. */
@@ -32,6 +42,7 @@ type FolderId =
     | 'cdRom'
     | 'programs'
     | 'pictures'
+    | 'myDocuments'
     | 'utility';
 
 interface FolderDef {
@@ -47,6 +58,7 @@ const FOLDERS: FolderDef[] = [
     { id: 'myComputer', label: 'My Computer', icon: 'myComputerIcon', parent: null, depth: 0 },
     { id: 'diskC', label: 'Hard Disk (C:)', icon: 'hardDriveIcon', parent: 'myComputer', depth: 1 },
     { id: 'programs', label: 'Programs', icon: 'programsFolderIcon', parent: 'diskC', depth: 2 },
+    { id: 'myDocuments', label: 'My Documents', icon: 'folderIcon', parent: 'diskC', depth: 2 },
     { id: 'pictures', label: 'Pictures', icon: 'folderIcon', parent: 'diskC', depth: 2 },
     { id: 'diskD', label: 'Hard Disk (D:)', icon: 'hardDriveIcon', parent: 'myComputer', depth: 1 },
     { id: 'utility', label: 'Utility', icon: 'folderIcon', parent: 'diskD', depth: 2 },
@@ -70,6 +82,8 @@ interface Entry {
     launch?: string;
     /** Opening a picture in the viewer. */
     picture?: { name: string; full: string; size: number };
+    /** Opening a saved text file in Notepad. */
+    document?: Win98File;
 }
 
 const folderEntry = (id: FolderId, size: number, type: string): Entry => {
@@ -85,10 +99,13 @@ const CONTENTS: { [key in FolderId]: Entry[] } = {
     ],
     diskC: [
         folderEntry('programs', 42_000, 'File Folder'),
+        folderEntry('myDocuments', 0, 'File Folder'),
         folderEntry('pictures', 4300, 'File Folder'),
     ],
     diskD: [folderEntry('utility', 40, 'File Folder')],
     cdRom: [],
+    // Filled in at open time from the drive itself — see `documents` below.
+    myDocuments: [],
     // The same list the Programs folder window shows, so C:\Programs and the
     // Programs folder on the desktop can't disagree about what's installed.
     programs: PROGRAMS_CONTENTS.map((item) => ({
@@ -149,11 +166,14 @@ export interface MyComputerProps extends WindowAppProps {
     openApp: (key: string) => void;
     /** Opens a picture in the picture viewer. */
     openPicture: (name: string, full: string, size: number) => void;
+    /** Opens a saved text file in Notepad. */
+    openDocument: (file: Win98File) => void;
 }
 
 const MyComputer: React.FC<MyComputerProps> = ({
     openApp,
     openPicture,
+    openDocument,
     onInteract,
     onClose,
     onMinimize,
@@ -163,8 +183,46 @@ const MyComputer: React.FC<MyComputerProps> = ({
     const [selected, setSelected] = useState<string | null>(null);
     const [addressOpen, setAddressOpen] = useState(false);
 
+    // --- My Documents ------------------------------------------------------
+    // Read from the drive rather than declared, and re-read every time you
+    // navigate into the folder, so a file saved from Notepad since the window
+    // was opened is there. `null` while the first read is in flight.
+    const [documents, setDocuments] = useState<Win98File[] | null>(null);
+    const [documentsError, setDocumentsError] = useState<string | null>(null);
+
+    const refreshDocuments = useCallback(() => {
+        setDocumentsError(null);
+        listDocuments().then(
+            (files) => setDocuments(files),
+            (error) => {
+                setDocuments([]);
+                setDocumentsError(
+                    error instanceof Error
+                        ? error.message
+                        : 'The drive could not be read.'
+                );
+            }
+        );
+    }, []);
+
+    useEffect(() => {
+        if (location === 'myDocuments') refreshDocuments();
+    }, [location, refreshDocuments]);
+
     const current = folderById(location);
-    const entries = CONTENTS[location];
+    const entries = useMemo<Entry[]>(() => {
+        if (location !== 'myDocuments') return CONTENTS[location];
+        return (documents || []).map((file) => ({
+            key: `doc:${file.name}`,
+            label: file.name,
+            icon: 'notepadIcon' as IconName,
+            // The folder counts in KB; a text file is measured in bytes, and
+            // anything non-empty occupies at least one kilobyte on disk.
+            size: Math.max(1, Math.round(file.size / 1024)),
+            type: 'Text Document',
+            document: file,
+        }));
+    }, [location, documents]);
 
     const navigate = useCallback((to: FolderId) => {
         setLocation(to);
@@ -204,6 +262,7 @@ const MyComputer: React.FC<MyComputerProps> = ({
                     entry.picture.full,
                     entry.picture.size
                 );
+            else if (entry.document) openDocument(entry.document);
             return;
         }
         setSelected(entry.key);
@@ -220,6 +279,7 @@ const MyComputer: React.FC<MyComputerProps> = ({
         else if (entry.launch) openApp(entry.launch);
         else if (entry.picture)
             openPicture(entry.picture.name, entry.picture.full, entry.picture.size);
+        else if (entry.document) openDocument(entry.document);
     };
 
     const formatSize = (kb: number) =>
@@ -364,6 +424,28 @@ const MyComputer: React.FC<MyComputerProps> = ({
                     >
                         Open
                     </button>
+
+                    {/* Only ever useful in My Documents — the files there are
+                        the only things on this desktop that live on the fake C:
+                        drive rather than in the build, so they're the only ones
+                        that can be handed to the real computer. */}
+                    {location === 'myDocuments' && (
+                        <button
+                            style={Object.assign(
+                                {},
+                                styles.toolButton,
+                                !selectedEntry?.document && styles.disabled
+                            )}
+                            onClick={() => {
+                                const file = selectedEntry?.document;
+                                if (file) downloadDocument(file);
+                            }}
+                            disabled={!selectedEntry?.document}
+                            title="Save a copy of the selected file to your own computer"
+                        >
+                            ↓ Download
+                        </button>
+                    )}
                 </div>
 
                 {/* Contents */}
@@ -376,11 +458,30 @@ const MyComputer: React.FC<MyComputerProps> = ({
                 >
                     {entries.length === 0 ? (
                         <div style={styles.emptyState}>
-                            <p style={styles.emptyText}>
-                                {location === 'cdRom'
-                                    ? 'Please insert a disc into drive.'
-                                    : 'This folder is empty.'}
-                            </p>
+                            {location === 'myDocuments' ? (
+                                <p style={styles.emptyText}>
+                                    {documents === null
+                                        ? 'Reading drive C:…'
+                                        : documentsError ||
+                                          'This folder is empty.'}
+                                    {documents !== null && !documentsError && (
+                                        <>
+                                            <br />
+                                            <br />
+                                            Anything you save from Notepad with
+                                            File &gt; Save As &gt; My Documents
+                                            (C:) is kept here, in this browser,
+                                            and shows up in this folder.
+                                        </>
+                                    )}
+                                </p>
+                            ) : (
+                                <p style={styles.emptyText}>
+                                    {location === 'cdRom'
+                                        ? 'Please insert a disc into drive.'
+                                        : 'This folder is empty.'}
+                                </p>
+                            )}
                         </div>
                     ) : (
                         entries.map((entry) => (
@@ -621,6 +722,9 @@ const styles: StyleSheetCSS = {
         fontFamily: 'MSSerif',
         fontSize: 11,
         color: Colors.darkGray,
+        textAlign: 'center',
+        lineHeight: 1.5,
+        maxWidth: 340,
     },
 };
 

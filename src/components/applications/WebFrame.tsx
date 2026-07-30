@@ -209,37 +209,42 @@ const WebFrame: React.FC<WebFrameProps> = ({
                     </span>
                 </div>
 
-                {/* Toolbar — the IE 4 button row, labels under glyphs. */}
+                {/* Toolbar — the IE 4 button row: the real button art, label
+                    alongside, greyed out when the button can't be used. */}
                 <div style={styles.toolbar}>
                     <ToolbarButton
-                        glyph="◀"
+                        icon="ieBackIcon"
                         label="Back"
                         disabled={!canGoBack}
                         onClick={() => go(-1)}
                     />
                     <ToolbarButton
-                        glyph="▶"
+                        icon="ieForwardIcon"
                         label="Forward"
                         disabled={!canGoForward}
                         onClick={() => go(1)}
                     />
                     <ToolbarButton
-                        glyph="✕"
+                        icon="ieStopIcon"
                         label="Stop"
                         disabled={!loading}
                         onClick={stop}
                     />
-                    <ToolbarButton glyph="⟳" label="Refresh" onClick={reload} />
+                    <ToolbarButton
+                        icon="ieRefreshIcon"
+                        label="Refresh"
+                        onClick={reload}
+                    />
                     <div style={styles.toolbarDivider} />
                     <ToolbarButton
-                        glyph="⌂"
+                        icon="ieHomeIcon"
                         label="Home"
                         onClick={() =>
                             url === IE_HOME ? reload() : navigate(IE_HOME)
                         }
                     />
                     <ToolbarButton
-                        glyph="↗"
+                        icon="internetExplorerIcon"
                         label="Open"
                         onClick={() => openExternal(url)}
                         title="Open this page in a real browser tab"
@@ -362,14 +367,21 @@ const WebFrame: React.FC<WebFrameProps> = ({
     );
 };
 
-/** One IE-toolbar button: glyph over label, greyed out when it can't be used. */
+/**
+ * One IE-toolbar button: the button's own art beside its label, greyed out when
+ * it can't be used.
+ *
+ * A disabled button is dimmed rather than swapped for a second "grey" image —
+ * IE shipped both states as separate bitmaps, but this desktop only has the
+ * colour ones, and the era's own trick for a disabled toolbar was exactly this.
+ */
 const ToolbarButton: React.FC<{
-    glyph: string;
+    icon: IconName;
     label: string;
     onClick: () => void;
     disabled?: boolean;
     title?: string;
-}> = ({ glyph, label, onClick, disabled, title }) => (
+}> = ({ icon, label, onClick, disabled, title }) => (
     <button
         style={Object.assign(
             {},
@@ -380,7 +392,7 @@ const ToolbarButton: React.FC<{
         disabled={disabled}
         title={title || label}
     >
-        <span style={styles.toolbarGlyph}>{glyph}</span>
+        <Icon icon={icon} style={styles.toolbarIcon} />
         <span style={styles.toolbarLabel}>{label}</span>
     </button>
 );
@@ -421,7 +433,7 @@ const styles: StyleSheetCSS = {
         borderRight: `1px solid ${Colors.white}`,
         flexShrink: 0,
     },
-    // Glyph and label sit side by side, the way the toolbar does in the
+    // Icon and label sit side by side, the way the toolbar does in the
     // portfolio this follows. `display: flex` is explicit because the global
     // stylesheet only flexes <div>, and these are <button> elements.
     toolbarButton: {
@@ -441,10 +453,14 @@ const styles: StyleSheetCSS = {
     toolbarButtonDisabled: {
         color: Colors.darkGray,
         cursor: 'default',
+        // Dims the button art along with its label.
+        opacity: 0.4,
     },
-    toolbarGlyph: {
-        fontSize: 15,
-        lineHeight: 1,
+    toolbarIcon: {
+        width: 20,
+        height: 20,
+        objectFit: 'contain',
+        flexShrink: 0,
     },
     toolbarLabel: {
         fontFamily: 'MSSerif',

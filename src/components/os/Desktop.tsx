@@ -59,6 +59,7 @@ import {
     updateFile,
     useDesktopFiles,
 } from './desktopFiles';
+import { Win98File } from './win98fs';
 
 // Apps whose icon launches a full-screen takeover (the 3D experience) rather
 // than opening a draggable window. Keyed by their APPLICATIONS key.
@@ -427,6 +428,8 @@ const Desktop: React.FC<DesktopProps> = (props) => {
     const openPictureRef = useRef<
         (name: string, image: string, size: number) => void
     >(() => {});
+    // Same again, for a text file saved on the fake C: drive (My Documents).
+    const openDocumentRef = useRef<(file: Win98File) => void>(() => {});
 
     const onFileDropped = useCallback(
         (file: DesktopFile, dx: number, dy: number, screen: { x: number; y: number }) => {
@@ -688,6 +691,7 @@ const Desktop: React.FC<DesktopProps> = (props) => {
                         openPicture={(name, full, size) =>
                             openPictureRef.current(name, full, size)
                         }
+                        openDocument={(file) => openDocumentRef.current(file)}
                     />
                 );
                 return;
@@ -774,6 +778,42 @@ const Desktop: React.FC<DesktopProps> = (props) => {
         [addWindow, onWindowInteract, minimizeWindow, removeWindow]
     );
     openPictureRef.current = openPicture;
+
+    /**
+     * Opens a file saved on the fake C: drive in Notepad — the same Notepad the
+     * Programs folder launches, told which file to load.
+     *
+     * `?path=` is Notepad's own way of being handed a document (see
+     * `public/98/programs/notepad/src/app.js`), and it reads it through
+     * BrowserFS, so this is the program opening the file rather than us pasting
+     * text into it: Save still saves, back to the same place.
+     */
+    const openDocument = useCallback(
+        (file: Win98File) => {
+            const notepad = win98ProgramByKey('notepad');
+            if (!notepad) return;
+            const key = `document:${file.path}`;
+            addWindow(
+                key,
+                <ProgramFrame
+                    key={key}
+                    program={{
+                        ...notepad,
+                        name: file.name,
+                        src: `/98/programs/notepad/index.html?path=${encodeURIComponent(
+                            file.path
+                        )}`,
+                    }}
+                    onInteract={() => onWindowInteract(key)}
+                    onMinimize={() => minimizeWindow(key)}
+                    onClose={() => removeWindow(key)}
+                />,
+                { name: file.name, icon: 'notepadIcon' }
+            );
+        },
+        [addWindow, onWindowInteract, minimizeWindow, removeWindow]
+    );
+    openDocumentRef.current = openDocument;
 
     /** Double-clicking a picture on the desktop opens it in the viewer. */
     const openFile = useCallback(
