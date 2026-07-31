@@ -44,7 +44,22 @@ import {
  * it. So the title bar and address bar track the addresses *we* navigate to,
  * not links the user follows inside the page. The footer link out is there for
  * exactly that case, plus any site that turns out to refuse framing.
+ *
+ * There is only ever one of these open. Launching a second site from the Start
+ * menu doesn't stack another browser on the desktop — it hands this window a
+ * `navRequest` and the page changes underneath, the way Yute's portfolio does
+ * it. See IE_WINDOW_KEY in `Desktop.tsx` for the routing side of that.
  */
+
+/**
+ * An address the desktop wants this window to show. `seq` is what makes a
+ * repeat of the *same* address still count as a navigation: the effect below
+ * fires on a change of `seq`, not of `url`.
+ */
+export interface NavRequest {
+    url: string;
+    seq: number;
+}
 
 export interface WebFrameProps extends WindowAppProps {
     /** The address to open at. The page name shown comes from `labelForUrl`. */
@@ -56,6 +71,10 @@ export interface WebFrameProps extends WindowAppProps {
     left?: number;
     windowBarIcon?: IconName;
     allowCamera?: boolean;
+    /** Set by the desktop when something else asks for a page (see above). */
+    navRequest?: NavRequest;
+    /** Reports the page name back, so the taskbar button can follow along. */
+    onTitleChange?: (title: string) => void;
 }
 
 const WebFrame: React.FC<WebFrameProps> = ({
@@ -66,6 +85,8 @@ const WebFrame: React.FC<WebFrameProps> = ({
     left = 80,
     windowBarIcon = 'internetExplorerIcon',
     allowCamera = false,
+    navRequest,
+    onTitleChange,
     onInteract,
     onClose,
     onMinimize,
@@ -167,9 +188,33 @@ const WebFrame: React.FC<WebFrameProps> = ({
         navigate(resolved);
     }, [typed, url, navigate, reload]);
 
+    /**
+     * A page asked for from outside — the Internet Explorer icon, a Start-menu
+     * project, a link in another window. It lands in this window's history like
+     * any other navigation, so Back still walks you home.
+     *
+     * The ref starts at whatever `seq` we were mounted with, so opening the
+     * window doesn't immediately re-navigate it to the address it already has.
+     */
+    const handledSeq = useRef(navRequest?.seq ?? -1);
+    useEffect(() => {
+        if (!navRequest || navRequest.seq === handledSeq.current) return;
+        handledSeq.current = navRequest.seq;
+        if (navRequest.url === url) {
+            reload();
+            return;
+        }
+        navigate(navRequest.url);
+    }, [navRequest, url, navigate, reload]);
+
     const canGoBack = index > 0;
     const canGoForward = index < history.length - 1;
     const pageName = useMemo(() => labelForUrl(url), [url]);
+
+    // Keep the taskbar button naming the page we're actually on.
+    useEffect(() => {
+        onTitleChange?.(pageName);
+    }, [pageName, onTitleChange]);
 
     const status = stopped
         ? 'Action canceled'

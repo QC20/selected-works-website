@@ -24,10 +24,10 @@ import Run from '../applications/Run';
 import GitHubViewer from '../applications/GitHubViewer';
 import ProgramsFolder from '../applications/ProgramsFolder';
 import Minesweeper from '../applications/Minesweeper';
-import WebFrame from '../applications/WebFrame';
+import WebFrame, { NavRequest } from '../applications/WebFrame';
 import ResumeFile from '../applications/ResumeFile';
 import MyComputer from '../applications/MyComputer';
-import Converter from '../applications/Converter';
+import StockWatch, { StockRequest } from '../applications/StockWatch';
 import TaskManager from '../applications/TaskManager';
 import PatchNotes from '../applications/PatchNotes';
 import ResetStorage from '../applications/ResetStorage';
@@ -64,6 +64,25 @@ import { Win98File } from './win98fs';
 // Apps whose icon launches a full-screen takeover (the 3D experience) rather
 // than opening a draggable window. Keyed by their APPLICATIONS key.
 const FULLSCREEN_EXPERIENCES = ['stepOutside'];
+
+/**
+ * There is one browser on this desktop, and this is its window.
+ *
+ * Every site — the Internet Explorer icon, Start -> Projects, Start -> Resume,
+ * a favorite picked from the address bar — opens under this one key. Launch a
+ * second site while the first is up and the desktop doesn't stack another
+ * browser on top: it hands the open window the new address and the page changes
+ * underneath, which is how Yute's portfolio behaves and what keeps the desktop
+ * from filling up with near-identical IE windows.
+ *
+ * The Internet Explorer *icon* is the one exception, and deliberately so: if
+ * the browser is already open it's brought to the front as it is, rather than
+ * throwing away whatever you were reading to go back to the home page.
+ */
+const IE_WINDOW_KEY = 'internet';
+
+/** Market Watch's window, opened by the coin in the system tray. */
+const STOCKS_WINDOW_KEY = 'stocks';
 
 // Apps whose icon just opens an external URL in a new tab. (The GitHub desktop
 // icon deliberately isn't here any more — it opens a window instead, and only
@@ -300,11 +319,12 @@ const APPLICATIONS: {
     },
 
     // --- My Computer > Hard Disk (D:) > Utility ----------------------------
-    converter: {
-        key: 'converter',
-        name: 'EUR/DKK Converter',
-        shortcutIcon: 'eurIcon',
-        component: Converter,
+    // Also what the coin in the system tray opens (see Toolbar.tsx).
+    stocks: {
+        key: 'stocks',
+        name: 'Market Watch',
+        shortcutIcon: 'stocksIcon',
+        component: StockWatch,
         noDesktopIcon: true,
     },
 
@@ -369,6 +389,15 @@ const runnablePrograms = Object.keys(APPLICATIONS)
 const Desktop: React.FC<DesktopProps> = (props) => {
     const [windows, setWindows] = useState<DesktopWindows>({});
 
+    // Whatever the browser was last asked to show (see IE_WINDOW_KEY). Injected
+    // into the open WebFrame at render time, so a request made while it's up
+    // reaches it as a navigation rather than as a second window.
+    const [ieNav, setIeNav] = useState<NavRequest | null>(null);
+
+    // The same idea for Market Watch: the tray can ask an already-open window
+    // for a different company instead of there being two of them.
+    const [stockRequest, setStockRequest] = useState<StockRequest | null>(null);
+
     const [shortcuts, setShortcuts] = useState<DesktopShortcutProps[]>([]);
 
     const [shutdown, setShutdown] = useState(false);
@@ -421,6 +450,12 @@ const Desktop: React.FC<DesktopProps> = (props) => {
 
     // The Recycle Bin shortcut, so a file dropped on top of it can be detected.
     const binShortcutRef = useRef<HTMLDivElement>(null);
+
+    // What's open right now, readable from callbacks without making every one of
+    // them depend on `windows` — used to tell "open the browser" apart from
+    // "the browser is already open, send it somewhere".
+    const windowsRef = useRef(windows);
+    windowsRef.current = windows;
 
     // Always the latest openApp, for the shortcut closures built on mount.
     const openAppRef = useRef<(key: string) => void>(() => {});
@@ -563,6 +598,36 @@ const Desktop: React.FC<DesktopProps> = (props) => {
     );
 
     /**
+     * Brings an already-open window forward, un-minimizing it on the way — what
+     * launching an app that's running does, instead of opening a second copy.
+     */
+    const focusWindow = useCallback(
+        (key: string) => {
+            setWindows((prevWindows) => {
+                if (!prevWindows[key]) return prevWindows;
+                return {
+                    ...prevWindows,
+                    [key]: {
+                        ...prevWindows[key],
+                        minimized: false,
+                        zIndex: 1 + getHighestZIndex(),
+                    },
+                };
+            });
+        },
+        [getHighestZIndex]
+    );
+
+    /** Renames a taskbar button — the browser does this as it navigates. */
+    const renameWindow = useCallback((key: string, name: string) => {
+        setWindows((prevWindows) => {
+            const win = prevWindows[key];
+            if (!win || win.name === name) return prevWindows;
+            return { ...prevWindows, [key]: { ...win, name } };
+        });
+    }, []);
+
+    /**
      * Start -> Shut down now asks first (see ShutdownDialog) instead of
      * dropping straight into the shutdown sequence.
      */
@@ -623,7 +688,7 @@ const Desktop: React.FC<DesktopProps> = (props) => {
      * and injects the extra props Settings and Run need.
      */
     const openApp = useCallback(
-        (key: string) => {
+        (key: string, options?: LaunchOptions) => {
             const app = APPLICATIONS[key];
             if (!app) return;
 
@@ -682,6 +747,26 @@ const Desktop: React.FC<DesktopProps> = (props) => {
                 return;
             }
 
+            // One Market Watch, the way there's one browser: the tray's rows
+            // and its search box send an open window somewhere new rather than
+            // stacking a second copy of the app on top of it.
+            if (app.key === STOCKS_WINDOW_KEY) {
+                if (windowsRef.current[STOCKS_WINDOW_KEY]) {
+                    if (options?.symbol || options?.query) {
+                        setStockRequest((prev) => ({
+                            ...options,
+                            seq: (prev?.seq ?? 0) + 1,
+                        }));
+                    }
+                    focusWindow(STOCKS_WINDOW_KEY);
+                    return;
+                }
+                const opening: StockRequest = { ...options, seq: 0 };
+                setStockRequest(opening);
+                addWindow(app.key, <StockWatch {...shared} request={opening} />);
+                return;
+            }
+
             if (app.key === 'myComputer') {
                 addWindow(
                     app.key,
@@ -714,8 +799,25 @@ const Desktop: React.FC<DesktopProps> = (props) => {
                 return;
             }
 
+            // Every web address on this desktop lands in the same browser
+            // window (see IE_WINDOW_KEY). If it's already open we navigate it;
+            // only the first site of the session actually opens a window.
             const site = siteByKey(app.key);
             if (site) {
+                if (windowsRef.current[IE_WINDOW_KEY]) {
+                    // The Internet Explorer icon itself just raises the browser
+                    // — it isn't a request for a particular page, so it must not
+                    // throw away the one you're on.
+                    if (app.key !== IE_WINDOW_KEY) {
+                        setIeNav((prev) => ({
+                            url: site.url,
+                            seq: (prev?.seq ?? 0) + 1,
+                        }));
+                    }
+                    focusWindow(IE_WINDOW_KEY);
+                    return;
+                }
+
                 const scale = scaleFor(loadResolution());
                 const box = site.placement
                     ? site.placement(
@@ -723,18 +825,23 @@ const Desktop: React.FC<DesktopProps> = (props) => {
                           window.innerHeight / scale
                       )
                     : { width: site.width, height: site.height, top: 44, left: 80 };
+                const opening: NavRequest = { url: site.url, seq: 0 };
+                setIeNav(opening);
                 addWindow(
-                    app.key,
+                    IE_WINDOW_KEY,
                     <WebFrame
                         {...shared}
+                        key={IE_WINDOW_KEY}
                         url={site.url}
                         width={box.width}
                         height={box.height}
                         top={box.top}
                         left={box.left}
-                        windowBarIcon={app.shortcutIcon}
+                        windowBarIcon="internetExplorerIcon"
                         allowCamera={site.allowCamera}
-                    />
+                        navRequest={opening}
+                    />,
+                    { name: site.label, icon: 'internetExplorerIcon' }
                 );
                 return;
             }
@@ -747,6 +854,7 @@ const Desktop: React.FC<DesktopProps> = (props) => {
             onWindowInteract,
             minimizeWindow,
             removeWindow,
+            focusWindow,
             resolution,
             setResolution,
         ]
@@ -871,6 +979,19 @@ const Desktop: React.FC<DesktopProps> = (props) => {
                             key,
                             onInteract: () => onWindowInteract(key),
                             onClose: () => removeWindow(key),
+                            // The browser's current address is injected here for
+                            // the same reason: it changes after the window was
+                            // built, every time something else asks for a page.
+                            ...(key === IE_WINDOW_KEY
+                                ? {
+                                      navRequest: ieNav ?? undefined,
+                                      onTitleChange: (title: string) =>
+                                          renameWindow(key, title),
+                                  }
+                                : {}),
+                            ...(key === STOCKS_WINDOW_KEY
+                                ? { request: stockRequest ?? undefined }
+                                : {}),
                             // Task Manager's list must reflect what's open right
                             // now, so it's rebuilt here on every render rather
                             // than captured when the window was created.

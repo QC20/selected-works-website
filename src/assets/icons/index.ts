@@ -52,6 +52,8 @@ import settingsIcon from './settingsIcon.png';
 import runIcon from './runIcon.png';
 // My Computer > Hard Disk (D:) > Utility. Converted from the Windows 95/98
 // icon set in `public/WIN95-OS_-_Style-Logos` so they match the era.
+// Market Watch's bar-chart icon — the Windows 98 chart icon from the same set.
+import stocksIcon from './stocksIcon.png';
 import taskManagerIcon from './taskManagerIcon.png';
 import patchNotesIcon from './patchNotesIcon.png';
 import resetStorageIcon from './resetStorageIcon.png';
@@ -130,6 +132,7 @@ const icons = {
     scrollIcon: scrollIcon,
     settingsIcon: settingsIcon,
     runIcon: runIcon,
+    stocksIcon: stocksIcon,
     taskManagerIcon: taskManagerIcon,
     patchNotesIcon: patchNotesIcon,
     resetStorageIcon: resetStorageIcon,

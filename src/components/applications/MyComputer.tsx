@@ -25,7 +25,7 @@ import {
  *   ├── Hard Disk (C:) → Programs     → Paint, Notepad, Solitaire, …
  *   │                  → My Documents → whatever Notepad has saved
  *   │                  → Pictures     → 19 photos
- *   ├── Hard Disk (D:) → Utility      → EUR/DKK Converter, Task Manager,
+ *   ├── Hard Disk (D:) → Utility      → Market Watch, Task Manager,
  *   │                                   Patch Notes, Reset Storage
  *   └── CD-ROM (empty)
  *
@@ -127,12 +127,12 @@ const CONTENTS: { [key in FolderId]: Entry[] } = {
     // The four utilities, matching the set in Yute's Utility folder.
     utility: [
         {
-            key: 'converter',
-            label: 'EUR/DKK Converter',
-            icon: 'eurIcon',
-            size: 40,
+            key: 'stocks',
+            label: 'Market Watch',
+            icon: 'stocksIcon',
+            size: 96,
             type: 'Application',
-            launch: 'converter',
+            launch: 'stocks',
         },
         {
             key: 'taskManager',

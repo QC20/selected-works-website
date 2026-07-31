@@ -3,7 +3,7 @@ import Colors from '../../constants/colors';
 import { Icon } from '../general';
 import { IconName } from '../../assets/icons';
 import { Resolution, RESOLUTIONS, scaleFor } from './resolution';
-import CurrencyConverter from './CurrencyConverter';
+import StockTicker from './StockTicker';
 import { openExternal } from './openExternal';
 import { PROGRAMS_CONTENTS } from '../applications/ProgramsFolder';
 
@@ -72,7 +72,7 @@ export interface ToolbarProps {
     resolution: Resolution;
     setResolution: (r: Resolution) => void;
     /** Opens an app by its APPLICATIONS key (see Desktop.tsx). */
-    openApp: (key: string) => void;
+    openApp: (key: string, options?: LaunchOptions) => void;
 }
 
 const Toolbar: React.FC<ToolbarProps> = ({
@@ -84,7 +84,7 @@ const Toolbar: React.FC<ToolbarProps> = ({
     openApp,
 }) => {
     const [resMenuOpen, setResMenuOpen] = useState(false);
-    const [fxOpen, setFxOpen] = useState(false);
+    const [tickerOpen, setTickerOpen] = useState(false);
     /** Which Start-menu folder's fly-out is showing, if any. */
     const [openFolder, setOpenFolder] = useState<string | null>(null);
     const getTime = () => {
@@ -154,7 +154,7 @@ const Toolbar: React.FC<ToolbarProps> = ({
                 !resAreaRef.current.contains(e.target as Node)
             ) {
                 setResMenuOpen(false);
-                setFxOpen(false);
+                setTickerOpen(false);
             }
         };
         window.addEventListener('pointerdown', onDown);
@@ -465,14 +465,20 @@ const Toolbar: React.FC<ToolbarProps> = ({
                             ))}
                         </div>
                     )}
-                    <CurrencyConverter open={fxOpen} />
+                    <StockTicker
+                        open={tickerOpen}
+                        onOpenApp={(options) => {
+                            setTickerOpen(false);
+                            openApp('stocks', options);
+                        }}
+                    />
                     <div
                         style={styles.trayIconWrap}
-                        title="DKK / EUR converter"
+                        title="Market Watch — share prices"
                         onPointerDown={(e) => {
                             e.stopPropagation();
                             setResMenuOpen(false);
-                            setFxOpen((o) => !o);
+                            setTickerOpen((o) => !o);
                         }}
                     >
                         <Icon icon="eurIcon" size={16} />
@@ -482,7 +488,7 @@ const Toolbar: React.FC<ToolbarProps> = ({
                         title="Screen resolution"
                         onPointerDown={(e) => {
                             e.stopPropagation();
-                            setFxOpen(false);
+                            setTickerOpen(false);
                             setResMenuOpen((o) => !o);
                         }}
                     >

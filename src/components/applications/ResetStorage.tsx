@@ -57,6 +57,12 @@ const CATEGORIES: Category[] = [
         keys: ['minesweeperLevel'],
     },
     {
+        id: 'market',
+        label: 'Market Watch',
+        description: 'The companies you added to the watch list.',
+        keys: ['marketWatch.watchlist.v1'],
+    },
+    {
         id: 'msn',
         label: 'MSN Messenger',
         description: 'Your display name and local message history.',
