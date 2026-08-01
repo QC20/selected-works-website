@@ -34,12 +34,20 @@ export interface CrtRoomOptions {
     onReady?: () => void;
     onError?: (err: unknown) => void;
     onModeChange?: (mode: CrtMode) => void;
+    /**
+     * Escape pressed *inside* the monitor's iframe. Key events don't cross a
+     * frame boundary, so without this the overlay's own listener is deaf the
+     * whole time you're using the OS.
+     */
+    onScreenEscape?: () => void;
 }
 
 export interface CrtRoomController {
     enterIntro: (onSettled?: () => void) => void;
     exit: (onDone?: () => void) => void;
     backToDesk: () => void;
+    /** Swing the camera back to the straight-on view of the monitor, from anywhere. */
+    resetView: () => void;
     setFreeLook: (on: boolean) => void;
     setMuted: (muted: boolean) => void;
     getMode: () => CrtMode;
@@ -130,31 +138,12 @@ export function createCrtRoomScene(
     iframe.style.display = 'block';
     container.appendChild(iframe);
 
-    // CRT snow over the screen — GPU-composited (transform/opacity), so it costs
-    // almost nothing even when the 3D render loop is paused.
-    const noise = document.createElement('div');
-    noise.style.position = 'absolute';
-    noise.style.top = '-25%';
-    noise.style.left = '-25%';
-    noise.style.width = '150%';
-    noise.style.height = '150%';
-    noise.style.pointerEvents = 'none';
-    noise.style.mixBlendMode = 'screen';
-    noise.style.backgroundRepeat = 'repeat';
-    noise.style.backgroundImage = `url(${makeNoiseTile(128)})`;
-    noise.style.willChange = 'transform, opacity';
-    container.appendChild(noise);
-    const noiseAnim = noise.animate(
-        [
-            { transform: 'translate3d(0,0,0)', opacity: 0.05 },
-            { transform: 'translate3d(-9%, 5%, 0)', opacity: 0.11 },
-            { transform: 'translate3d(7%, -7%, 0)', opacity: 0.04 },
-            { transform: 'translate3d(-5%, 9%, 0)', opacity: 0.1 },
-            { transform: 'translate3d(0,0,0)', opacity: 0.05 },
-        ],
-        { duration: 620, iterations: Infinity }
-    );
-    if (reduced) noiseAnim.pause();
+    // NOTE: the CRT snow that used to sit here (a `mix-blend-mode: screen` noise
+    // div layered over the iframe) is gone on purpose. Inside the CSS3D subtree
+    // iOS composited it at full opacity, screen-blending the whole monitor to a
+    // white haze. The grain now lives in Experience3D as a plain alpha layer over
+    // the entire viewport — same atmosphere, no blend-mode landmine, and it reads
+    // as the viewer's film stock rather than the computer's own snow.
 
     const cssScene = new THREE.Scene();
     const cssObject = new CSS3DObject(container);
@@ -245,8 +234,21 @@ export function createCrtRoomScene(
             options.onReady?.();
         }
     };
+    // Escape typed while the OS has focus never reaches the parent window, so
+    // listen inside the frame too (same-origin, so this is readable) and hand it
+    // back out. Only Escape — forwarding Enter/Space would fight with typing.
+    let framedDoc: Document | null = null;
+    const onFramedKey = (e: Event) => {
+        if ((e as KeyboardEvent).key === 'Escape') options.onScreenEscape?.();
+    };
     iframe.addEventListener('load', () => {
         iframeDone = true;
+        try {
+            framedDoc = iframe.contentWindow?.document ?? null;
+            framedDoc?.addEventListener('keydown', onFramedKey);
+        } catch {
+            framedDoc = null; // cross-origin; the on-screen buttons still work
+        }
         maybeReady();
     });
     Promise.all([
@@ -334,15 +336,44 @@ export function createCrtRoomScene(
     };
     canvas.addEventListener('pointerdown', onCanvasPointerDown);
 
-    // ---- Ambient office audio (muted by default) ------------------------------
+    // ---- Ambient office audio (on from the moment you arrive) -----------------
     const audio = new Audio(`${BASE}/audio/office.mp3`);
     audio.loop = true;
+    audio.preload = 'auto';
     audio.volume = 0;
     let fadeTimer: number | undefined;
+    let wantSound = true;
+
+    // Autoplay policies can still refuse the first play() even though a click
+    // opened the experience — iOS is strict about how far from the gesture the
+    // call happens. Rather than silently failing, arm a one-shot listener so the
+    // room finds its voice on the very next touch.
+    const gestureEvents = ['pointerdown', 'touchend', 'keydown'] as const;
+    let unlockArmed = false;
+    const clearUnlock = () => {
+        unlockArmed = false;
+        gestureEvents.forEach((t) => window.removeEventListener(t, onUnlockGesture, true));
+    };
+    function onUnlockGesture() {
+        clearUnlock();
+        if (wantSound) startPlayback();
+    }
+    const armUnlock = () => {
+        if (unlockArmed) return;
+        unlockArmed = true;
+        gestureEvents.forEach((t) => window.addEventListener(t, onUnlockGesture, true));
+    };
+    const startPlayback = () => {
+        const p = audio.play();
+        if (p && typeof p.catch === 'function') p.catch(armUnlock);
+    };
+
     const setMuted = (muted: boolean) => {
+        wantSound = !muted;
         window.clearInterval(fadeTimer);
         const target = muted ? 0 : 0.5;
-        if (!muted) audio.play().catch(() => undefined);
+        if (muted) clearUnlock();
+        else startPlayback();
         fadeTimer = window.setInterval(() => {
             const next = audio.volume + (target - audio.volume) * 0.12;
             audio.volume = Math.abs(next - target) < 0.01 ? target : next;
@@ -352,6 +383,10 @@ export function createCrtRoomScene(
             }
         }, 40);
     };
+
+    // Start the fade-in immediately: the click that opened the room is the most
+    // recent user gesture we'll ever have, so this is the best shot at playing.
+    setMuted(false);
 
     // ---- Dimmer (off-axis darkening), allocation-free -------------------------
     const screenNormal = new THREE.Vector3(0, 0, 1).applyEuler(SCREEN.rot);
@@ -415,10 +450,15 @@ export function createCrtRoomScene(
 
     const backToDesk = () => {
         if (mode === 'desk') return;
+        resetView();
+    };
+
+    /** Unconditional "put me back in front of the monitor" — the Enter/Space key. */
+    function resetView() {
         if (controls) controls.enabled = false;
         setMode('loading');
         startTween(POSE.desk, reduced ? 500 : 900, () => setMode('desk'));
-    };
+    }
 
     const setFreeLook = (on: boolean) => {
         if (on) {
@@ -473,7 +513,8 @@ export function createCrtRoomScene(
         window.removeEventListener('resize', resize);
         document.removeEventListener('visibilitychange', onVisibility);
         canvas.removeEventListener('pointerdown', onCanvasPointerDown);
-        noiseAnim.cancel();
+        framedDoc?.removeEventListener('keydown', onFramedKey);
+        clearUnlock();
 
         audio.pause();
         audio.src = '';
@@ -496,26 +537,11 @@ export function createCrtRoomScene(
         enterIntro,
         exit,
         backToDesk,
+        resetView,
         setFreeLook,
         setMuted,
         getMode: () => mode,
         resize,
         dispose,
     };
-}
-
-/** A single grayscale-noise tile as a data URL (for the CRT snow overlay). */
-function makeNoiseTile(size: number): string {
-    const c = document.createElement('canvas');
-    c.width = size;
-    c.height = size;
-    const ctx = c.getContext('2d')!;
-    const img = ctx.createImageData(size, size);
-    for (let i = 0; i < img.data.length; i += 4) {
-        const v = (Math.random() * 255) | 0;
-        img.data[i] = img.data[i + 1] = img.data[i + 2] = v;
-        img.data[i + 3] = 255;
-    }
-    ctx.putImageData(img, 0, 0);
-    return c.toDataURL('image/png');
 }

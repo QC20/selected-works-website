@@ -1,6 +1,7 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { motion, useAnimation, useReducedMotion } from 'framer-motion';
 import { createCrtRoomScene, CrtRoomController, CrtMode } from './CrtRoomScene';
+import './Experience3D.css';
 
 export interface Experience3DProps {
     /** When true, mount + play the 2D->3D reveal. */
@@ -11,9 +12,6 @@ export interface Experience3DProps {
     accentColor?: string;
 }
 
-// A handful of grayscale-noise frames, generated once, cycled to make TV static.
-const SNOW_FRAMES = makeSnowFrames(12, 240, 160);
-
 /**
  * Experience3D
  * ------------
@@ -22,6 +20,12 @@ const SNOW_FRAMES = makeSnowFrames(12, 240, 160);
  * (model + iframe load on the way in, teardown on the way out) and dissolves as
  * the room emerges — so the unavoidable memory-heavy hitch happens *behind* the
  * static instead of as a visible seam.
+ *
+ * Over the settled room sits a permanent film-grain pass (see Experience3D.css):
+ * light static from the viewer's point of view, which is what makes the room read
+ * as something being *watched* in 1997 rather than a clean render.
+ *
+ * Keys: Esc leaves 3D entirely, Enter/Space swings back to face the monitor.
  */
 const Experience3D: React.FC<Experience3DProps> = ({ open, onExit }) => {
     const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -33,16 +37,24 @@ const Experience3D: React.FC<Experience3DProps> = ({ open, onExit }) => {
     const [render, setRender] = useState(false);
     const [arrived, setArrived] = useState(false);
     const [mode, setMode] = useState<CrtMode>('loading');
-    const [muted, setMuted] = useState(true);
+    // Ambience is part of the room: it comes up with it, not on request.
+    const [muted, setMuted] = useState(false);
 
     const flash = useAnimation();
     const reduced = !!useReducedMotion();
+    const touch = useIsTouch();
+
+    // Both noise textures are built on first open, never at import time — the
+    // module is pulled in by Desktop.tsx, so generating them eagerly cost every
+    // visitor (and the copy of the site inside the CRT) a synchronous stall.
+    const snowFrames = useMemo(() => (render ? getSnowFrames() : []), [render]);
+    const grainTile = useMemo(() => (render ? getGrainTile() : ''), [render]);
 
     // Trigger mount when opened.
     useEffect(() => {
         if (open) {
             closingRef.current = false;
-            setMuted(true);
+            setMuted(false);
             setArrived(false);
             setMode('loading');
             setRender(true);
@@ -51,59 +63,16 @@ const Experience3D: React.FC<Experience3DProps> = ({ open, onExit }) => {
 
     // Cycle the TV-snow frames while mounted (cheap; only visible when flash > 0).
     useEffect(() => {
-        if (!render) return;
+        if (!render || !snowFrames.length) return;
         let i = 0;
         const id = window.setInterval(() => {
-            i = (i + 1) % SNOW_FRAMES.length;
+            i = (i + 1) % snowFrames.length;
             if (snowRef.current) {
-                snowRef.current.style.backgroundImage = `url(${SNOW_FRAMES[i]})`;
+                snowRef.current.style.backgroundImage = `url(${snowFrames[i]})`;
             }
         }, 42);
         return () => window.clearInterval(id);
-    }, [render]);
-
-    // Create the scene once the canvas + css container exist.
-    useEffect(() => {
-        if (!render) return;
-        const canvas = canvasRef.current;
-        const cssContainer = cssRef.current;
-        if (!canvas || !cssContainer) return;
-
-        // Snow fully covers from the first frame, hiding the DOM->WebGL swap and
-        // the load hitch behind it.
-        flash.set({ opacity: 1 });
-
-        const controller = createCrtRoomScene(canvas, {
-            reducedMotion: reduced,
-            cssContainer,
-            onModeChange: (m) => setMode(m),
-            onReady: () => {
-                // Room is loaded: dissolve the snow as the camera pulls out.
-                flash.start({
-                    opacity: 0,
-                    transition: { duration: reduced ? 0.6 : 1.0, ease: 'easeInOut' },
-                });
-                controller.enterIntro(() => setArrived(true));
-            },
-            onError: () => {
-                flash.start({ opacity: 0, transition: { duration: 0.4 } });
-                onExit();
-                setRender(false);
-            },
-        });
-        controllerRef.current = controller;
-
-        return () => {
-            controller.dispose();
-            controllerRef.current = null;
-        };
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [render]);
-
-    // Reflect mute state into the scene.
-    useEffect(() => {
-        controllerRef.current?.setMuted(muted);
-    }, [muted]);
+    }, [render, snowFrames]);
 
     const doExit = useCallback(() => {
         if (closingRef.current || !controllerRef.current) return;
@@ -130,32 +99,117 @@ const Experience3D: React.FC<Experience3DProps> = ({ open, onExit }) => {
         });
     }, [flash, onExit, reduced]);
 
-    // Esc "ladder": from the monitor, step back to the desk; otherwise leave to 2D.
+    // The scene is created once and outlives any given `doExit` identity, so it
+    // reaches the current one through a ref rather than re-creating on change.
+    const doExitRef = useRef(doExit);
+    doExitRef.current = doExit;
+
+    // Create the scene once the canvas + css container exist.
+    useEffect(() => {
+        if (!render) return;
+        const canvas = canvasRef.current;
+        const cssContainer = cssRef.current;
+        if (!canvas || !cssContainer) return;
+
+        // Snow fully covers from the first frame, hiding the DOM->WebGL swap and
+        // the load hitch behind it.
+        flash.set({ opacity: 1 });
+
+        const controller = createCrtRoomScene(canvas, {
+            reducedMotion: reduced,
+            cssContainer,
+            onModeChange: (m) => setMode(m),
+            onScreenEscape: () => doExitRef.current(),
+            onReady: () => {
+                // Room is loaded: dissolve the snow as the camera pulls out.
+                flash.start({
+                    opacity: 0,
+                    transition: { duration: reduced ? 0.6 : 1.0, ease: 'easeInOut' },
+                });
+                controller.enterIntro(() => setArrived(true));
+            },
+            onError: () => {
+                flash.start({ opacity: 0, transition: { duration: 0.4 } });
+                onExit();
+                setRender(false);
+            },
+        });
+        controllerRef.current = controller;
+
+        return () => {
+            controller.dispose();
+            controllerRef.current = null;
+        };
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [render]);
+
+    // Reflect mute state into the scene (the scene itself starts unmuted).
+    useEffect(() => {
+        controllerRef.current?.setMuted(muted);
+    }, [muted]);
+
+    // Esc always drops back to 2D; Enter/Space re-centres on the monitor.
     useEffect(() => {
         if (!render) return;
         const onKey = (e: KeyboardEvent) => {
-            if (e.key !== 'Escape') return;
-            if (mode === 'monitor') controllerRef.current?.backToDesk();
-            else doExit();
+            if (e.key === 'Escape') {
+                e.preventDefault();
+                doExit();
+                return;
+            }
+            if (e.key !== 'Enter' && e.key !== ' ' && e.key !== 'Spacebar') return;
+            // Let a focused control keep its own Enter/Space activation.
+            if ((e.target as HTMLElement | null)?.tagName === 'BUTTON') return;
+            if (!arrived) return;
+            e.preventDefault();
+            controllerRef.current?.resetView();
         };
         window.addEventListener('keydown', onKey);
         return () => window.removeEventListener('keydown', onKey);
-    }, [render, mode, doExit]);
+    }, [render, arrived, doExit]);
+
+    // A clicked button keeps focus, which would swallow every later Enter/Space
+    // (they'd re-fire that button instead of re-centring the camera). Drop focus
+    // after pointer activation only — `detail === 0` means the keyboard did it,
+    // and those users need to keep their place.
+    const dropFocus = (e: React.MouseEvent<HTMLButtonElement>) => {
+        if (e.detail > 0) e.currentTarget.blur();
+    };
 
     if (!render) return null;
 
-    const hint =
-        mode === 'monitor'
-            ? "you're using the computer — Back or Esc to step away"
+    const hint = touch
+        ? mode === 'monitor'
+            ? "you're using the computer — step back for the room"
             : mode === 'orbit'
             ? 'drag to look around the room'
-            : 'click the screen to use it · or take a free look around';
+            : 'tap the screen to use it · or take a free look around'
+        : mode === 'monitor'
+        ? "you're using the computer — Esc exits · step back for the room"
+        : mode === 'orbit'
+        ? 'drag to look around · Enter re-centres · Esc exits'
+        : 'click the screen to use it · Enter re-centres · Esc exits';
 
     return (
         <div style={styles.overlay}>
             {/* CSS3D layer (live OS iframe) — behind the transparent canvas. */}
             <div ref={cssRef} style={styles.cssLayer} />
             <canvas ref={canvasRef} style={styles.canvas} />
+
+            {/* Film grain + vignette over the whole scene, room and monitor alike. */}
+            <div
+                aria-hidden
+                className={
+                    'crt3d-grain' + (mode === 'monitor' ? ' crt3d-grain--monitor' : '')
+                }
+                style={styles.grain}
+            >
+                <div
+                    className="crt3d-grain__noise"
+                    style={{ backgroundImage: `url(${grainTile})` }}
+                />
+                <div className="crt3d-grain__vignette" />
+            </div>
 
             {/* TV-snow flash bridging every transition. */}
             <motion.div
@@ -170,54 +224,90 @@ const Experience3D: React.FC<Experience3DProps> = ({ open, onExit }) => {
 
             {/* Ambient UI — appears once you've arrived in the room. */}
             <motion.div
+                className="crt3d-ui"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: arrived ? 1 : 0 }}
                 transition={{ duration: 0.8 }}
                 style={styles.uiLayer}
             >
-                <div style={styles.hint}>{hint}</div>
+                <div className="crt3d-dock">
+                    <div className="crt3d-hint">{hint}</div>
 
-                {/* Always available so no one gets stuck in 3D. */}
-                <button
-                    type="button"
-                    onClick={doExit}
-                    style={Object.assign({}, styles.control, { left: 24 })}
-                >
-                    ‹ return to desktop
-                </button>
+                    <div className="crt3d-bar">
+                        {/* Always available so no one gets stuck in 3D. */}
+                        <button
+                            type="button"
+                            className="crt3d-btn"
+                            onClick={(e) => {
+                                dropFocus(e);
+                                doExit();
+                            }}
+                        >
+                            <span>‹ Return to Desktop</span>
+                        </button>
 
-                {mode === 'monitor' ? (
-                    <button
-                        type="button"
-                        onClick={() => controllerRef.current?.backToDesk()}
-                        style={Object.assign({}, styles.control, styles.centerBtn)}
-                    >
-                        step back
-                    </button>
-                ) : (
-                    <button
-                        type="button"
-                        onClick={() =>
-                            controllerRef.current?.setFreeLook(mode !== 'orbit')
-                        }
-                        style={Object.assign({}, styles.control, styles.centerBtn)}
-                    >
-                        {mode === 'orbit' ? 'exit free look' : 'free look'}
-                    </button>
-                )}
+                        {mode === 'monitor' ? (
+                            <button
+                                type="button"
+                                className="crt3d-btn"
+                                onClick={(e) => {
+                                    dropFocus(e);
+                                    controllerRef.current?.backToDesk();
+                                }}
+                            >
+                                <span>Step Back</span>
+                            </button>
+                        ) : (
+                            <button
+                                type="button"
+                                className="crt3d-btn"
+                                onClick={(e) => {
+                                    dropFocus(e);
+                                    controllerRef.current?.setFreeLook(mode !== 'orbit');
+                                }}
+                            >
+                                <span>
+                                    {mode === 'orbit' ? 'Exit Free Look' : 'Free Look'}
+                                </span>
+                            </button>
+                        )}
 
-                <button
-                    type="button"
-                    onClick={() => setMuted((m) => !m)}
-                    style={Object.assign({}, styles.control, { right: 24 })}
-                    aria-label={muted ? 'Unmute ambience' : 'Mute ambience'}
-                >
-                    {muted ? '🔇 sound' : '🔊 sound'}
-                </button>
+                        <button
+                            type="button"
+                            className="crt3d-btn"
+                            onClick={(e) => {
+                                dropFocus(e);
+                                setMuted((m) => !m);
+                            }}
+                            aria-label={muted ? 'Unmute ambience' : 'Mute ambience'}
+                        >
+                            <span>{muted ? '🔇 Sound' : '🔊 Sound'}</span>
+                        </button>
+                    </div>
+                </div>
             </motion.div>
         </div>
     );
 };
+
+/** Coarse-pointer devices get hints that don't mention keys they don't have. */
+function useIsTouch(): boolean {
+    const [touch, setTouch] = useState(false);
+    useEffect(() => {
+        if (typeof window.matchMedia !== 'function') return;
+        const mq = window.matchMedia('(hover: none) and (pointer: coarse)');
+        setTouch(mq.matches);
+        const onChange = (e: MediaQueryListEvent) => setTouch(e.matches);
+        // Safari only grew addEventListener on MediaQueryList in 14.
+        if (mq.addEventListener) mq.addEventListener('change', onChange);
+        else mq.addListener(onChange);
+        return () => {
+            if (mq.removeEventListener) mq.removeEventListener('change', onChange);
+            else mq.removeListener(onChange);
+        };
+    }, []);
+    return touch;
+}
 
 const styles: StyleSheetCSS = {
     overlay: {
@@ -250,13 +340,16 @@ const styles: StyleSheetCSS = {
         background: 'transparent',
         touchAction: 'none',
     },
+    grain: {
+        zIndex: 3,
+    },
     flash: {
         position: 'absolute',
         top: 0,
         left: 0,
         width: '100%',
         height: '100%',
-        zIndex: 3,
+        zIndex: 4,
         pointerEvents: 'none',
         backgroundColor: '#000',
     },
@@ -270,16 +363,18 @@ const styles: StyleSheetCSS = {
         backgroundSize: 'cover',
         imageRendering: 'pixelated',
     },
+    // Scanlines + falloff as plain alpha. This used to be `mix-blend-mode:
+    // overlay`; blend modes over a CSS3D subtree are exactly what washed the
+    // monitor white on iOS, so none survive anywhere in this overlay.
     flashScan: {
         position: 'absolute',
         top: 0,
         left: 0,
         width: '100%',
         height: '100%',
-        mixBlendMode: 'overlay',
-        opacity: 0.5,
+        opacity: 0.55,
         background:
-            'repeating-linear-gradient(0deg, rgba(0,0,0,0.5) 0px, rgba(0,0,0,0.5) 1px, transparent 1px, transparent 3px), radial-gradient(circle at 50% 50%, transparent 55%, rgba(0,0,0,0.6) 100%)',
+            'repeating-linear-gradient(0deg, rgba(0,0,0,0.55) 0px, rgba(0,0,0,0.55) 1px, transparent 1px, transparent 3px), radial-gradient(circle at 50% 50%, transparent 55%, rgba(0,0,0,0.6) 100%)',
     },
     uiLayer: {
         position: 'absolute',
@@ -287,61 +382,65 @@ const styles: StyleSheetCSS = {
         left: 0,
         width: '100%',
         height: '100%',
-        zIndex: 4,
+        zIndex: 5,
         pointerEvents: 'none',
-    },
-    hint: {
-        position: 'absolute',
-        bottom: 62,
-        left: 0,
-        width: '100%',
-        textAlign: 'center',
-        fontFamily: 'MSSerif',
-        fontSize: 11,
-        letterSpacing: 1,
-        color: 'rgba(255,255,255,0.55)',
-        textShadow: '0 1px 4px rgba(0,0,0,0.8)',
-        userSelect: 'none',
-    },
-    control: {
-        position: 'absolute',
-        bottom: 24,
-        pointerEvents: 'auto',
-        cursor: 'pointer',
-        fontFamily: 'MSSerif',
-        fontSize: 11,
-        letterSpacing: 1,
-        color: 'rgba(255,255,255,0.75)',
-        background: 'rgba(255,255,255,0.06)',
-        border: '1px solid rgba(255,255,255,0.18)',
-        borderRadius: 2,
-        padding: '6px 12px',
-        textShadow: '0 1px 4px rgba(0,0,0,0.8)',
-    },
-    centerBtn: {
-        left: '50%',
-        transform: 'translateX(-50%)',
     },
 };
 
-/** Generate `count` grayscale TV-static frames as data URLs. */
-function makeSnowFrames(count: number, w: number, h: number): string[] {
-    const frames: string[] = [];
-    for (let f = 0; f < count; f++) {
-        const c = document.createElement('canvas');
-        c.width = w;
-        c.height = h;
-        const ctx = c.getContext('2d')!;
-        const img = ctx.createImageData(w, h);
-        for (let i = 0; i < img.data.length; i += 4) {
-            const v = (Math.random() * 255) | 0;
-            img.data[i] = img.data[i + 1] = img.data[i + 2] = v;
-            img.data[i + 3] = 255;
+let snowFramesCache: string[] | null = null;
+/** Grayscale TV-static frames for the transition flash, built once per session. */
+function getSnowFrames(): string[] {
+    if (!snowFramesCache) {
+        snowFramesCache = [];
+        for (let f = 0; f < 12; f++) {
+            snowFramesCache.push(
+                paintNoise(240, 160, () => {
+                    const v = (Math.random() * 255) | 0;
+                    return [v, v, v, 255];
+                })
+            );
         }
-        ctx.putImageData(img, 0, 0);
-        frames.push(c.toDataURL('image/png'));
     }
-    return frames;
+    return snowFramesCache;
+}
+
+let grainTileCache: string | null = null;
+/**
+ * A tileable film-grain speckle. Half the specks lighten and half darken, so the
+ * layer adds texture without shifting the scene's overall brightness, and most
+ * are near-transparent (alpha is a product of two randoms) so it scatters like
+ * dust rather than sitting there as a flat grey sheet.
+ */
+function getGrainTile(): string {
+    if (!grainTileCache) {
+        grainTileCache = paintNoise(160, 160, () => {
+            const v = Math.random() < 0.5 ? 0 : 255;
+            return [v, v, v, (Math.random() * Math.random() * 255) | 0];
+        });
+    }
+    return grainTileCache;
+}
+
+/** Fill a canvas pixel-by-pixel from `sample` and hand back a data URL. */
+function paintNoise(
+    w: number,
+    h: number,
+    sample: () => [number, number, number, number]
+): string {
+    const c = document.createElement('canvas');
+    c.width = w;
+    c.height = h;
+    const ctx = c.getContext('2d')!;
+    const img = ctx.createImageData(w, h);
+    for (let i = 0; i < img.data.length; i += 4) {
+        const [r, g, b, a] = sample();
+        img.data[i] = r;
+        img.data[i + 1] = g;
+        img.data[i + 2] = b;
+        img.data[i + 3] = a;
+    }
+    ctx.putImageData(img, 0, 0);
+    return c.toDataURL('image/png');
 }
 
 export default Experience3D;
