@@ -52,6 +52,36 @@ export function clearPositions(): void {
     localStorage.removeItem(KEY);
 }
 
+/**
+ * Arrange Icons — drop a list of names back into the default grid in the order
+ * given, which is what the desktop's right-click menu offers by name and by
+ * type. Anything not named keeps whatever position it had.
+ */
+export function arrangeIcons(orderedNames: string[]): Record<string, IconPos> {
+    const arranged: Record<string, IconPos> = { ...loadPositions() };
+    orderedNames.forEach((name, i) => {
+        arranged[name] = defaultPosition(i);
+    });
+    savePositions(arranged);
+    return arranged;
+}
+
+/**
+ * Line Up Icons — snap every icon to the nearest grid slot without reordering
+ * anything, so a hand-arranged desktop keeps its arrangement but stops looking
+ * like it was dropped from a height.
+ */
+export function lineUpIcons(scale: number): Record<string, IconPos> {
+    const current = loadPositions();
+    const bounds = iconBounds(scale);
+    const lined: Record<string, IconPos> = {};
+    Object.keys(current).forEach((name) => {
+        lined[name] = snap(current[name].x, current[name].y, bounds);
+    });
+    savePositions(lined);
+    return lined;
+}
+
 /** Snap to the icon grid and keep the icon on screen. */
 export function snap(x: number, y: number, bounds: { w: number; h: number }): IconPos {
     const sx = Math.round(x / GRID.w) * GRID.w;

@@ -44,8 +44,10 @@ import {
 import {
     IconPos,
     SHORTCUT_ORIGIN,
+    arrangeIcons,
     defaultPosition,
     iconBounds,
+    lineUpIcons,
     loadPositions,
     savePositions,
     snap,
@@ -55,11 +57,27 @@ import PictureViewer from '../applications/PictureViewer';
 import { siteByKey } from './websites';
 import {
     DesktopFile,
+    emptyRecycleBin,
     moveToRecycleBin,
     updateFile,
     useDesktopFiles,
 } from './desktopFiles';
-import { Win98File } from './win98fs';
+import { PAINTINGS_DIR, Win98File } from './win98fs';
+import Store from '../applications/Store';
+import SystemProperties from '../applications/SystemProperties';
+import ContextMenu, { ContextMenuItem } from './ContextMenu';
+import {
+    ArrangeOrder,
+    desktopMenu,
+    fileMenu,
+    recycleBinMenu,
+    shortcutMenu,
+} from './desktopMenus';
+import { isOptional, uninstall, useInstalledApps } from './installedApps';
+import Screensaver, {
+    loadScreensaverDelay,
+    loadScreensaverKind,
+} from './Screensaver';
 
 // Apps whose icon launches a full-screen takeover (the 3D experience) rather
 // than opening a draggable window. Keyed by their APPLICATIONS key.
@@ -109,6 +127,9 @@ const IS_EMBEDDED_IN_CRT = (() => {
 export interface DesktopProps {}
 
 type ExtendedWindowAppProps<T> = T & WindowAppProps;
+
+/** A desktop icon and the app it opens. */
+type DesktopIcon = DesktopShortcutProps & { appKey: string };
 
 const APPLICATIONS: {
     [key in string]: {
@@ -244,6 +265,25 @@ const APPLICATIONS: {
         name: 'Recycle Bin',
         shortcutIcon: 'recycleBinIcon',
         component: RecycleBin,
+    },
+
+    // Add/Remove Programs. Decides which of the optional apps get a desktop
+    // icon (see `installedApps.ts`), so it stays on the desktop itself —
+    // uninstalling everything must never leave you without the way back.
+    store: {
+        key: 'store',
+        name: 'Store',
+        shortcutIcon: 'storeIcon',
+        component: Store,
+    },
+
+    // Right-click My Computer > Properties, and Run "systemProperties".
+    systemProperties: {
+        key: 'systemProperties',
+        name: 'System Properties',
+        shortcutIcon: 'systemIcon',
+        component: SystemProperties,
+        noDesktopIcon: true,
     },
 
     // Start-menu entries. They open real windows (taskbar entry, minimize,
@@ -398,7 +438,12 @@ const Desktop: React.FC<DesktopProps> = (props) => {
     // for a different company instead of there being two of them.
     const [stockRequest, setStockRequest] = useState<StockRequest | null>(null);
 
-    const [shortcuts, setShortcuts] = useState<DesktopShortcutProps[]>([]);
+    /**
+     * A desktop icon, plus the APPLICATIONS key behind it — the key is what the
+     * right-click menu and the Store need in order to talk about the app rather
+     * than about the icon's label.
+     */
+    const [shortcuts, setShortcuts] = useState<DesktopIcon[]>([]);
 
     const [shutdown, setShutdown] = useState(false);
     const [numShutdowns, setNumShutdowns] = useState(1);
@@ -409,6 +454,26 @@ const Desktop: React.FC<DesktopProps> = (props) => {
 
     // When true, the 2D desktop recedes and the 3D CRT-room experience takes over.
     const [experienceOpen, setExperienceOpen] = useState(false);
+
+    // Which optional apps have an icon right now — the Store writes this, and
+    // subscribing here is what makes an install or a removal show up at once.
+    const isInstalled = useInstalledApps();
+
+    /**
+     * The open right-click menu, if any. Its coordinates are in desktop space,
+     * not screen space (see `ContextMenu`), and it is rendered inside the
+     * resolution wrapper so it lands under the cursor at any scale.
+     */
+    const [contextMenu, setContextMenu] = useState<{
+        x: number;
+        y: number;
+        items: ContextMenuItem[];
+    } | null>(null);
+
+    // Screen saver settings live in localStorage (Display Properties writes
+    // them); read once per mount, like the resolution above.
+    const [screensaverKind] = useState(loadScreensaverKind);
+    const [screensaverDelay] = useState(loadScreensaverDelay);
 
     // Desktop appearance, changed from Start → Settings (persisted).
     const theme = useTheme();
@@ -439,6 +504,34 @@ const Desktop: React.FC<DesktopProps> = (props) => {
         },
         []
     );
+
+    /**
+     * Arrange Icons. By name is alphabetical; by type groups the folders and
+     * system icons first and the applications after, which is roughly what
+     * Explorer's "by Type" did with a desktop full of shortcuts.
+     */
+    const arrange = useCallback(
+        (order: ArrangeOrder) => {
+            const system = ['showcase', 'myComputer', 'internet', 'programs', 'recycleBin', 'store'];
+            const sorted = [...shortcuts].sort((a, b) => {
+                if (order === 'type') {
+                    const rank = (s: DesktopIcon) => {
+                        const i = system.indexOf(s.appKey);
+                        return i === -1 ? system.length : i;
+                    };
+                    const diff = rank(a) - rank(b);
+                    if (diff !== 0) return diff;
+                }
+                return a.shortcutName.localeCompare(b.shortcutName);
+            });
+            setIconPositions(arrangeIcons(sorted.map((s) => s.shortcutName)));
+        },
+        [shortcuts]
+    );
+
+    const lineUp = useCallback(() => {
+        setIconPositions(lineUpIcons(scaleFor(loadResolution())));
+    }, []);
 
     // --- Desktop files (the documents, not the app shortcuts) --------------
     // Files live either on the desktop or in the Recycle Bin, and can be dragged
@@ -502,7 +595,7 @@ const Desktop: React.FC<DesktopProps> = (props) => {
     }, [shutdown]);
 
     useEffect(() => {
-        const newShortcuts: DesktopShortcutProps[] = [];
+        const newShortcuts: DesktopIcon[] = [];
         Object.keys(APPLICATIONS).forEach((key) => {
             const app = APPLICATIONS[key];
             // Don't offer the 3D experience from inside the 3D monitor.
@@ -520,6 +613,7 @@ const Desktop: React.FC<DesktopProps> = (props) => {
                 // whichever way you reach it. The ref keeps this closure (built
                 // once, on mount) pointing at the current openApp.
                 onOpen: () => openAppRef.current(app.key),
+                appKey: app.key,
             });
         });
 
@@ -767,6 +861,24 @@ const Desktop: React.FC<DesktopProps> = (props) => {
                 return;
             }
 
+            if (app.key === 'store') {
+                addWindow(
+                    app.key,
+                    <Store
+                        {...shared}
+                        iconFor={(target) =>
+                            APPLICATIONS[target]?.shortcutIcon || 'folderIcon'
+                        }
+                        // Nothing should offer to install the 3D room from
+                        // inside the 3D room.
+                        hiddenKeys={
+                            IS_EMBEDDED_IN_CRT ? FULLSCREEN_EXPERIENCES : []
+                        }
+                    />
+                );
+                return;
+            }
+
             if (app.key === 'myComputer') {
                 addWindow(
                     app.key,
@@ -898,25 +1010,29 @@ const Desktop: React.FC<DesktopProps> = (props) => {
      */
     const openDocument = useCallback(
         (file: Win98File) => {
-            const notepad = win98ProgramByKey('notepad');
-            if (!notepad) return;
+            // A painting opens in Paint, a note in Notepad — whichever program
+            // wrote it. Both take the file the same way, on `?path=`.
+            const isPainting = file.path.startsWith(PAINTINGS_DIR);
+            const program = win98ProgramByKey(isPainting ? 'paint' : 'notepad');
+            if (!program) return;
+            const page = isPainting
+                ? '/98/programs/jspaint/index.html'
+                : '/98/programs/notepad/index.html';
             const key = `document:${file.path}`;
             addWindow(
                 key,
                 <ProgramFrame
                     key={key}
                     program={{
-                        ...notepad,
+                        ...program,
                         name: file.name,
-                        src: `/98/programs/notepad/index.html?path=${encodeURIComponent(
-                            file.path
-                        )}`,
+                        src: `${page}?path=${encodeURIComponent(file.path)}`,
                     }}
                     onInteract={() => onWindowInteract(key)}
                     onMinimize={() => minimizeWindow(key)}
                     onClose={() => removeWindow(key)}
                 />,
-                { name: file.name, icon: 'notepadIcon' }
+                { name: file.name, icon: isPainting ? 'paintIcon' : 'notepadIcon' }
             );
         },
         [addWindow, onWindowInteract, minimizeWindow, removeWindow]
@@ -930,6 +1046,102 @@ const Desktop: React.FC<DesktopProps> = (props) => {
             openPicture(file.name, file.image, file.size, file.icon);
         },
         [openPicture]
+    );
+
+    // --- Right-click menus -------------------------------------------------
+
+    /**
+     * Opens a menu at a *screen* point. Everything downstream works in desktop
+     * coordinates, so the conversion happens once, here: divide by the
+     * resolution scale and subtract nothing else, because the wrapper the menu
+     * renders into starts at the top left of the desktop.
+     */
+    const openContextMenu = useCallback(
+        (screenX: number, screenY: number, items: ContextMenuItem[]) => {
+            const scale = scaleFor(loadResolution());
+            setContextMenu({
+                x: screenX / scale,
+                y: screenY / scale,
+                items,
+            });
+        },
+        []
+    );
+
+    const closeContextMenu = useCallback(() => setContextMenu(null), []);
+
+    const onDesktopContextMenu = useCallback(
+        (e: React.MouseEvent) => {
+            // Only the desktop itself — a right-click that started on an icon or
+            // inside a window has already been handled and shouldn't reopen the
+            // desktop's own menu on the way up.
+            if (e.defaultPrevented) return;
+            e.preventDefault();
+            openContextMenu(
+                e.clientX,
+                e.clientY,
+                desktopMenu({
+                    arrange,
+                    lineUp,
+                    refresh: () => window.location.reload(),
+                    properties: () => openAppRef.current('settings'),
+                })
+            );
+        },
+        [openContextMenu, arrange, lineUp]
+    );
+
+    const onShortcutContextMenu = useCallback(
+        (shortcut: DesktopIcon, screenX: number, screenY: number) => {
+            const key = shortcut.appKey;
+
+            if (key === 'recycleBin') {
+                openContextMenu(
+                    screenX,
+                    screenY,
+                    recycleBinMenu({
+                        open: () => openAppRef.current('recycleBin'),
+                        empty: binIsEmpty ? undefined : emptyRecycleBin,
+                        properties: () => openAppRef.current('systemProperties'),
+                    })
+                );
+                return;
+            }
+
+            openContextMenu(
+                screenX,
+                screenY,
+                shortcutMenu({
+                    open: shortcut.onOpen,
+                    // Only the Store's own apps can be taken off the desktop;
+                    // for anything else Delete stays greyed out, as it did for
+                    // the system icons in Windows 95.
+                    uninstall: isOptional(key) ? () => uninstall(key) : undefined,
+                    // My Computer is the one icon whose Properties meant
+                    // something, and this is what it opened.
+                    properties:
+                        key === 'myComputer'
+                            ? () => openAppRef.current('systemProperties')
+                            : undefined,
+                })
+            );
+        },
+        [openContextMenu, binIsEmpty]
+    );
+
+    const onFileContextMenu = useCallback(
+        (file: DesktopFile, screenX: number, screenY: number) => {
+            setSelectedFileId(file.id);
+            openContextMenu(
+                screenX,
+                screenY,
+                fileMenu({
+                    open: file.image ? () => openFile(file) : undefined,
+                    delete: () => moveToRecycleBin(file.id),
+                })
+            );
+        },
+        [openContextMenu, openFile]
     );
 
     return !shutdown ? (
@@ -961,6 +1173,7 @@ const Desktop: React.FC<DesktopProps> = (props) => {
                     transform: `scale(${resolutionScale})`,
                     transformOrigin: 'top left',
                 }}
+                onContextMenu={onDesktopContextMenu}
               >
                 {/* For each window in windows, loop over and render  */}
                 {Object.keys(windows).map((key) => {
@@ -1012,7 +1225,13 @@ const Desktop: React.FC<DesktopProps> = (props) => {
                 );
             })}
             <div style={styles.shortcuts}>
-                {shortcuts.map((shortcut, i) => {
+                {shortcuts
+                    // Anything removed in the Store keeps its grid slot for the
+                    // icons around it — filtering after the index is taken means
+                    // uninstalling Doom doesn't shuffle the whole column up.
+                    .map((shortcut, i) => ({ shortcut, i }))
+                    .filter(({ shortcut }) => isInstalled(shortcut.appKey))
+                    .map(({ shortcut, i }) => {
                     // Use the user's arranged position if they've dragged this
                     // icon, otherwise fall back to the classic grid slot.
                     const pos =
@@ -1040,6 +1259,9 @@ const Desktop: React.FC<DesktopProps> = (props) => {
                                 onMoved={(dx, dy) =>
                                     moveIcon(shortcut.shortcutName, pos, dx, dy)
                                 }
+                                onContextMenu={(x, y) =>
+                                    onShortcutContextMenu(shortcut, x, y)
+                                }
                             />
                         </div>
                     );
@@ -1059,9 +1281,23 @@ const Desktop: React.FC<DesktopProps> = (props) => {
                         onDropped={(dx, dy, screen) =>
                             onFileDropped(file, dx, dy, screen)
                         }
+                        onContextMenu={(x, y) => onFileContextMenu(file, x, y)}
                     />
                 ))}
             </div>
+
+            {contextMenu && (
+                <ContextMenu
+                    x={contextMenu.x}
+                    y={contextMenu.y}
+                    items={contextMenu.items}
+                    onClose={closeContextMenu}
+                    bounds={{
+                        width: window.innerWidth / resolutionScale,
+                        height: window.innerHeight / resolutionScale,
+                    }}
+                />
+            )}
                 <Toolbar
                     windows={windows}
                     toggleMinimize={toggleMinimize}
@@ -1076,6 +1312,14 @@ const Desktop: React.FC<DesktopProps> = (props) => {
                 open={experienceOpen}
                 onExit={() => setExperienceOpen(false)}
                 accentColor={Colors.turquoise}
+            />
+            <Screensaver
+                kind={screensaverKind}
+                delayMinutes={screensaverDelay}
+                suspended={
+                    experienceOpen || shutdownDialogOpen || loggedOff ||
+                    IS_EMBEDDED_IN_CRT
+                }
             />
             {shutdownDialogOpen && (
                 <ShutdownDialog

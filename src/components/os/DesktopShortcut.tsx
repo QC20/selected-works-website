@@ -11,6 +11,8 @@ export interface DesktopShortcutProps {
     onOpen: () => void;
     /** Fires with the drag delta (in desktop coords) when a drag finishes. */
     onMoved?: (dx: number, dy: number) => void;
+    /** Right-click (or long-press on touch) — see `Desktop.tsx`. */
+    onContextMenu?: (screenX: number, screenY: number) => void;
     /**
      * Exposes the shortcut's own box. The wrapper Desktop positions us with
      * collapses to 0x0 (its only child is absolutely positioned), so anything
@@ -26,6 +28,7 @@ const DesktopShortcut: React.FC<DesktopShortcutProps> = ({
     invertText,
     onOpen,
     onMoved,
+    onContextMenu,
     innerRef,
 }) => {
     const [isSelected, setIsSelected] = useState(false);
@@ -39,7 +42,10 @@ const DesktopShortcut: React.FC<DesktopShortcutProps> = ({
     const [doubleClickTimerActive, setDoubleClickTimerActive] = useState(false);
 
     const getShortcutId = useCallback(() => {
-        const shortcutId = shortcutName.replace(/\s/g, '');
+        // Anything that isn't a letter or a digit comes out, not just spaces:
+        // an id is used in CSS selectors, and a name like "Add/Remove Programs"
+        // would otherwise produce one that `querySelector` refuses to parse.
+        const shortcutId = shortcutName.replace(/[^a-zA-Z0-9]/g, '');
         return `desktop-shortcut-${shortcutId}`;
     }, [shortcutName]);
 
@@ -178,6 +184,15 @@ const DesktopShortcut: React.FC<DesktopShortcutProps> = ({
                 }
             )}
             onPointerDown={handlePointerDown}
+            onContextMenu={(e) => {
+                if (!onContextMenu) return;
+                e.preventDefault();
+                // Explorer selects whatever you right-click before it shows the
+                // menu, so the menu is visibly about *this* icon.
+                setIsSelected(true);
+                setLastSelected(true);
+                onContextMenu(e.clientX, e.clientY);
+            }}
             ref={setRefs}
         >
             <div id={`${shortcutId}`} style={styles.iconContainer}>

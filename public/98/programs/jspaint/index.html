@@ -1059,6 +1059,10 @@
 	<script src="lib/pdf.js/build/pdf.js"></script>
 	<script src="lib/anypalette-0.6.0.js"></script>
 	<script src="lib/FileSaver.js"></script>
+	<!-- PORTFOLIO ADDITION: the fake C: drive, so Save As can put pictures in
+	     My Documents\Paintings instead of only downloading them. -->
+	<script src="../../lib/browserfs.js"></script>
+	<script src="../../src/filesystem-setup.js"></script>
 	<script src="lib/font-detective.js"></script>
 	<script src="lib/libtess.min.js"></script>
 	<!-- <script src="lib/tracky-mouse/tracky-mouse.js"></script> -->
@@ -1108,6 +1112,9 @@
 	<script type="module" src="src/speech-recognition.js"></script>
 	<script type="module" src="src/eye-gaze-mode.js"></script>
 	<script defer src="src/app-state.js"></script>
+	<!-- PORTFOLIO ADDITION: replaces jspaint's systemHooks so Save As and Open
+	     use the Windows 95 file box and the fake C: drive. -->
+	<script defer src="src/browserfs-save.js"></script>
 	<script type="module" src="src/app.js"></script>
 	<script type="module" src="src/sessions.js"></script>
 	<script type="module" src="src/konami.js"></script>

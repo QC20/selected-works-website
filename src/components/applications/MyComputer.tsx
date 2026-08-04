@@ -6,9 +6,13 @@ import { IconName } from '../../assets/icons';
 import pictures from '../os/pictures';
 import { PROGRAMS_CONTENTS } from './ProgramsFolder';
 import {
+    NOTES_DIR,
+    PAINTINGS_DIR,
     Win98File,
+    documentObjectUrl,
     downloadDocument,
     listDocuments,
+    seedDocuments,
 } from '../os/win98fs';
 
 /**
@@ -23,15 +27,18 @@ import {
  *
  *   My Computer
  *   ├── Hard Disk (C:) → Programs     → Paint, Notepad, Solitaire, …
- *   │                  → My Documents → whatever Notepad has saved
- *   │                  → Pictures     → 19 photos
+ *   │                  → My Documents → Notes     (what Notepad saved)
+ *   │                                 → Paintings (what Paint saved)
+ *   │                  → Pictures     → 19 photos, shipped with the build
  *   ├── Hard Disk (D:) → Utility      → Market Watch, Task Manager,
  *   │                                   Patch Notes, Reset Storage
  *   └── CD-ROM (empty)
  *
- * My Documents is the only folder whose contents aren't known up front: it
- * shows what Notepad has actually written to the fake C: drive, read out of the
- * same BrowserFS store the program writes to (see `win98fs.ts`).
+ * Notes and Paintings are the only folders whose contents aren't known up
+ * front: they show what Notepad and Paint have actually written to the fake C:
+ * drive, read out of the same BrowserFS store the programs write to (see
+ * `win98fs.ts`). Pictures is deliberately separate — those are photographs
+ * shipped with the build, not the visitor's own work.
  */
 
 /** A node you can navigate into. */
@@ -43,6 +50,8 @@ type FolderId =
     | 'programs'
     | 'pictures'
     | 'myDocuments'
+    | 'notes'
+    | 'paintings'
     | 'utility';
 
 interface FolderDef {
@@ -59,6 +68,8 @@ const FOLDERS: FolderDef[] = [
     { id: 'diskC', label: 'Hard Disk (C:)', icon: 'hardDriveIcon', parent: 'myComputer', depth: 1 },
     { id: 'programs', label: 'Programs', icon: 'programsFolderIcon', parent: 'diskC', depth: 2 },
     { id: 'myDocuments', label: 'My Documents', icon: 'folderIcon', parent: 'diskC', depth: 2 },
+    { id: 'notes', label: 'Notes', icon: 'folderIcon', parent: 'myDocuments', depth: 3 },
+    { id: 'paintings', label: 'Paintings', icon: 'folderIcon', parent: 'myDocuments', depth: 3 },
     { id: 'pictures', label: 'Pictures', icon: 'folderIcon', parent: 'diskC', depth: 2 },
     { id: 'diskD', label: 'Hard Disk (D:)', icon: 'hardDriveIcon', parent: 'myComputer', depth: 1 },
     { id: 'utility', label: 'Utility', icon: 'folderIcon', parent: 'diskD', depth: 2 },
@@ -104,8 +115,14 @@ const CONTENTS: { [key in FolderId]: Entry[] } = {
     ],
     diskD: [folderEntry('utility', 40, 'File Folder')],
     cdRom: [],
-    // Filled in at open time from the drive itself — see `documents` below.
-    myDocuments: [],
+    // My Documents holds the two folders the programs write into; what's
+    // inside each is read off the drive at open time (see `documents` below).
+    myDocuments: [
+        folderEntry('notes', 0, 'File Folder'),
+        folderEntry('paintings', 0, 'File Folder'),
+    ],
+    notes: [],
+    paintings: [],
     // The same list the Programs folder window shows, so C:\Programs and the
     // Programs folder on the desktop can't disagree about what's installed.
     programs: PROGRAMS_CONTENTS.map((item) => ({
@@ -166,7 +183,10 @@ export interface MyComputerProps extends WindowAppProps {
     openApp: (key: string) => void;
     /** Opens a picture in the picture viewer. */
     openPicture: (name: string, full: string, size: number) => void;
-    /** Opens a saved text file in Notepad. */
+    /**
+     * Opens a saved file in the program that wrote it — Notepad for a note,
+     * Paint for a painting.
+     */
     openDocument: (file: Win98File) => void;
 }
 
@@ -183,46 +203,104 @@ const MyComputer: React.FC<MyComputerProps> = ({
     const [selected, setSelected] = useState<string | null>(null);
     const [addressOpen, setAddressOpen] = useState(false);
 
-    // --- My Documents ------------------------------------------------------
-    // Read from the drive rather than declared, and re-read every time you
-    // navigate into the folder, so a file saved from Notepad since the window
-    // was opened is there. `null` while the first read is in flight.
+    // --- Notes and Paintings ------------------------------------------------
+    // The only two folders whose contents are read off the drive rather than
+    // declared, and re-read every time you navigate into one, so a file saved
+    // since the window was opened is there. `null` while the read is in flight.
     const [documents, setDocuments] = useState<Win98File[] | null>(null);
     const [documentsError, setDocumentsError] = useState<string | null>(null);
+    /** Blob URLs for the paintings, so the folder shows the actual pictures. */
+    const [thumbs, setThumbs] = useState<Record<string, string>>({});
 
-    const refreshDocuments = useCallback(() => {
-        setDocumentsError(null);
-        listDocuments().then(
-            (files) => setDocuments(files),
-            (error) => {
-                setDocuments([]);
-                setDocumentsError(
-                    error instanceof Error
-                        ? error.message
-                        : 'The drive could not be read.'
-                );
-            }
-        );
-    }, []);
+    const isDocumentFolder = location === 'notes' || location === 'paintings';
+    const documentDir = location === 'paintings' ? PAINTINGS_DIR : NOTES_DIR;
 
+    const refreshDocuments = useCallback(
+        (directory: string) => {
+            setDocumentsError(null);
+            setDocuments(null);
+            listDocuments(directory).then(
+                (files) => setDocuments(files),
+                (error) => {
+                    setDocuments([]);
+                    setDocumentsError(
+                        error instanceof Error
+                            ? error.message
+                            : 'The drive could not be read.'
+                    );
+                }
+            );
+        },
+        []
+    );
+
+    // Seeding happens once per browser and only creates files that aren't
+    // there, so running it on open costs nothing after the first visit.
     useEffect(() => {
-        if (location === 'myDocuments') refreshDocuments();
-    }, [location, refreshDocuments]);
+        if (!isDocumentFolder) return;
+        let cancelled = false;
+        seedDocuments()
+            .catch(() => undefined)
+            .then(() => {
+                if (!cancelled) refreshDocuments(documentDir);
+            });
+        return () => {
+            cancelled = true;
+        };
+    }, [isDocumentFolder, documentDir, refreshDocuments]);
+
+    /**
+     * Read each painting once and hand the folder a blob URL, so Paintings
+     * shows the pictures themselves rather than a row of identical icons — the
+     * way the Pictures folder next door does.
+     */
+    useEffect(() => {
+        if (location !== 'paintings' || !documents) return;
+        let cancelled = false;
+        const made: string[] = [];
+        Promise.all(
+            documents.map(async (file) => {
+                try {
+                    const url = await documentObjectUrl(file);
+                    made.push(url);
+                    return [file.path, url] as const;
+                } catch {
+                    return null;
+                }
+            })
+        ).then((pairs) => {
+            if (cancelled) {
+                made.forEach(URL.revokeObjectURL);
+                return;
+            }
+            const next: Record<string, string> = {};
+            pairs.forEach((pair) => {
+                if (pair) next[pair[0]] = pair[1];
+            });
+            setThumbs(next);
+        });
+        return () => {
+            cancelled = true;
+            made.forEach(URL.revokeObjectURL);
+        };
+    }, [location, documents]);
 
     const current = folderById(location);
     const entries = useMemo<Entry[]>(() => {
-        if (location !== 'myDocuments') return CONTENTS[location];
+        if (!isDocumentFolder) return CONTENTS[location];
+        const painting = location === 'paintings';
         return (documents || []).map((file) => ({
             key: `doc:${file.name}`,
             label: file.name,
-            icon: 'notepadIcon' as IconName,
-            // The folder counts in KB; a text file is measured in bytes, and
+            icon: (painting ? 'paintIcon' : 'notepadIcon') as IconName,
+            thumb: painting ? thumbs[file.path] : undefined,
+            // The folder counts in KB; a file is measured in bytes, and
             // anything non-empty occupies at least one kilobyte on disk.
             size: Math.max(1, Math.round(file.size / 1024)),
-            type: 'Text Document',
+            type: painting ? 'Bitmap Image' : 'Text Document',
             document: file,
         }));
-    }, [location, documents]);
+    }, [isDocumentFolder, location, documents, thumbs]);
 
     const navigate = useCallback((to: FolderId) => {
         setLocation(to);
@@ -429,7 +507,7 @@ const MyComputer: React.FC<MyComputerProps> = ({
                         the only things on this desktop that live on the fake C:
                         drive rather than in the build, so they're the only ones
                         that can be handed to the real computer. */}
-                    {location === 'myDocuments' && (
+                    {isDocumentFolder && (
                         <button
                             style={Object.assign(
                                 {},
@@ -458,7 +536,7 @@ const MyComputer: React.FC<MyComputerProps> = ({
                 >
                     {entries.length === 0 ? (
                         <div style={styles.emptyState}>
-                            {location === 'myDocuments' ? (
+                            {isDocumentFolder ? (
                                 <p style={styles.emptyText}>
                                     {documents === null
                                         ? 'Reading drive C:…'
@@ -468,10 +546,9 @@ const MyComputer: React.FC<MyComputerProps> = ({
                                         <>
                                             <br />
                                             <br />
-                                            Anything you save from Notepad with
-                                            File &gt; Save As &gt; My Documents
-                                            (C:) is kept here, in this browser,
-                                            and shows up in this folder.
+                                            {location === 'paintings'
+                                                ? 'Anything you draw in Paint and save with File > Save As > My Documents\\Paintings is kept here, in this browser, and shows up in this folder.'
+                                                : 'Anything you write in Notepad and save with File > Save As > My Documents\\Notes is kept here, in this browser, and shows up in this folder.'}
                                         </>
                                     )}
                                 </p>

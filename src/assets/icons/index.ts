@@ -54,6 +54,18 @@ import runIcon from './runIcon.png';
 // icon set in `public/WIN95-OS_-_Style-Logos` so they match the era.
 // Market Watch's bar-chart icon — the Windows 98 chart icon from the same set.
 import stocksIcon from './stocksIcon.png';
+// Add/Remove Programs and System Properties, converted from the Windows 95/98
+// icon set in `public/WIN95-OS_-_Style-Logos` like the Utility folder's icons.
+import storeIcon from './storeIcon.png';
+import systemIcon from './systemIcon.png';
+// The tray weather panel. Drawn for this desktop (see the note in Weather.tsx):
+// the icon set has no weather art, so these are 32x32 pixel art in its palette.
+import weatherSunIcon from './weatherSunIcon.png';
+import weatherPartlyIcon from './weatherPartlyIcon.png';
+import weatherCloudIcon from './weatherCloudIcon.png';
+import weatherRainIcon from './weatherRainIcon.png';
+import weatherSnowIcon from './weatherSnowIcon.png';
+import weatherStormIcon from './weatherStormIcon.png';
 import taskManagerIcon from './taskManagerIcon.png';
 import patchNotesIcon from './patchNotesIcon.png';
 import resetStorageIcon from './resetStorageIcon.png';
@@ -133,6 +145,14 @@ const icons = {
     settingsIcon: settingsIcon,
     runIcon: runIcon,
     stocksIcon: stocksIcon,
+    storeIcon: storeIcon,
+    systemIcon: systemIcon,
+    weatherSunIcon: weatherSunIcon,
+    weatherPartlyIcon: weatherPartlyIcon,
+    weatherCloudIcon: weatherCloudIcon,
+    weatherRainIcon: weatherRainIcon,
+    weatherSnowIcon: weatherSnowIcon,
+    weatherStormIcon: weatherStormIcon,
     taskManagerIcon: taskManagerIcon,
     patchNotesIcon: patchNotesIcon,
     resetStorageIcon: resetStorageIcon,

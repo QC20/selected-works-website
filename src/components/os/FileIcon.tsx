@@ -33,6 +33,8 @@ export interface FileIconProps {
      * where the pointer was released, in screen coordinates.
      */
     onDropped: (dx: number, dy: number, screen: { x: number; y: number }) => void;
+    /** Right-click — see `Desktop.tsx`. */
+    onContextMenu?: (screenX: number, screenY: number) => void;
 }
 
 const FileIcon: React.FC<FileIconProps> = ({
@@ -43,6 +45,7 @@ const FileIcon: React.FC<FileIconProps> = ({
     onSelect,
     onOpen,
     onDropped,
+    onContextMenu,
 }) => {
     const [dragDelta, setDragDelta] = useState<IconPos | null>(null);
     const dragRef = useRef<{ x: number; y: number; moved: boolean } | null>(null);
@@ -119,6 +122,11 @@ const FileIcon: React.FC<FileIconProps> = ({
                 }
             )}
             onPointerDown={handlePointerDown}
+            onContextMenu={(e) => {
+                if (!onContextMenu) return;
+                e.preventDefault();
+                onContextMenu(e.clientX, e.clientY);
+            }}
         >
             <div style={styles.iconContainer}>
                 <div

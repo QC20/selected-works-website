@@ -4,6 +4,7 @@ import { Icon } from '../general';
 import { IconName } from '../../assets/icons';
 import { Resolution, RESOLUTIONS, scaleFor } from './resolution';
 import StockTicker from './StockTicker';
+import WeatherPanel from './WeatherPanel';
 import { openExternal } from './openExternal';
 import { PROGRAMS_CONTENTS } from '../applications/ProgramsFolder';
 
@@ -85,6 +86,18 @@ const Toolbar: React.FC<ToolbarProps> = ({
 }) => {
     const [resMenuOpen, setResMenuOpen] = useState(false);
     const [tickerOpen, setTickerOpen] = useState(false);
+    const [weatherOpen, setWeatherOpen] = useState(false);
+
+    /**
+     * Only one tray popup at a time — they all hang off the same corner and
+     * would otherwise stack on top of each other. Each icon closes the rest
+     * before toggling itself.
+     */
+    const closeTrayPopups = useCallback(() => {
+        setResMenuOpen(false);
+        setTickerOpen(false);
+        setWeatherOpen(false);
+    }, []);
     /** Which Start-menu folder's fly-out is showing, if any. */
     const [openFolder, setOpenFolder] = useState<string | null>(null);
     const getTime = () => {
@@ -153,13 +166,12 @@ const Toolbar: React.FC<ToolbarProps> = ({
                 resAreaRef.current &&
                 !resAreaRef.current.contains(e.target as Node)
             ) {
-                setResMenuOpen(false);
-                setTickerOpen(false);
+                closeTrayPopups();
             }
         };
         window.addEventListener('pointerdown', onDown);
         return () => window.removeEventListener('pointerdown', onDown);
-    }, []);
+    }, [closeTrayPopups]);
 
     const onStartWindowClicked = () => {
         setStartWindowOpen(true);
@@ -465,6 +477,7 @@ const Toolbar: React.FC<ToolbarProps> = ({
                             ))}
                         </div>
                     )}
+                    <WeatherPanel open={weatherOpen} />
                     <StockTicker
                         open={tickerOpen}
                         onOpenApp={(options) => {
@@ -474,21 +487,32 @@ const Toolbar: React.FC<ToolbarProps> = ({
                     />
                     <div
                         style={styles.trayIconWrap}
+                        title="Weather"
+                        onPointerDown={(e) => {
+                            e.stopPropagation();
+                            closeTrayPopups();
+                            setWeatherOpen((o) => !o);
+                        }}
+                    >
+                        <Icon icon="weatherPartlyIcon" size={16} />
+                    </div>
+                    <div
+                        style={styles.trayIconWrap}
                         title="Market Watch — share prices"
                         onPointerDown={(e) => {
                             e.stopPropagation();
-                            setResMenuOpen(false);
+                            closeTrayPopups();
                             setTickerOpen((o) => !o);
                         }}
                     >
-                        <Icon icon="eurIcon" size={16} />
+                        <Icon icon="stocksIcon" size={16} />
                     </div>
                     <div
                         style={styles.trayIconWrap}
                         title="Screen resolution"
                         onPointerDown={(e) => {
                             e.stopPropagation();
-                            setTickerOpen(false);
+                            closeTrayPopups();
                             setResMenuOpen((o) => !o);
                         }}
                     >
@@ -720,8 +744,9 @@ const styles: StyleSheetCSS = {
     time: {
         position: 'relative',
         flexShrink: 1,
-        // Wide enough for the EUR coin, the display icon, volume and the clock.
-        width: 136,
+        // Wide enough for the weather, market and display icons, volume and
+        // the clock.
+        width: 158,
         height: 24,
         boxSizing: 'border-box',
         marginRight: 4,
