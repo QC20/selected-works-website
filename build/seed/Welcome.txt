@@ -1,0 +1,25 @@
+Welcome to My Documents.
+========================
+
+This is a real file on the C: drive of this machine, not a picture of
+one. It was written here the first time you opened the desktop.
+
+Where it lives:
+  My Computer > Hard Disk (C:) > My Documents > Notes
+
+What you can do with it:
+  - Open it in Notepad and edit it. File > Save writes it back.
+  - Select it in My Documents and press Download to take a copy to
+    your own computer.
+  - Delete it. It will not come back.
+
+Anything you write in Notepad and save with
+File > Save As > My Documents\Notes (C:) turns up in the same folder.
+Anything you draw in Paint and save to My Documents\Paintings turns up
+next door.
+
+None of it leaves your browser. The drive is kept in this browser's own
+storage, which means it survives a reload and a visit tomorrow, but it
+is not uploaded anywhere and I cannot see it.
+
+  -- Jonas

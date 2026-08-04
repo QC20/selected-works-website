@@ -10,18 +10,29 @@ import {
     useTheme,
 } from '../os/theme';
 import { RESOLUTIONS, Resolution } from '../os/resolution';
+import {
+    SCREENSAVER_DELAYS,
+    SCREENSAVER_OPTIONS,
+    saveScreensaverDelay,
+    saveScreensaverKind,
+    useScreensaverSettings,
+} from '../os/Screensaver';
 
 export interface SettingsProps extends WindowAppProps {
     resolution: Resolution;
     setResolution: (r: Resolution) => void;
 }
 
-type Tab = 'background' | 'appearance' | 'settings';
+type Tab = 'background' | 'screensaver' | 'appearance' | 'settings';
 
 /**
- * Display Properties — what Start → Settings opens. Three tabs, a little
- * monitor preview, and OK / Cancel / Apply, like the real thing. Changes are
- * previewed live and reverted if you press Cancel.
+ * Display Properties — what Start → Settings opens. Four tabs, a little
+ * monitor preview, and OK / Cancel, like the real thing. Changes are previewed
+ * live and reverted if you press Cancel.
+ *
+ * The Screen Saver tab is the exception to that: it writes straight through
+ * (see `Screensaver.tsx`), because there is nothing to preview in a 420-pixel
+ * dialog and the setting is one a visitor picks deliberately.
  */
 const Settings: React.FC<SettingsProps> = ({
     resolution,
@@ -32,6 +43,7 @@ const Settings: React.FC<SettingsProps> = ({
 }) => {
     const theme = useTheme();
     const [tab, setTab] = useState<Tab>('background');
+    const screensaver = useScreensaverSettings();
 
     // What to put back if the user cancels out of their live preview.
     const [initial] = useState<{ theme: Theme; resolution: Resolution }>({
@@ -47,6 +59,7 @@ const Settings: React.FC<SettingsProps> = ({
 
     const tabs: { id: Tab; label: string }[] = [
         { id: 'background', label: 'Background' },
+        { id: 'screensaver', label: 'Screen Saver' },
         { id: 'appearance', label: 'Appearance' },
         { id: 'settings', label: 'Settings' },
     ];
@@ -163,6 +176,63 @@ const Settings: React.FC<SettingsProps> = ({
                                     <span>{preset.name}</span>
                                 </div>
                             ))}
+                        </div>
+                    )}
+
+                    {tab === 'screensaver' && (
+                        <div style={styles.settingsPane}>
+                            <p style={styles.fieldLabel}>Screen Saver</p>
+                            <div style={styles.list}>
+                                {SCREENSAVER_OPTIONS.map((opt) => (
+                                    <div
+                                        key={opt.value}
+                                        style={Object.assign(
+                                            {},
+                                            styles.listItem,
+                                            screensaver.kind === opt.value &&
+                                                styles.listItemSelected
+                                        )}
+                                        onClick={() =>
+                                            saveScreensaverKind(opt.value)
+                                        }
+                                    >
+                                        <span style={styles.check}>
+                                            {screensaver.kind === opt.value
+                                                ? '\u2022'
+                                                : ''}
+                                        </span>
+                                        <span>{opt.label}</span>
+                                    </div>
+                                ))}
+                            </div>
+                            <p style={styles.fieldLabel}>Wait</p>
+                            <div style={styles.list}>
+                                {SCREENSAVER_DELAYS.map((minutes) => (
+                                    <div
+                                        key={minutes}
+                                        style={Object.assign(
+                                            {},
+                                            styles.listItem,
+                                            screensaver.delayMinutes ===
+                                                minutes &&
+                                                styles.listItemSelected
+                                        )}
+                                        onClick={() =>
+                                            saveScreensaverDelay(minutes)
+                                        }
+                                    >
+                                        <span style={styles.check}>
+                                            {screensaver.delayMinutes === minutes
+                                                ? '\u2022'
+                                                : ''}
+                                        </span>
+                                        <span>
+                                            {minutes} minute
+                                            {minutes === 1 ? '' : 's'}
+                                        </span>
+                                    </div>
+                                ))}
+                            </div>
                         </div>
                     )}
 

@@ -20,10 +20,12 @@
 
 /* global $, $Window, BrowserFS, withFilesystem, saveAs */
 
-var DOCS_DIR = "/my-documents";
+// Notes live in their own folder now, alongside My Documents\\Paintings,
+// which is what Paint writes into (jspaint/src/browserfs-save.js).
+var DOCS_DIR = "/my-documents/notes";
 
 var SAVE_LOCATIONS = [
-	{ value: "documents", label: "My Documents (C:)", icon: "folder-open" },
+	{ value: "documents", label: "My Documents\\Notes (C:)", icon: "folder-open" },
 	{ value: "device", label: "This computer (download)", icon: "computer" },
 ];
 
@@ -44,13 +46,23 @@ function invalid_file_name_reason(name) {
 }
 
 function ensure_docs_dir(fs, callback) {
-	fs.exists(DOCS_DIR, function (exists) {
-		if (exists) return callback();
-		fs.mkdir(DOCS_DIR, function () {
-			// An error here just means someone else made it first.
-			callback();
+	// One level at a time: BrowserFS has no mkdir -p, and now that notes live in
+	// a subfolder the parent may not exist either.
+	fs.exists("/my-documents", function (exists) {
+		if (exists) return make_notes_dir();
+		fs.mkdir("/my-documents", function () {
+			make_notes_dir();
 		});
 	});
+	function make_notes_dir() {
+		fs.exists(DOCS_DIR, function (exists) {
+			if (exists) return callback();
+			fs.mkdir(DOCS_DIR, function () {
+				// An error here just means someone else made it first.
+				callback();
+			});
+		});
+	}
 }
 
 /** Lists the .txt-ish files already in My Documents. */
@@ -137,7 +149,7 @@ function show_file_dialog(options) {
 				$list.append(
 					$("<p class='fd-empty'>").text(
 						"This folder is empty. Whatever you save here also shows " +
-							"up in My Computer > Hard Disk (C:) > My Documents."
+							"up in My Computer > Hard Disk (C:) > My Documents > Notes."
 					)
 				);
 				return;

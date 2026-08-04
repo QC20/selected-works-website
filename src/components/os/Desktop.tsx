@@ -74,10 +74,7 @@ import {
     shortcutMenu,
 } from './desktopMenus';
 import { isOptional, uninstall, useInstalledApps } from './installedApps';
-import Screensaver, {
-    loadScreensaverDelay,
-    loadScreensaverKind,
-} from './Screensaver';
+import Screensaver, { useScreensaverSettings } from './Screensaver';
 
 // Apps whose icon launches a full-screen takeover (the 3D experience) rather
 // than opening a draggable window. Keyed by their APPLICATIONS key.
@@ -470,10 +467,9 @@ const Desktop: React.FC<DesktopProps> = (props) => {
         items: ContextMenuItem[];
     } | null>(null);
 
-    // Screen saver settings live in localStorage (Display Properties writes
-    // them); read once per mount, like the resolution above.
-    const [screensaverKind] = useState(loadScreensaverKind);
-    const [screensaverDelay] = useState(loadScreensaverDelay);
+    // Screen saver settings, written by Display Properties. Subscribed rather
+    // than read once, so choosing a different saver takes effect immediately.
+    const screensaver = useScreensaverSettings();
 
     // Desktop appearance, changed from Start → Settings (persisted).
     const theme = useTheme();
@@ -1314,8 +1310,8 @@ const Desktop: React.FC<DesktopProps> = (props) => {
                 accentColor={Colors.turquoise}
             />
             <Screensaver
-                kind={screensaverKind}
-                delayMinutes={screensaverDelay}
+                kind={screensaver.kind}
+                delayMinutes={screensaver.delayMinutes}
                 suspended={
                     experienceOpen || shutdownDialogOpen || loggedOff ||
                     IS_EMBEDDED_IN_CRT

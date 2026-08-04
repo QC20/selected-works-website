@@ -55,12 +55,39 @@ export function loadScreensaverKind(): ScreensaverKind {
     }
 }
 
-export function saveScreensaverKind(kind: ScreensaverKind): void {
+/**
+ * Display Properties writes these and the desktop reads them, so they need the
+ * same subscribe-and-rerender treatment as the theme (see `theme.ts`) —
+ * otherwise picking a different saver wouldn't take effect until a reload.
+ */
+const listeners = new Set<() => void>();
+let kind: ScreensaverKind = loadScreensaverKind();
+let delay: number = loadScreensaverDelay();
+
+export function saveScreensaverKind(next: ScreensaverKind): void {
+    kind = next;
     try {
-        localStorage.setItem(KIND_KEY, kind);
+        localStorage.setItem(KIND_KEY, next);
     } catch {
         /* storage disabled — the choice just won't survive a reload */
     }
+    listeners.forEach((fn) => fn());
+}
+
+/** Subscribes a component to the screen saver settings. */
+export function useScreensaverSettings(): {
+    kind: ScreensaverKind;
+    delayMinutes: number;
+} {
+    const [, forceRender] = useState(0);
+    useEffect(() => {
+        const listener = () => forceRender((n) => n + 1);
+        listeners.add(listener);
+        return () => {
+            listeners.delete(listener);
+        };
+    }, []);
+    return { kind, delayMinutes: delay };
 }
 
 export function loadScreensaverDelay(): number {
@@ -73,12 +100,21 @@ export function loadScreensaverDelay(): number {
 }
 
 export function saveScreensaverDelay(minutes: number): void {
+    delay = minutes;
     try {
         localStorage.setItem(DELAY_KEY, String(minutes));
     } catch {
         /* as above */
     }
+    listeners.forEach((fn) => fn());
 }
+
+/** Human labels for the savers, for the Display Properties list. */
+export const SCREENSAVER_OPTIONS: { value: ScreensaverKind; label: string }[] = [
+    { value: 'off', label: '(None)' },
+    { value: 'pipes', label: '3D Pipes' },
+    { value: 'flower', label: '3D Flower Box' },
+];
 
 export interface ScreensaverProps {
     kind: ScreensaverKind;
