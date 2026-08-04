@@ -5,8 +5,19 @@ import { IconName } from '../../assets/icons';
 import { Resolution, RESOLUTIONS, scaleFor } from './resolution';
 import StockTicker from './StockTicker';
 import WeatherPanel from './WeatherPanel';
+import {
+    BatteryGauge,
+    BatteryPanel,
+    CalendarPanel,
+    ConnectionPanel,
+    useConnection,
+} from './TrayPanels';
+import { useBattery, batterySummary } from './battery';
+import { playClick, playOpen, toggleMuted, useMuted } from './sounds';
+import { isClippyEnabled, toggleClippy, useClippyEnabled } from './Clippy';
 import { openExternal } from './openExternal';
 import { PROGRAMS_CONTENTS } from '../applications/ProgramsFolder';
+import { GAMES } from '../applications/games';
 
 /**
  * The folders at the top of the Start menu. Each opens a fly-out on hover
@@ -20,6 +31,12 @@ interface StartFolder {
     items: { key: string; label: string; icon: IconName }[];
 }
 
+/**
+ * Every game on the machine, in one place.
+ *
+ * `Games.ts` owns the list; both the Start menu's Games fly-out and the
+ * C:\\Games folder read it, so a game added once turns up in both.
+ */
 const START_FOLDERS: StartFolder[] = [
     {
         // Programs sits at the top, where Windows 98 puts it. Its contents come
@@ -32,6 +49,16 @@ const START_FOLDERS: StartFolder[] = [
             key: item.key,
             label: item.name,
             icon: item.icon,
+        })),
+    },
+    {
+        id: 'games',
+        label: 'Games',
+        icon: 'gamesFolderIcon',
+        items: GAMES.map((game) => ({
+            key: game.key,
+            label: game.name,
+            icon: game.icon,
         })),
     },
     {
@@ -74,6 +101,10 @@ export interface ToolbarProps {
     setResolution: (r: Resolution) => void;
     /** Opens an app by its APPLICATIONS key (see Desktop.tsx). */
     openApp: (key: string, options?: LaunchOptions) => void;
+    /** Start > Log Off — drops to the log-on screen without shutting down. */
+    logOff: () => void;
+    /** Fired the first time Start is opened, to retire the first-run balloon. */
+    onStartOpened?: () => void;
 }
 
 const Toolbar: React.FC<ToolbarProps> = ({
@@ -83,10 +114,31 @@ const Toolbar: React.FC<ToolbarProps> = ({
     resolution,
     setResolution,
     openApp,
+    logOff,
+    onStartOpened,
 }) => {
     const [resMenuOpen, setResMenuOpen] = useState(false);
     const [tickerOpen, setTickerOpen] = useState(false);
     const [weatherOpen, setWeatherOpen] = useState(false);
+    const [batteryOpen, setBatteryOpen] = useState(false);
+    const [connectionOpen, setConnectionOpen] = useState(false);
+    const [calendarOpen, setCalendarOpen] = useState(false);
+
+    const battery = useBattery();
+    const connection = useConnection();
+    const muted = useMuted();
+    const clippyOn = useClippyEnabled();
+
+    /** How long this session has been "dialled in" — see ConnectionPanel. */
+    const [connectedFor, setConnectedFor] = useState(0);
+    useEffect(() => {
+        const started = Date.now();
+        const id = window.setInterval(
+            () => setConnectedFor((Date.now() - started) / 1000),
+            1000
+        );
+        return () => window.clearInterval(id);
+    }, []);
 
     /**
      * Only one tray popup at a time — they all hang off the same corner and
@@ -97,7 +149,23 @@ const Toolbar: React.FC<ToolbarProps> = ({
         setResMenuOpen(false);
         setTickerOpen(false);
         setWeatherOpen(false);
+        setBatteryOpen(false);
+        setConnectionOpen(false);
+        setCalendarOpen(false);
     }, []);
+
+    /** Every tray icon: click, close whatever else was open, toggle itself. */
+    const trayToggle = useCallback(
+        (setOpen: React.Dispatch<React.SetStateAction<boolean>>) =>
+            (e: React.PointerEvent) => {
+                e.stopPropagation();
+                playClick();
+                const wasOpen = e.currentTarget.getAttribute('data-open') === 'true';
+                closeTrayPopups();
+                setOpen(!wasOpen);
+            },
+        [closeTrayPopups]
+    );
     /** Which Start-menu folder's fly-out is showing, if any. */
     const [openFolder, setOpenFolder] = useState<string | null>(null);
     const getTime = () => {
@@ -179,6 +247,8 @@ const Toolbar: React.FC<ToolbarProps> = ({
     };
 
     const toggleStartWindow = () => {
+        playClick();
+        onStartOpened?.();
         if (!startWindowOpen) {
             lastClickInside.current = true;
         } else {
@@ -198,6 +268,7 @@ const Toolbar: React.FC<ToolbarProps> = ({
     const chooseStartMenuItem =
         (action: () => void) => (e: React.PointerEvent) => {
             e.stopPropagation();
+            playClick();
             lastClickInside.current = false;
             setStartWindowOpen(false);
             setOpenFolder(null);
@@ -262,9 +333,12 @@ const Toolbar: React.FC<ToolbarProps> = ({
                                         openFolder === folder.id &&
                                             styles.startMenuOptionActive
                                     )}
-                                    onMouseEnter={() =>
-                                        setOpenFolder(folder.id)
-                                    }
+                                    onMouseEnter={() => {
+                                        if (openFolder !== folder.id) {
+                                            playOpen();
+                                        }
+                                        setOpenFolder(folder.id);
+                                    }}
                                     onPointerDown={(e) => {
                                         e.stopPropagation();
                                         setOpenFolder((f) =>
@@ -373,6 +447,40 @@ const Toolbar: React.FC<ToolbarProps> = ({
                                 </p>
                             </div>
                             <div style={styles.startMenuLine} />
+                            {/* Clippy, so he can be summoned from the menu as
+                                well as from the tray. */}
+                            <div
+                                className="start-menu-option"
+                                style={styles.startMenuOption}
+                                onMouseEnter={closeFolders}
+                                onPointerDown={chooseStartMenuItem(toggleClippy)}
+                                title={
+                                    clippyOn
+                                        ? 'Send Clippy away'
+                                        : 'Bring Clippy back'
+                                }
+                            >
+                                <span style={styles.startMenuClippy}>📎</span>
+                                <p style={styles.startMenuText}>
+                                    {clippyOn ? 'Hide Clippy' : 'Show Clippy'}
+                                </p>
+                            </div>
+                            <div style={styles.startMenuLine} />
+                            <div
+                                className="start-menu-option"
+                                style={styles.startMenuOption}
+                                onMouseEnter={closeFolders}
+                                onPointerDown={chooseStartMenuItem(logOff)}
+                                title="Log off and return to the log-on screen"
+                            >
+                                <Icon
+                                    style={styles.startMenuIcon}
+                                    icon="logOffIcon"
+                                />
+                                <p style={styles.startMenuText}>
+                                    <u>L</u>og Off Guest...
+                                </p>
+                            </div>
                             <div
                                 className="start-menu-option"
                                 style={styles.startMenuOption}
@@ -485,41 +593,121 @@ const Toolbar: React.FC<ToolbarProps> = ({
                             openApp('stocks', options);
                         }}
                     />
+                    <BatteryPanel open={batteryOpen} state={battery} />
+                    <ConnectionPanel
+                        open={connectionOpen}
+                        connection={connection}
+                        connectedFor={connectedFor}
+                    />
+                    <CalendarPanel open={calendarOpen} />
+
+                    {/* Clippy's paperclip: summons him, or sends him away. */}
+                    <div
+                        style={Object.assign(
+                            {},
+                            styles.trayIconWrap,
+                            !clippyOn && styles.trayIconOff
+                        )}
+                        title={
+                            clippyOn
+                                ? 'Clippy is here — click to send him away'
+                                : 'Bring Clippy back'
+                        }
+                        onPointerDown={(e) => {
+                            e.stopPropagation();
+                            playClick();
+                            closeTrayPopups();
+                            toggleClippy();
+                        }}
+                    >
+                        <span style={styles.clippyGlyph}>📎</span>
+                    </div>
+
                     <div
                         style={styles.trayIconWrap}
                         title="Weather"
-                        onPointerDown={(e) => {
-                            e.stopPropagation();
-                            closeTrayPopups();
-                            setWeatherOpen((o) => !o);
-                        }}
+                        data-open={weatherOpen}
+                        onPointerDown={trayToggle(setWeatherOpen)}
                     >
                         <Icon icon="weatherPartlyIcon" size={16} />
                     </div>
                     <div
                         style={styles.trayIconWrap}
                         title="Market Watch — share prices"
-                        onPointerDown={(e) => {
-                            e.stopPropagation();
-                            closeTrayPopups();
-                            setTickerOpen((o) => !o);
-                        }}
+                        data-open={tickerOpen}
+                        onPointerDown={trayToggle(setTickerOpen)}
                     >
                         <Icon icon="stocksIcon" size={16} />
                     </div>
+
+                    {/* Dial-Up Networking's connection status. */}
+                    <div
+                        style={styles.trayIconWrap}
+                        title={
+                            connection.online
+                                ? 'Connected to the Internet'
+                                : 'No connection'
+                        }
+                        data-open={connectionOpen}
+                        onPointerDown={trayToggle(setConnectionOpen)}
+                    >
+                        <Icon
+                            icon={
+                                connection.online ? 'dialupIcon' : 'offlineIcon'
+                            }
+                            size={16}
+                        />
+                    </div>
+
+                    {/* Only on a machine that has a battery to report. */}
+                    {battery.supported && (
+                        <div
+                            style={styles.trayIconWrap}
+                            title={batterySummary(battery)}
+                            data-open={batteryOpen}
+                            onPointerDown={trayToggle(setBatteryOpen)}
+                        >
+                            <BatteryGauge state={battery} />
+                        </div>
+                    )}
+
                     <div
                         style={styles.trayIconWrap}
                         title="Screen resolution"
-                        onPointerDown={(e) => {
-                            e.stopPropagation();
-                            closeTrayPopups();
-                            setResMenuOpen((o) => !o);
-                        }}
+                        data-open={resMenuOpen}
+                        onPointerDown={trayToggle(setResMenuOpen)}
                     >
                         <Icon icon="displayIcon" size={16} />
                     </div>
-                    <Icon style={styles.volumeIcon} icon="volumeOn" />
-                    <p style={styles.timeText}>{time}</p>
+
+                    {/* A real control now: this is what silences the desktop. */}
+                    <div
+                        style={styles.trayIconWrap}
+                        title={muted ? 'Sound is off' : 'Sound is on'}
+                        onPointerDown={(e) => {
+                            e.stopPropagation();
+                            closeTrayPopups();
+                            // Unmuting should be audible; muting should not.
+                            if (muted) {
+                                toggleMuted();
+                                playClick();
+                            } else {
+                                playClick();
+                                toggleMuted();
+                            }
+                        }}
+                    >
+                        <Icon icon={muted ? 'volumeOff' : 'volumeOn'} size={16} />
+                    </div>
+
+                    <p
+                        style={styles.timeText}
+                        title="Click for the calendar"
+                        onPointerDown={trayToggle(setCalendarOpen)}
+                        data-open={calendarOpen}
+                    >
+                        {time}
+                    </p>
                 </div>
             </div>
         </div>
@@ -743,10 +931,12 @@ const styles: StyleSheetCSS = {
     },
     time: {
         position: 'relative',
-        flexShrink: 1,
-        // Wide enough for the weather, market and display icons, volume and
-        // the clock.
-        width: 158,
+        // Sized to whatever is in it rather than to a fixed width: the tray
+        // gains and loses icons (the battery only appears on a machine that
+        // reports one), and a fixed width either clipped the clock or left a
+        // gap depending on the device.
+        flexShrink: 0,
+        gap: 4,
         height: 24,
         boxSizing: 'border-box',
         marginRight: 4,
@@ -758,6 +948,19 @@ const styles: StyleSheetCSS = {
         justifyContent: 'space-between',
         alignItems: 'center',
         borderLeftColor: Colors.darkGray,
+    },
+    trayIconOff: {
+        opacity: 0.45,
+    },
+    clippyGlyph: {
+        fontSize: 13,
+        lineHeight: '16px',
+    },
+    startMenuClippy: {
+        width: 32,
+        fontSize: 20,
+        textAlign: 'center',
+        lineHeight: '32px',
     },
     trayIconWrap: {
         cursor: 'pointer',
@@ -811,6 +1014,9 @@ const styles: StyleSheetCSS = {
     timeText: {
         fontSize: 12,
         fontFamily: 'MSSerif',
+        cursor: 'pointer',
+        // Instant taps on touch devices (no 300ms double-tap-zoom wait).
+        touchAction: 'manipulation',
     },
 };
 

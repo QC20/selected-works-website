@@ -2,6 +2,7 @@ import React, { useMemo, useState } from 'react';
 import Window from '../os/Window';
 import Colors from '../../constants/colors';
 import { Icon } from '../general';
+import { batterySummary, useBattery } from '../os/battery';
 
 /**
  * System Properties — what right-clicking My Computer and choosing Properties
@@ -89,6 +90,8 @@ const SystemProperties: React.FC<SystemPropertiesProps> = ({
 }) => {
     const [tab, setTab] = useState<Tab>('general');
     const machine = useMemo(detect, []);
+    // A real reading where the browser offers one; the row says so where not.
+    const battery = useBattery();
 
     return (
         <Window
@@ -186,6 +189,22 @@ const SystemProperties: React.FC<SystemPropertiesProps> = ({
                                     items={[machine.connection]}
                                 />
                                 <DeviceGroup
+                                    icon={
+                                        battery.supported && !battery.charging
+                                            ? 'batteryIcon'
+                                            : 'acPowerIcon'
+                                    }
+                                    label="System devices"
+                                    items={[
+                                        battery.supported
+                                            ? `Battery — ${batterySummary(battery)}`
+                                            : 'No battery detected (this browser does not report one)',
+                                        battery.supported && battery.charging
+                                            ? 'AC adapter — connected'
+                                            : 'AC adapter — not reported',
+                                    ]}
+                                />
+                                <DeviceGroup
                                     icon="soundRecorderIcon"
                                     label="Sound, video and game controllers"
                                     items={[
@@ -219,6 +238,10 @@ const SystemProperties: React.FC<SystemPropertiesProps> = ({
                                 <Row
                                     label="Language:"
                                     value={machine.language}
+                                />
+                                <Row
+                                    label="Power:"
+                                    value={batterySummary(battery)}
                                 />
                             </div>
                             <div style={styles.note}>
@@ -281,7 +304,14 @@ const Row: React.FC<{ label: string; value: string }> = ({ label, value }) => (
 );
 
 const DeviceGroup: React.FC<{
-    icon: 'computerSmall' | 'displayIcon' | 'hardDriveIcon' | 'internetExplorerIcon' | 'soundRecorderIcon';
+    icon:
+        | 'computerSmall'
+        | 'displayIcon'
+        | 'hardDriveIcon'
+        | 'internetExplorerIcon'
+        | 'soundRecorderIcon'
+        | 'batteryIcon'
+        | 'acPowerIcon';
     label: string;
     items: string[];
 }> = ({ icon, label, items }) => (

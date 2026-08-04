@@ -77,5 +77,13 @@ Minesweeper (game logic and presentation), rewritten in TypeScript for this
 codebase. The "Shut Down Windows" dialog and log-on screen follow the same
 project's equivalents.
 
+The Clippy animations in `src/assets/clippy/` come from the same project, under
+the same MIT licence. Clippy (Clippit) is Microsoft's Office Assistant character;
+the animations are used here nominatively, for a personal, non-commercial
+portfolio recreating the era he belongs to.
+
+The Internet Explorer toolbar buttons in `src/assets/icons/ie*.png` are likewise
+from that project.
+
 The MSN Messenger and GitHub marks are trademarks of their respective owners and are
 used here nominatively for a personal, non-commercial portfolio.

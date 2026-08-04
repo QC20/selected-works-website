@@ -1,7 +1,7 @@
 {
   "files": {
-    "main.css": "/static/css/main.928870d0.css",
-    "main.js": "/static/js/main.a1e2ebb1.js",
+    "main.css": "/static/css/main.b9cc9dee.css",
+    "main.js": "/static/js/main.bcb71d1a.js",
     "static/js/453.d0e5d6a3.chunk.js": "/static/js/453.d0e5d6a3.chunk.js",
     "static/media/NChainzSoundCafeSession.mp3": "/static/media/NChainzSoundCafeSession.3ec9cd8ac986dc8f09dc.mp3",
     "static/media/NChainsQuantumSession.mp3": "/static/media/NChainsQuantumSession.0b4d4e7e3cb0bfca7fc8.mp3",
@@ -56,14 +56,21 @@
     "static/media/011.jpg": "/static/media/011.b52ad469db6c852ae0cb.jpg",
     "static/media/014.jpg": "/static/media/014.ba09a757674ec4f4f320.jpg",
     "static/media/010.jpg": "/static/media/010.3c33a117b6c216cbe22e.jpg",
+    "static/media/clippy5.gif": "/static/media/clippy5.8bc406721044d4bb4dcd.gif",
+    "static/media/clippy6.gif": "/static/media/clippy6.fd69f8c8008b9ca423f0.gif",
     "static/media/cdSpin.gif": "/static/media/cdSpin.70ba1cc033231c5a41fa.gif",
     "static/media/rasPiCase.jpg": "/static/media/rasPiCase.46e670d1ec1f59b7f7bf.jpg",
+    "static/media/clippy2.gif": "/static/media/clippy2.29a23841d84902c4d4ef.gif",
     "static/media/eyeTrackingSetup.jpeg": "/static/media/eyeTrackingSetup.632227c63babfb2e6096.jpeg",
     "static/media/002.jpg": "/static/media/002.f50e6b65df724e4d2741.jpg",
     "static/media/012.jpg": "/static/media/012.1fc5ff6c4b6ee9cd1be0.jpg",
     "static/media/ee.jpg": "/static/media/ee.7656e3a317181c8a39b1.jpg",
+    "static/media/clippy7.gif": "/static/media/clippy7.88f3d79ddab18a245037.gif",
     "static/media/Terminal.ttf": "/static/media/Terminal.6a1b7290048681921b2c.ttf",
+    "static/media/clippy4.gif": "/static/media/clippy4.65d12ba618d242562b3f.gif",
     "static/media/neverGiveUp.jpg": "/static/media/neverGiveUp.c9ee4e48677de77065a9.jpg",
+    "static/media/clippy1.gif": "/static/media/clippy1.b6aae331f17226d5bf50.gif",
+    "static/media/clippy3.gif": "/static/media/clippy3.fd79507bfe312602dbc8.gif",
     "static/media/005.jpg": "/static/media/005.b25489e29871cf9884f9.jpg",
     "static/media/audioIconsLoop.png": "/static/media/audioIconsLoop.7e601de05177d861b790.png",
     "static/media/meDJing2.jpg": "/static/media/meDJing2.a124f8cc8a4d996c24de.jpg",
@@ -76,12 +83,12 @@
     "static/media/transfer.png": "/static/media/transfer.d567922a00b918c90ad5.png",
     "static/media/paint-brush.gif": "/static/media/paint-brush.4881379e32bfc50962aa.gif",
     "index.html": "/index.html",
-    "main.928870d0.css.map": "/static/css/main.928870d0.css.map",
-    "main.a1e2ebb1.js.map": "/static/js/main.a1e2ebb1.js.map",
+    "main.b9cc9dee.css.map": "/static/css/main.b9cc9dee.css.map",
+    "main.bcb71d1a.js.map": "/static/js/main.bcb71d1a.js.map",
     "453.d0e5d6a3.chunk.js.map": "/static/js/453.d0e5d6a3.chunk.js.map"
   },
   "entrypoints": [
-    "static/css/main.928870d0.css",
-    "static/js/main.a1e2ebb1.js"
+    "static/css/main.b9cc9dee.css",
+    "static/js/main.bcb71d1a.js"
   ]
 }

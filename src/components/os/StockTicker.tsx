@@ -16,9 +16,9 @@ import {
 /**
  * The tray ticker — what the coin beside the clock opens.
  *
- * Three companies at a glance, each with a month of price behind it: Microsoft
- * and Apple, because this desktop is one of theirs and the other one is why it
- * looked like this, and IBM, which was already there. That's the whole panel —
+ * Five companies at a glance, each with a month of price behind it — the ones
+ * that between them built the machine this desktop is pretending to be (see
+ * DEFAULT_WATCHLIST). That's the whole panel —
  * the tray is 172 pixels wide and a chart deserves more than that, so clicking
  * any row (or the button at the bottom) opens the Market Watch window, where
  * the real chart, the metrics and the company search live.
@@ -39,9 +39,9 @@ const StockTicker: React.FC<StockTickerProps> = ({ open, onOpenApp }) => {
     const [loading, setLoading] = useState(false);
     const [typed, setTyped] = useState('');
 
-    // The three the panel shows: whatever's at the top of your watch list, or
+    // The five the panel shows: whatever's at the top of your watch list, or
     // the presets on a first visit.
-    const symbols = loadWatchlist().slice(0, 3);
+    const symbols = loadWatchlist().slice(0, 5);
     const shown = symbols.length ? symbols : DEFAULT_WATCHLIST;
 
     const load = useCallback(async (force = false) => {
@@ -49,7 +49,7 @@ const StockTicker: React.FC<StockTickerProps> = ({ open, onOpenApp }) => {
         setError(null);
         try {
             const fresh = await fetchQuotes(
-                loadWatchlist().slice(0, 3),
+                loadWatchlist().slice(0, 5),
                 TRAY_RANGE,
                 { force }
             );

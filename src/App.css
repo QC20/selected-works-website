@@ -133,3 +133,17 @@ body {
     90%  { margin-left: -2px; }
     100% { margin-left: 0; }
 }
+
+/* The "Click here to begin" balloon breathes rather than flashes — it is an
+   invitation on an otherwise still desktop, not a warning. */
+@keyframes startBalloonPulse {
+    0%,
+    100% {
+        transform: translateY(0);
+        opacity: 1;
+    }
+    50% {
+        transform: translateY(-3px);
+        opacity: 0.9;
+    }
+}

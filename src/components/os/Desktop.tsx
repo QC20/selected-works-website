@@ -75,6 +75,10 @@ import {
 } from './desktopMenus';
 import { isOptional, uninstall, useInstalledApps } from './installedApps';
 import Screensaver, { useScreensaverSettings } from './Screensaver';
+import Snake from '../applications/Snake';
+import Tetris from '../applications/Tetris';
+import Clippy from './Clippy';
+import StartBalloon from './StartBalloon';
 
 // Apps whose icon launches a full-screen takeover (the 3D experience) rather
 // than opening a draggable window. Keyed by their APPLICATIONS key.
@@ -274,6 +278,25 @@ const APPLICATIONS: {
         component: Store,
     },
 
+    // The two games written for this desktop. Deliberately no desktop icon:
+    // they're reached from Hard Disk (C:) > Games and Start > Games, like the
+    // rest of the games that aren't already on the desktop.
+    snake: {
+        key: 'snake',
+        name: 'Snake',
+        shortcutIcon: 'snakeIcon',
+        component: Snake,
+        noDesktopIcon: true,
+    },
+
+    tetris: {
+        key: 'tetris',
+        name: 'Tetris',
+        shortcutIcon: 'tetrisIcon',
+        component: Tetris,
+        noDesktopIcon: true,
+    },
+
     // Right-click My Computer > Properties, and Run "systemProperties".
     systemProperties: {
         key: 'systemProperties',
@@ -470,6 +493,10 @@ const Desktop: React.FC<DesktopProps> = (props) => {
     // Screen saver settings, written by Display Properties. Subscribed rather
     // than read once, so choosing a different saver takes effect immediately.
     const screensaver = useScreensaverSettings();
+
+    // Whether Start has ever been opened this session. The only thing that
+    // reads it is the "Click here to begin" balloon, which has then done its job.
+    const [startMenuUsed, setStartMenuUsed] = useState(false);
 
     // Desktop appearance, changed from Start → Settings (persisted).
     const theme = useTheme();
@@ -1282,6 +1309,13 @@ const Desktop: React.FC<DesktopProps> = (props) => {
                 ))}
             </div>
 
+            <StartBalloon dismissed={startMenuUsed} />
+            <Clippy
+                suspended={
+                    experienceOpen || shutdownDialogOpen || loggedOff
+                }
+            />
+
             {contextMenu && (
                 <ContextMenu
                     x={contextMenu.x}
@@ -1298,6 +1332,11 @@ const Desktop: React.FC<DesktopProps> = (props) => {
                     windows={windows}
                     toggleMinimize={toggleMinimize}
                     shutdown={startShutdown}
+                    logOff={() => {
+                        setWindows({});
+                        setLoggedOff(true);
+                    }}
+                    onStartOpened={() => setStartMenuUsed(true)}
                     resolution={resolution}
                     setResolution={setResolution}
                     openApp={openApp}

@@ -57,6 +57,17 @@ import stocksIcon from './stocksIcon.png';
 // Add/Remove Programs and System Properties, converted from the Windows 95/98
 // icon set in `public/WIN95-OS_-_Style-Logos` like the Utility folder's icons.
 import storeIcon from './storeIcon.png';
+// Snake and Tetris, drawn for this desktop like the weather set — the icon
+// pack has no art for either game.
+import snakeIcon from './snakeIcon.png';
+import tetrisIcon from './tetrisIcon.png';
+// The system tray's battery, dial-up and log-off art, and the Games folder.
+import batteryIcon from './batteryIcon.png';
+import acPowerIcon from './acPowerIcon.png';
+import dialupIcon from './dialupIcon.png';
+import offlineIcon from './offlineIcon.png';
+import gamesFolderIcon from './gamesFolderIcon.png';
+import logOffIcon from './logOffIcon.png';
 import systemIcon from './systemIcon.png';
 // The tray weather panel. Drawn for this desktop (see the note in Weather.tsx):
 // the icon set has no weather art, so these are 32x32 pixel art in its palette.
@@ -146,6 +157,14 @@ const icons = {
     runIcon: runIcon,
     stocksIcon: stocksIcon,
     storeIcon: storeIcon,
+    snakeIcon: snakeIcon,
+    tetrisIcon: tetrisIcon,
+    batteryIcon: batteryIcon,
+    acPowerIcon: acPowerIcon,
+    dialupIcon: dialupIcon,
+    offlineIcon: offlineIcon,
+    gamesFolderIcon: gamesFolderIcon,
+    logOffIcon: logOffIcon,
     systemIcon: systemIcon,
     weatherSunIcon: weatherSunIcon,
     weatherPartlyIcon: weatherPartlyIcon,

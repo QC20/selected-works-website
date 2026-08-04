@@ -5,6 +5,7 @@ import { Icon } from '../general';
 import { IconName } from '../../assets/icons';
 import pictures from '../os/pictures';
 import { PROGRAMS_CONTENTS } from './ProgramsFolder';
+import { GAMES } from './games';
 import {
     NOTES_DIR,
     PAINTINGS_DIR,
@@ -27,6 +28,7 @@ import {
  *
  *   My Computer
  *   ├── Hard Disk (C:) → Programs     → Paint, Notepad, Solitaire, …
+ *   │                  → Games        → every game on the machine
  *   │                  → My Documents → Notes     (what Notepad saved)
  *   │                                 → Paintings (what Paint saved)
  *   │                  → Pictures     → 19 photos, shipped with the build
@@ -48,6 +50,7 @@ type FolderId =
     | 'diskD'
     | 'cdRom'
     | 'programs'
+    | 'games'
     | 'pictures'
     | 'myDocuments'
     | 'notes'
@@ -67,6 +70,7 @@ const FOLDERS: FolderDef[] = [
     { id: 'myComputer', label: 'My Computer', icon: 'myComputerIcon', parent: null, depth: 0 },
     { id: 'diskC', label: 'Hard Disk (C:)', icon: 'hardDriveIcon', parent: 'myComputer', depth: 1 },
     { id: 'programs', label: 'Programs', icon: 'programsFolderIcon', parent: 'diskC', depth: 2 },
+    { id: 'games', label: 'Games', icon: 'gamesFolderIcon', parent: 'diskC', depth: 2 },
     { id: 'myDocuments', label: 'My Documents', icon: 'folderIcon', parent: 'diskC', depth: 2 },
     { id: 'notes', label: 'Notes', icon: 'folderIcon', parent: 'myDocuments', depth: 3 },
     { id: 'paintings', label: 'Paintings', icon: 'folderIcon', parent: 'myDocuments', depth: 3 },
@@ -110,6 +114,7 @@ const CONTENTS: { [key in FolderId]: Entry[] } = {
     ],
     diskC: [
         folderEntry('programs', 42_000, 'File Folder'),
+        folderEntry('games', 31_000, 'File Folder'),
         folderEntry('myDocuments', 0, 'File Folder'),
         folderEntry('pictures', 4300, 'File Folder'),
     ],
@@ -123,6 +128,16 @@ const CONTENTS: { [key in FolderId]: Entry[] } = {
     ],
     notes: [],
     paintings: [],
+    // Every game on the machine, from the one list `games.ts` owns — so this
+    // folder and the Start menu's Games fly-out cannot disagree.
+    games: GAMES.map((game) => ({
+        key: game.key,
+        label: game.name,
+        icon: game.icon,
+        size: game.size,
+        type: 'Application',
+        launch: game.key,
+    })),
     // The same list the Programs folder window shows, so C:\Programs and the
     // Programs folder on the desktop can't disagree about what's installed.
     programs: PROGRAMS_CONTENTS.map((item) => ({

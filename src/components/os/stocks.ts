@@ -65,7 +65,14 @@ export const RANGES: { value: RangeKey; label: string; caption: string }[] = [
  * that story and was already wiring the world together when the machine this
  * pretends to be shipped. All three are still listed, so all three still draw.
  */
-export const DEFAULT_WATCHLIST = ['MSFT', 'AAPL', 'IBM'];
+/**
+ * The opening watch list: five companies that were all on the desk this
+ * machine is pretending to be. Microsoft made the operating system, Apple made
+ * the argument against it, IBM made the box the whole thing was compatible
+ * with, Intel made the processor inside it, and Cisco made the network the
+ * Internet Explorer icon dials into.
+ */
+export const DEFAULT_WATCHLIST = ['MSFT', 'AAPL', 'IBM', 'INTC', 'CSCO'];
 
 /** The tray panel's range — a month is enough shape for a 60px sparkline. */
 export const TRAY_RANGE: RangeKey = '1mo';
