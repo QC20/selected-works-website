@@ -119,7 +119,7 @@ const PractitionerArticles: React.FC<PractitionerArticlesProps> = (props) => {
                         knowledge-worker employees, managers must simultaneously navigate AI as a personal productivity tool,
                         as an object of governance they are responsible for, and as a force reshaping the relational and
                         coordinative work that defines their role. The workshops create space for managers to examine these
-                        tensions collectively — surfacing the particular affordances and challenges that AI integration holds
+                        tensions collectively, surfacing the particular affordances and challenges that AI integration holds
                         for their group, and developing shared language for what is genuinely novel about their situation.
                     </p>
                     <br /><br />
@@ -159,7 +159,7 @@ const PractitionerArticles: React.FC<PractitionerArticlesProps> = (props) => {
                     <p>
                         This practitioner workshop, held at Dansk Industri's annual work environment conference at Nyborg Strand,
                         invited a group of managers to investigate what the accelerating integration of AI means specifically for
-                        middle management — and why that question cannot simply be answered by extrapolating from the employee
+                        middle management, and why that question cannot simply be answered by extrapolating from the employee
                         experience. The session opened with a short provocation grounded in my PhD research: that managers are
                         confronted with AI not just as users, but as the layer of the organization expected to absorb, translate,
                         and govern its consequences for others.
@@ -220,13 +220,13 @@ const PractitionerArticles: React.FC<PractitionerArticlesProps> = (props) => {
                         from Lab25 with a sharper focus on the psychological and organizational conditions that make the
                         manager's encounter with AI distinct. The session was designed around the observation that
                         much public and organizational discourse about AI and work is framed from the perspective of
-                        the individual knowledge worker — and that middle managers, as a group with particular structural
+                        the individual knowledge worker, and that middle managers, as a group with particular structural
                         responsibilities, tend to be rendered invisible in that framing.
                     </p>
                     <br />
                     <p>
                         Participants explored three interrelated questions: What routine tasks are quietly disappearing from
-                        their workday — and what cognitive and relational functions did those tasks serve? How does AI
+                        their workday, and what cognitive and relational functions did those tasks serve? How does AI
                         change the nature of the managerial role when the informational and coordinative scaffolding
                         of that role is increasingly automated? And how might organizations design AI adoption processes
                         that take the well-being and specific working conditions of managers seriously, rather than

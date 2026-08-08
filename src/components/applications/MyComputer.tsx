@@ -15,6 +15,7 @@ import {
     listDocuments,
     seedDocuments,
 } from '../os/win98fs';
+import { syncCommunityFiles } from '../os/communityFiles';
 
 /**
  * My Computer — one window that browses a small fake filesystem, modelled on
@@ -249,12 +250,22 @@ const MyComputer: React.FC<MyComputerProps> = ({
         []
     );
 
-    // Seeding happens once per browser and only creates files that aren't
-    // there, so running it on open costs nothing after the first visit.
+    /**
+     * Seeding happens once per browser and only creates files that aren't
+     * there, so running it on open costs nothing after the first visit.
+     *
+     * The gallery sync runs straight after, and is why these folders fill up
+     * over time: it writes everything other visitors have saved onto this
+     * drive, so from here on the folder listing is just a folder listing. It
+     * is done on open rather than at boot so a visitor who never looks in My
+     * Documents never pays for it.
+     */
     useEffect(() => {
         if (!isDocumentFolder) return;
         let cancelled = false;
         seedDocuments()
+            .catch(() => undefined)
+            .then(() => syncCommunityFiles())
             .catch(() => undefined)
             .then(() => {
                 if (!cancelled) refreshDocuments(documentDir);

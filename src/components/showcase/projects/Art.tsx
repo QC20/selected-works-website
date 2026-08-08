@@ -534,7 +534,7 @@ const ArtProjects: React.FC<ArtProjectsProps> = (props) => {
               (LDR). Watch as particles dance across the screen, their movements
               dictated by both your mouse's position and real-world sensor data
               handled through an Arduino board. In this demonstration, an LDR
-              sensor takes center stage, but the possibilities are endless – you
+              sensor takes center stage, but the possibilities are endless, and you
               can seamlessly integrate various sensor inputs and tweak the code
               to suit your creative vision.
             </p>

@@ -273,7 +273,7 @@ const MusicProjects: React.FC<MusicProjectsProps> = () => {
           >
             Ableton
           </a>
-          . But it doesn't stop there – it led me to experiment with visual art
+          . But it doesn't stop there, it led me to experiment with visual art
           expressions and graphic design, expanding my creative horizons even
           further.
         </p>
@@ -859,14 +859,14 @@ const MusicProjects: React.FC<MusicProjectsProps> = () => {
           <div className="full-figure">
             {/* No loading="lazy" here: the showcase scrolls inside a nested,
                 transformed window, and Chrome never fires the load for a lazy
-                image in that stack — it just stays blank. */}
+                image in that stack, so it just stays blank. */}
             <img
               src={SummerhousePainting}
               alt="Pouring paint across a two-by-two-metre canvas outdoors"
             />
             <p>
               <sub>
-                <b>Image 6:</b> My largest canvas to date — 2×2 metres (4 m²),
+                <b>Image 6:</b> My largest canvas to date, 2×2 metres (4 m²),
                 and a genuinely overwhelming thing to take on. Working outdoors
                 let me layer freely with turpentine and other organic solvents
                 to get the effect I was after (summer '26).

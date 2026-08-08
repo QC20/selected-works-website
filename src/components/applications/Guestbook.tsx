@@ -61,8 +61,16 @@ const Guestbook: React.FC<GuestbookProps> = (props) => {
     const [status, setStatus] = useState<'loading' | 'ready' | 'error'>('loading');
     const [sending, setSending] = useState(false);
 
-    // The "Username" dialog that floats over the window, as in the example.
-    const [nameDialogOpen, setNameDialogOpen] = useState(false);
+    /**
+     * The "Username" dialog that floats over the window, as in the example.
+     *
+     * It opens by itself the first time, when nothing has been typed here
+     * before. Previously it was only reachable from the small toolbar button,
+     * which made the whole thing feel arbitrary: whether you were asked for a
+     * name depended on whether you had spotted a 34px icon. Asking once, up
+     * front, is both the deterministic behaviour and what the real client did.
+     */
+    const [nameDialogOpen, setNameDialogOpen] = useState(() => !name.trim());
     const [nameDraft, setNameDraft] = useState(name);
 
     const [botActive, setBotActive] = useState(

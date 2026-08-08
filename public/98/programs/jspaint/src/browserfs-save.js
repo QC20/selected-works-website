@@ -153,6 +153,41 @@
 		});
 	}
 
+	/**
+	 * Sends a saved picture up to the shared gallery, so it turns up in
+	 * everyone else's Paintings folder too. Local saving has already happened
+	 * by the time this runs, so a failure here costs nothing.
+	 */
+	function publishPainting(name, blob) {
+		if (!window.gallery) return;
+		window.gallery.blobToDataUrl(blob, function (dataUrl) {
+			if (!dataUrl) return;
+			/*
+			 * jspaint's blobs often carry no type, so FileReader labels them
+			 * "application/octet-stream". Decoding does not care, but a row in
+			 * the gallery is much more useful if its data: URL can simply be
+			 * pasted into an address bar — so the real type goes back on, taken
+			 * from the extension the file was saved under.
+			 */
+			var ext = (name.split(".").pop() || "png").toLowerCase();
+			var mime =
+				ext === "jpg" || ext === "jpeg"
+					? "image/jpeg"
+					: ext === "gif"
+					? "image/gif"
+					: ext === "bmp"
+					? "image/bmp"
+					: ext === "webp"
+					? "image/webp"
+					: "image/png";
+			var comma = dataUrl.indexOf(",");
+			if (comma > 0) {
+				dataUrl = "data:" + mime + ";base64," + dataUrl.slice(comma + 1);
+			}
+			window.gallery.publish("painting", name, dataUrl);
+		});
+	}
+
 	function invalidNameReason(name) {
 		if (!name.trim()) return "You must type a file name.";
 		if (/[\\/:*?"<>|]/.test(name)) {
@@ -345,52 +380,84 @@
 
 	window.systemHooks.showSaveFileDialog = function (options) {
 		return new Promise(function (resolve) {
-			fileDialog({
-				title: "Save As",
-				mode: "save",
-				defaultName: options.defaultFileName || "Untitled.png",
-				formats: options.formats,
-				onCancel: resolve,
-				onAction: function (name, location, $window, format) {
-					if (!format) {
-						show_error_message("Choose a file type to save as.");
-						return;
-					}
-					options.getBlob(format.formatID).then(function (blob) {
-						if (location === "device") {
-							saveAs(blob, name);
-							$window.close();
-							if (options.savedCallbackUnreliable) {
-								options.savedCallbackUnreliable({
-									newFileName: name,
-									newFileFormatID: format.formatID,
-									newBlob: blob,
-								});
-							}
-							resolve();
+			/*
+			 * The name the box opens with. Paint suggests "Untitled" (in the
+			 * browser's language — Danish gets "Ikke-navngivet"), and since the
+			 * Paintings folder is shared and already full of other people's
+			 * work, that suggestion is usually taken. Count up to the first
+			 * free one, the way a file manager does.
+			 *
+			 * The extension has to go on *before* the comparison: jspaint's
+			 * suggestion has none, everything in the folder does, and without
+			 * this "Untitled" never matches "Untitled.png" and the dedupe
+			 * silently does nothing.
+			 */
+			var suggested = options.defaultFileName || "Untitled";
+			if (
+				!/\.[a-z0-9]{1,8}$/i.test(suggested) &&
+				options.formats &&
+				options.formats.length
+			) {
+				// The first format is the one the dialog preselects.
+				suggested += "." + options.formats[0].extensions[0];
+			}
+			var pickName = window.gallery
+				? function (cb) {
+						window.gallery.nextFreeName("painting", suggested, cb);
+				  }
+				: function (cb) {
+						cb(suggested);
+				  };
+
+			pickName(function (defaultName) {
+				fileDialog({
+					title: "Save As",
+					mode: "save",
+					defaultName: defaultName,
+					formats: options.formats,
+					onCancel: resolve,
+					onAction: function (name, location, $window, format) {
+						if (!format) {
+							show_error_message("Choose a file type to save as.");
 							return;
 						}
-						writePainting(name, blob, function (error, path) {
-							if (error) {
-								show_error_message(
-									"Failed to save the picture.",
-									error
-								);
+						options.getBlob(format.formatID).then(function (blob) {
+							if (location === "device") {
+								saveAs(blob, name);
+								$window.close();
+								if (options.savedCallbackUnreliable) {
+									options.savedCallbackUnreliable({
+										newFileName: name,
+										newFileFormatID: format.formatID,
+										newBlob: blob,
+									});
+								}
+								resolve();
 								return;
 							}
-							$window.close();
-							if (options.savedCallbackUnreliable) {
-								options.savedCallbackUnreliable({
-									newFileName: name,
-									newFileFormatID: format.formatID,
-									newFileHandle: path,
-									newBlob: blob,
-								});
-							}
-							resolve();
+							writePainting(name, blob, function (error, path) {
+								if (error) {
+									show_error_message(
+										"Failed to save the picture.",
+										error
+									);
+									return;
+								}
+								$window.close();
+								publishPainting(name, blob);
+								if (options.savedCallbackUnreliable) {
+									options.savedCallbackUnreliable({
+										newFileName: name,
+										newFileFormatID: format.formatID,
+										newFileHandle: path,
+										newBlob: blob,
+									});
+								}
+								resolve();
+							});
 						});
-					});
-				},
+					},
+				});
 			});
 		});
 	};
@@ -434,10 +501,39 @@
 			var name = handle.split("/").pop();
 			writePainting(name, blob, function (error) {
 				if (error) show_error_message("Failed to save the picture.", error);
+				// Re-saving an existing picture posts the new version rather
+				// than replacing the old row: the gallery is append-only (the
+				// anon key has no update policy), so both revisions survive.
+				if (!error) publishPainting(name, blob);
 				resolve(!error);
 			});
 		});
 	};
+
+	/*
+	 * "Save this drawing" in Clippy's balloon.
+	 *
+	 * jspaint is built as ES modules, so `file_save_as` is not a global the way
+	 * Notepad's is. Importing the module again is free: the browser hands back
+	 * the instance already running, so this drives the same Save As the File
+	 * menu does rather than a second copy of the app's state.
+	 *
+	 * The URL is absolute because dynamic import from a classic script resolves
+	 * against the document, and this file is shared between programs.
+	 */
+	if (window.gallery) {
+		window.gallery.onSaveRequest(function () {
+			import("/98/programs/jspaint/src/functions.js")
+				.then(function (module) {
+					if (module && typeof module.file_save_as === "function") {
+						module.file_save_as();
+					}
+				})
+				.catch(function () {
+					/* File > Save As still works */
+				});
+		});
+	}
 
 	window.systemHooks.readBlobFromHandle = function (handle) {
 		if (typeof handle !== "string") return Promise.resolve(undefined);

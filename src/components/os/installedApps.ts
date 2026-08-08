@@ -52,13 +52,10 @@ export const STORE_APPS: StoreApp[] = [
         size: 12_000,
         category: 'Games',
     },
-    {
-        key: 'trail',
-        name: 'The Oregon Trail',
-        blurb: 'Ford the river. Lose an ox. Die of dysentery.',
-        size: 8400,
-        category: 'Games',
-    },
+    // The Oregon Trail is deliberately absent: it has no desktop icon any
+    // more (see APPLICATIONS in Desktop.tsx), and a checkbox here that adds an
+    // icon which never appears is worse than not offering it. It is still in
+    // Start > Games and Hard Disk (C:) > Games.
     {
         key: 'scrabble',
         name: 'Scrabble',

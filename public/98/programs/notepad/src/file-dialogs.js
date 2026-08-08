@@ -232,6 +232,26 @@ function show_file_dialog(options) {
  * download has been handed to the browser.
  */
 function show_save_as_dialog(default_name, content, on_saved) {
+	/*
+	 * The Notes folder is shared, so by the time anyone gets here it is full of
+	 * other people's files and "Untitled.txt" is almost certainly taken. Open
+	 * the box on the first free name instead — "Untitled 1.txt", "Untitled
+	 * 2.txt" — which is what every file manager does and what stops two
+	 * visitors quietly overwriting each other.
+	 *
+	 * Only the *suggestion* changes: a name typed by hand is still honoured,
+	 * and still prompts before it replaces anything.
+	 */
+	if (window.gallery && /^untitled(\s\d+)?(\.[a-z0-9]+)?$/i.test(default_name)) {
+		window.gallery.nextFreeName("note", default_name, function (free) {
+			open_save_as_dialog(free, content, on_saved);
+		});
+		return;
+	}
+	return open_save_as_dialog(default_name, content, on_saved);
+}
+
+function open_save_as_dialog(default_name, content, on_saved) {
 	var dialog = show_file_dialog({
 		title: "Save As",
 		locationLabel: "Save in:",
@@ -280,6 +300,12 @@ function show_save_as_dialog(default_name, content, on_saved) {
 								return;
 							}
 							$window.close();
+							// Into the shared gallery, so the note turns up in
+							// everyone else's Notes folder as well. The file is
+							// already safely on the drive by this point.
+							if (window.gallery) {
+								window.gallery.publish("note", name, content);
+							}
 							on_saved(name, location, path);
 						});
 					}
@@ -317,5 +343,16 @@ function show_open_dialog(on_opened) {
 				});
 			});
 		},
+	});
+}
+
+/*
+ * "Save this note" in Clippy's balloon. Notepad's scripts are classic (not
+ * modules), so its own `file_save_as` is already a global on this window and
+ * the desktop only has to ask for it.
+ */
+if (window.gallery) {
+	window.gallery.onSaveRequest(function () {
+		if (typeof window.file_save_as === "function") window.file_save_as();
 	});
 }

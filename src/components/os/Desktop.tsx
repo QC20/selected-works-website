@@ -171,11 +171,26 @@ const APPLICATIONS: {
         component: MyComputer,
     },
 
+    // Takes the slot The Oregon Trail used to hold. The bin is somewhere you
+    // end up needing rather than somewhere you go looking, so it earns a place
+    // near the top of the first column more than a single game does.
+    recycleBin: {
+        key: 'recycleBin',
+        name: 'Recycle Bin',
+        shortcutIcon: 'recycleBinIcon',
+        component: RecycleBin,
+    },
+
+    // No desktop icon on purpose: the desktop was crowded and one emulated
+    // game does not need to be the fourth thing you see. Still reachable
+    // everywhere else — Start > Games, Hard Disk (C:) > Games, the Store, and
+    // by typing "The Oregon Trail" into Run.
     trail: {
         key: 'trail',
         name: 'The Oregon Trail',
         shortcutIcon: 'trailIcon',
         component: OregonTrail,
+        noDesktopIcon: true,
     },
     doom: {
         key: 'doom',
@@ -223,6 +238,17 @@ const APPLICATIONS: {
         noDesktopIcon: true,
     },
 
+    // Launches the 3D CRT-room experience instead of a window (see Desktop render).
+    // `component` is unused for this entry; kept only to satisfy the map's type.
+    // Sits above Interactive Attractor: it is the biggest thing on the machine
+    // and wants to be found before the toy next to it.
+    stepOutside: {
+        key: 'stepOutside',
+        name: 'Step Outside',
+        shortcutIcon: 'computerBig',
+        component: floatingSphere,
+    },
+
     floating: {
         key: 'floating',
         name: 'Interactive Attractor',
@@ -238,15 +264,6 @@ const APPLICATIONS: {
         component: GitHubViewer,
     },
 
-    // Launches the 3D CRT-room experience instead of a window (see Desktop render).
-    // `component` is unused for this entry; kept only to satisfy the map's type.
-    stepOutside: {
-        key: 'stepOutside',
-        name: 'Step Outside',
-        shortcutIcon: 'computerBig',
-        component: floatingSphere,
-    },
-
     mail: {
         key: 'mail',
         name: 'Mail',
@@ -259,13 +276,6 @@ const APPLICATIONS: {
         name: 'About',
         shortcutIcon: 'aboutIcon',
         component: About,
-    },
-
-    recycleBin: {
-        key: 'recycleBin',
-        name: 'Recycle Bin',
-        shortcutIcon: 'recycleBinIcon',
-        component: RecycleBin,
     },
 
     // Add/Remove Programs. Decides which of the optional apps get a desktop
@@ -1314,6 +1324,7 @@ const Desktop: React.FC<DesktopProps> = (props) => {
                 suspended={
                     experienceOpen || shutdownDialogOpen || loggedOff
                 }
+                openApp={openApp}
             />
 
             {contextMenu && (

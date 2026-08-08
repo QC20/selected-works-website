@@ -1,0 +1,53 @@
+# Keeps the Supabase project awake.
+# ---------------------------------
+# Supabase pauses a free-tier project after ~7 days with no requests. When that
+# happens the MSN window and the shared file gallery both go dark, and the only
+# way back is logging into the dashboard and pressing Restore — which is not
+# something anyone remembers to do on a schedule.
+#
+# An ordinary API request counts as activity, so this reads one row every three
+# days and the counter never gets near seven. It costs a couple of seconds of
+# GitHub Actions time a week.
+#
+# The anon key is deliberately in plain text: it is a public key, already
+# shipped inside the JavaScript bundle this repo serves, and the tables are
+# protected by row-level security rather than by hiding it (see
+# guestbookApi.ts and supabase/community_files.sql).
+#
+# ONE CAVEAT: GitHub disables scheduled workflows on a repository with no
+# commits for 60 days, and emails you when it is about to. If that mail ever
+# arrives, push anything or press "Enable workflow" in the Actions tab.
+
+name: Supabase keep-alive
+
+on:
+  schedule:
+    # 07:14 UTC every third day. An odd minute on purpose: jobs scheduled on
+    # the hour queue behind everyone else's.
+    - cron: '14 7 */3 * *'
+  # So it can be run by hand from the Actions tab after a pause.
+  workflow_dispatch:
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Read one row from each table
+        run: |
+          URL="https://vkbhzqhrrbwlezvfdkzt.supabase.co"
+          KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZrYmh6cWhycmJ3bGV6dmZka3p0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODUxMDA0MDcsImV4cCI6MjEwMDY3NjQwN30.avmwZ5ZPOT1kQtt9TRKcMx1mWt5kRMkvkHMhxLveopU"
+
+          fail=0
+          for table in guestbook_messages community_files; do
+            code=$(curl -s -o /dev/null -w '%{http_code}' \
+              --max-time 30 --retry 3 --retry-delay 10 \
+              "$URL/rest/v1/$table?select=id&limit=1" \
+              -H "apikey: $KEY" -H "Authorization: Bearer $KEY")
+            echo "$table -> HTTP $code"
+            # 404 means that table has not been created yet, which is fine —
+            # the request still woke the project up. Anything 5xx is not.
+            if [ "$code" -ge 500 ] || [ "$code" = "000" ]; then
+              fail=1
+            fi
+          done
+          exit $fail

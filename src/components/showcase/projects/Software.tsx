@@ -148,7 +148,7 @@ const SoftwareProjects: React.FC<SoftwareProjectsProps> = (props) => {
 
         <div className="wrap-block">
           {/* The two gifs sit in one floated figure and overlap by a few
-              pixels — the slight collision is deliberate, it reads as a stack
+              pixels; the slight collision is deliberate, it reads as a stack
               of stills rather than a tidy list. */}
           <div className="wrap-figure wrap-figure--left">
             <img
@@ -198,7 +198,7 @@ const SoftwareProjects: React.FC<SoftwareProjectsProps> = (props) => {
           >
             this site
           </a>{" "}
-          for all the basics you need to know – it's a solid recommendation to
+          for all the basics you need to know. It's a solid recommendation to
           level up your understanding.{" "}
         </p>
         <br />

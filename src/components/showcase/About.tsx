@@ -29,17 +29,17 @@ const About: React.FC<AboutProps> = (props) => {
       <br />
       <div className="text-block">
       <p>
-  I started out fascinated by how computers work — the raw mechanics of software, systems, and the science behind the technology we build.
-  That foundation gradually pulled me toward a deeper question: how do people actually interact with these systems? That question led me into
+  I started out fascinated by how computers work: the raw mechanics of software, systems, and the science behind the technology we build.
+  That foundation gradually pulled me toward a deeper question. How do people actually interact with these systems? That question led me into
   Human-Computer Interaction, where I spent years studying usability, running user studies, and learning to understand technology not just as
-  something engineered, but as something practiced — shaped by the people, contexts, and organisations that use it.
+  something engineered, but as something practiced, shaped by the people, contexts, and organisations that use it.
 </p>
 <p>
-  That perspective — of technology as it is actually performed and understood in its natural habitat — turned out to be the through-line
+  That perspective, of technology as it is actually performed and understood in its natural habitat, turned out to be the through-line
   of everything I do. It’s what eventually drew me to my current work: a PhD investigating how artificial intelligence is reshaping managerial
   work and well-being in organisations. It’s a natural next step. My deep background in AI and computing lets me understand what these systems
   actually do, while my training in user studies and a combined qualitative and quantitative methods toolbox lets me study how managers
-  experience, adapt to, and are affected by them — from multiple angles at once.
+  experience, adapt to, and are affected by them, from several angles at once.
 </p>
 <p>
   Alright, I guess that covers the elevator pitch. Now, let’s get real. I’ve designed this website in direct opposition to most
@@ -52,7 +52,7 @@ const About: React.FC<AboutProps> = (props) => {
   <h3>Getting to know me</h3>
   <br />
   <p>
-    Let me give you a quick look into who I am. From my passions to my personal journey, I hope to give you a better sense of the person behind the screen. I'm driven by a constant desire for self-improvement. I feel most alive when I'm stepping into something completely new, where I'm a total beginner, and I can witness my own growth as I develop new skills and competencies. In most areas of my life, this is what drives me—the innate desire to create and build. I definitely have a 'creator gene' that constantly pushes me to make, tinker, and experiment. But it’s not just about creating; it has to have purpose. Whenever possible, it should serve as an improvement, spark a provocation, or offer a fresh perspective.
+    Let me give you a quick look into who I am. From my passions to my personal journey, I hope to give you a better sense of the person behind the screen. I'm driven by a constant desire for self-improvement. I feel most alive when I'm stepping into something completely new, where I'm a total beginner, and I can witness my own growth as I develop new skills and competencies. In most areas of my life, this is what drives me: the innate desire to create and build. I definitely have a 'creator gene' that constantly pushes me to make, tinker, and experiment. But it’s not just about creating; it has to have purpose. Whenever possible, it should serve as an improvement, spark a provocation, or offer a fresh perspective.
   </p>
 
         <br />
@@ -180,8 +180,8 @@ const About: React.FC<AboutProps> = (props) => {
                 IT & Cognition
               </Link>{" "}
               to deepen my knowledge of language, vision, and cognition, and to
-              design information and communication technology that works with —
-              rather than against — human cognitive processes. The programme
+              design information and communication technology that works with
+              human cognitive processes rather than against them. The programme
               sharpened my technical understanding of machine learning and AI
               while keeping questions of human experience and usability at the
               centre.
@@ -195,13 +195,13 @@ const About: React.FC<AboutProps> = (props) => {
               <Link to="https://www.cbs.dk/" target="_blank">
                 Copenhagen Business School
               </Link>{" "}
-              follows that thread directly — investigating how AI is
+              follows that thread directly, investigating how AI is
               restructuring managerial work, what it does to well-being and
               decision-making, and how organisations can navigate that
               transition thoughtfully. It lets me bring everything together: a
               technical literacy in AI, a grounding in how technology is
               actually used and understood in context, and a methods repertoire
-              that spans qualitative fieldwork and quantitative analysis — so
+              that spans qualitative fieldwork and quantitative analysis, so
               the problem can be approached from more than one angle at once.{" "}
             </p>
         </div>

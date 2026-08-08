@@ -2,6 +2,22 @@ import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from
 import Window from '../os/Window';
 import Colors from '../../constants/colors';
 import { Win98Program } from './win98Programs';
+import { FileKind, invalidateSync, publishFile } from '../os/communityFiles';
+import {
+    registerSaveable,
+    setSaveableDirty,
+    unregisterSaveable,
+} from '../os/saveablePrograms';
+
+/**
+ * The two programs whose files go into the shared gallery, and the folder each
+ * writes to. Anything not listed here (Solitaire, the Calculator) has nothing
+ * to save, so it is never registered and Clippy never offers.
+ */
+const SAVEABLE: { [key: string]: FileKind } = {
+    paint: 'painting',
+    notepad: 'note',
+};
 
 /**
  * Hosts one of the vendored Windows 98 programs (see `win98Programs.ts`) in a
@@ -141,10 +157,59 @@ const ProgramFrame: React.FC<ProgramFrameProps> = ({
             if (e.source !== frameRef.current?.contentWindow) return;
             if (e.data?.type === 'win98:close') onClose();
             if (e.data?.type === 'win98:minimize') onMinimize();
+
+            // Paint and Notepad announce a save (see gallery-bridge.js). The
+            // file is already on the fake C: drive by now; this puts a copy in
+            // the shared gallery so every other visitor gets it too. The
+            // credentials live in this bundle, not in the framed page, which
+            // is why the upload happens on this side of the boundary.
+            if (e.data?.type === 'win98:file-saved') {
+                const { kind, name, content } = e.data;
+                if (typeof name === 'string' && typeof content === 'string') {
+                    publishFile(kind as FileKind, name, content).then(
+                        (published) => {
+                            // A published file should show up in the folder
+                            // listing next time it is opened.
+                            if (published) invalidateSync();
+                        }
+                    );
+                }
+                setSaveableDirty(program.key, false);
+            }
+
+            if (e.data?.type === 'win98:dirty') {
+                setSaveableDirty(program.key, !!e.data.dirty);
+            }
         };
         window.addEventListener('message', onMessage);
         return () => window.removeEventListener('message', onMessage);
-    }, [onClose, onMinimize]);
+    }, [onClose, onMinimize, program.key]);
+
+    /**
+     * While Paint or Notepad is open, tell the desktop so Clippy can offer to
+     * save what is in it. `requestSave` posts down into the frame, where the
+     * program opens its own Save As box — the visitor still names the file.
+     */
+    useEffect(() => {
+        const kind = SAVEABLE[program.key];
+        if (!kind) return;
+        registerSaveable({
+            id: program.key,
+            kind,
+            programName: program.name,
+            // Assumed worth saving from the moment it opens: the programs
+            // report their own state, but neither reliably says "still empty",
+            // and an offer to save an empty canvas is a smaller failure than
+            // never offering at all.
+            dirty: true,
+            requestSave: () =>
+                frameRef.current?.contentWindow?.postMessage(
+                    { type: 'win98:request-save' },
+                    window.location.origin
+                ),
+        });
+        return () => unregisterSaveable(program.key);
+    }, [program.key, program.name]);
 
     /**
      * Pinball's and MS-DOS Prompt's documents are ready long before the
