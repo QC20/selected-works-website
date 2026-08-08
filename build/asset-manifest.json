@@ -1,11 +1,12 @@
 {
   "files": {
-    "main.css": "/static/css/main.b9cc9dee.css",
-    "main.js": "/static/js/main.bcb71d1a.js",
+    "main.css": "/static/css/main.ed2e07d7.css",
+    "main.js": "/static/js/main.66eab3a7.js",
     "static/js/453.d0e5d6a3.chunk.js": "/static/js/453.d0e5d6a3.chunk.js",
     "static/media/NChainzSoundCafeSession.mp3": "/static/media/NChainzSoundCafeSession.3ec9cd8ac986dc8f09dc.mp3",
     "static/media/NChainsQuantumSession.mp3": "/static/media/NChainsQuantumSession.0b4d4e7e3cb0bfca7fc8.mp3",
     "static/media/ProaktiveSelektorByensRadioradiorip.mp3": "/static/media/ProaktiveSelektorByensRadioradiorip.96c4947ea0056f940ee2.mp3",
+    "static/media/2x2m Summer 2026 Summerhouse Painting.gif": "/static/media/2x2m Summer 2026 Summerhouse Painting.ac6b5e4692ca5ef4a2d3.gif",
     "static/media/LDRParticleSimulation.mp4": "/static/media/LDRParticleSimulation.813605e57d9d4766ca0f.mp4",
     "static/media/TellThem.mp3": "/static/media/TellThem.aa0ebf50de7b77620f75.mp3",
     "static/media/eyetracking2.gif": "/static/media/eyetracking2.adb175bf6271f17e78cd.gif",
@@ -31,7 +32,6 @@
     "static/media/017.jpg": "/static/media/017.22462ae063d21d272448.jpg",
     "static/media/003.jpg": "/static/media/003.a8f56b280dc5974ef641.jpg",
     "static/media/018.jpg": "/static/media/018.30ce046e187ae224424f.jpg",
-    "static/media/Painting3.jpg": "/static/media/Painting3.0145ca1a8a3aca1bc2ab.jpg",
     "static/media/Prototype2.jpg": "/static/media/Prototype2.3a9f57ff25c69061c45b.jpg",
     "static/media/workingAtComputer.jpg": "/static/media/workingAtComputer.d17613f74ff7e26f364d.jpg",
     "static/media/Prototype3.jpg": "/static/media/Prototype3.0906d178af66cff40fc4.jpg",
@@ -41,7 +41,6 @@
     "static/media/009.jpg": "/static/media/009.c8247e48873dd0db0ce0.jpg",
     "static/media/MSSansSerif.ttf": "/static/media/MSSansSerif.aa14e7b110864a3c2e08.ttf",
     "static/media/CV_Jonas_Kjeldmand_Jensen.pdf": "/static/media/CV_Jonas_Kjeldmand_Jensen.bb96639e864fb97deec1.pdf",
-    "static/media/Painting2.jpg": "/static/media/Painting2.f61ae76c81d392d413d1.jpg",
     "static/media/007.jpg": "/static/media/007.14c0bfca763b492b9080.jpg",
     "static/media/Blimps.jpg": "/static/media/Blimps.fbd6fbc4dedc2990796b.jpg",
     "static/media/VoiceInteractionTask.png": "/static/media/VoiceInteractionTask.80516f3f03f63b04b4ba.png",
@@ -83,12 +82,12 @@
     "static/media/transfer.png": "/static/media/transfer.d567922a00b918c90ad5.png",
     "static/media/paint-brush.gif": "/static/media/paint-brush.4881379e32bfc50962aa.gif",
     "index.html": "/index.html",
-    "main.b9cc9dee.css.map": "/static/css/main.b9cc9dee.css.map",
-    "main.bcb71d1a.js.map": "/static/js/main.bcb71d1a.js.map",
+    "main.ed2e07d7.css.map": "/static/css/main.ed2e07d7.css.map",
+    "main.66eab3a7.js.map": "/static/js/main.66eab3a7.js.map",
     "453.d0e5d6a3.chunk.js.map": "/static/js/453.d0e5d6a3.chunk.js.map"
   },
   "entrypoints": [
-    "static/css/main.b9cc9dee.css",
-    "static/js/main.bcb71d1a.js"
+    "static/css/main.ed2e07d7.css",
+    "static/js/main.66eab3a7.js"
   ]
 }

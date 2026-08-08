@@ -146,54 +146,36 @@ const SoftwareProjects: React.FC<SoftwareProjectsProps> = (props) => {
         <h3>- using eye-tracking and data science</h3>
         <br />
 
-        <div
-          style={{
-            display: "flex",
-            alignItems: "right",
-            flexDirection: "row-reverse",
-          }}
-        >
-          <div style={{ flex: 1, marginLeft: "-170px" }}>
-            <p>
-              Ever wondered how music or white/pink noise shapes your reading
-              experience? Imagine yourself diving into news articles or delving
-              into deep work, seeking to enter the zone. You reach for your
-              special concentration playlist, believing in the transformative
-              power of these sounds to enhance your reading speed and
-              comprehension. But what if those assumptions were put to the test?
-              In this exploration, we sought to challenge the notion that
-              background sounds offer a positive boost to reading. With 12
-              participants in our lab, we set out to understand how sound
-              influences reading. Using eye-tracking technology, we captured
-              reactions to different auditory stimuli. Then, leveraging data
-              science and machine learning, we uncovered insights from the data.
-            </p>
+        <div className="wrap-block">
+          {/* The two gifs sit in one floated figure and overlap by a few
+              pixels — the slight collision is deliberate, it reads as a stack
+              of stills rather than a tidy list. */}
+          <div className="wrap-figure wrap-figure--left">
+            <img
+              src={eyeTracking2}
+              style={{ width: "72%", marginLeft: "auto", marginRight: "auto" }}
+              alt="Heat map of a participant's gaze while reading"
+            />
+            <img
+              className="stacked"
+              src={eyeTracking1}
+              alt="Gaze path recorded during the reading task"
+            />
           </div>
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              flexDirection: "column",
-            }}
-          >
-            <div style={{ marginBottom: "-15px" }}>
-              <img
-                src={eyeTracking2}
-                style={{ width: "60%" }}
-                alt="Jonas Kjeldmand Jensen"
-              />
-            </div>
-
-            <div>
-              <div style={{ display: "flex", alignItems: "right" }}>
-                <img
-                  src={eyeTracking1}
-                  style={{ width: "140%" }}
-                  alt="Jonas Kjeldmand Jensen"
-                />
-              </div>
-            </div>
-          </div>
+          <p>
+            Ever wondered how music or white/pink noise shapes your reading
+            experience? Imagine yourself diving into news articles or delving
+            into deep work, seeking to enter the zone. You reach for your
+            special concentration playlist, believing in the transformative
+            power of these sounds to enhance your reading speed and
+            comprehension. But what if those assumptions were put to the test?
+            In this exploration, we sought to challenge the notion that
+            background sounds offer a positive boost to reading. With 12
+            participants in our lab, we set out to understand how sound
+            influences reading. Using eye-tracking technology, we captured
+            reactions to different auditory stimuli. Then, leveraging data
+            science and machine learning, we uncovered insights from the data.
+          </p>
         </div>
 
         <br />

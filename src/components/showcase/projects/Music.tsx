@@ -22,9 +22,7 @@ import asciiMe from "../../../assets/audio/1-5mb.mp4";
 // @ts-ignore
 import PaintingPallets from "../../../assets/pictures/projects/art/PaintingPallets.mp4";
 
-import Painting1 from "../../../../src/assets/pictures/projects/art/Painting1.jpg";
-import Painting2 from "../../../../src/assets/pictures/projects/art/Painting2.jpg";
-import Painting3 from "../../../../src/assets/pictures/projects/art/Painting3.jpg";
+import SummerhousePainting from "../../../assets/pictures/projects/art/2x2m Summer 2026 Summerhouse Painting.gif";
 
 import meDJing2 from "../../../../src/assets/pictures/meDJing2.jpg";
 // @ts-ignore
@@ -207,99 +205,84 @@ const MusicProjects: React.FC<MusicProjectsProps> = () => {
         <img src={MusicNote} width="4%"></img>
       </h2>
 
-      <div style={{ display: "flex", alignItems: "center" }}>
-        <div style={{ flex: 1, marginRight: 32 }}>
-          <p>
-            Music has always been my passion. From the melodies to the lyrics,
-            and from the intricate production techniques to the cultural impact
-            it carries, every aspect fascinates me. My journey began at the age
-            of 15 when I purchased my first set of{" "}
-            <a
-              href="https://www.technics.com/global/home/sl1200.html"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              Technics 1210
-            </a>{" "}
-            turntables.
-            <p>
-              This marked the beginning of my fascination with physical media
-              and my exploration into DJing, music production, and exhibiting it
-              to people at venues. By the time I was 19, I had joined the DJ
-              collective,{" "}
-              <a
-                href="https://www.facebook.com/dubkultur"
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                Dubkultur
-              </a>
-              , and for about 5 years, we organized and performed at events
-              across Copenhagen. This experience kept me constantly engaged with
-              the latest sounds and developments in the music scene. It also
-              sparked my interest in music production, as I sought to capture
-              the raw, DIY essence by creating, producing, publishing, and
-              performing my own tracks.{" "}
-            </p>
-          </p>
-        </div>
-
-        <div
-          style={{
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "center",
-            marginTop: "-10px",
-          }}
-        >
-          <div style={{ textAlign: "center" }}>
-            <img src={meDJing2} style={{ width: "100%" }} alt="" />
-          </div>
-          {/* Adjusted width */}
+      <div className="wrap-block">
+        <div className="wrap-figure">
+          <img src={meDJing2} alt="" />
           <p>
             <sub>
               <b>Image 1:</b> Me turning knobs at Bolsjefabrikken, Copenhagen.{" "}
             </sub>
           </p>
         </div>
+        <p>
+          Music has always been my passion. From the melodies to the lyrics, and
+          from the intricate production techniques to the cultural impact it
+          carries, every aspect fascinates me. My journey began at the age of 15
+          when I purchased my first set of{" "}
+          <a
+            href="https://www.technics.com/global/home/sl1200.html"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            Technics 1210
+          </a>{" "}
+          turntables.
+        </p>
+        <p>
+          This marked the beginning of my fascination with physical media and my
+          exploration into DJing, music production, and exhibiting it to people
+          at venues. By the time I was 19, I had joined the DJ collective,{" "}
+          <a
+            href="https://www.facebook.com/dubkultur"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            Dubkultur
+          </a>
+          , and for about 5 years, we organized and performed at events across
+          Copenhagen. This experience kept me constantly engaged with the latest
+          sounds and developments in the music scene. It also sparked my
+          interest in music production, as I sought to capture the raw, DIY
+          essence by creating, producing, publishing, and performing my own
+          tracks.
+        </p>
+        <p>
+          Music and sound immerse me in joy and thrills. Through this passion,
+          I've delved into a multitude of digital audio workstations (DAWs),
+          exploring the realms of{" "}
+          <a
+            href="https://www.reasonstudios.com/"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            Reason
+          </a>
+          ,{" "}
+          <a
+            href="https://www.apple.com/logic-pro/"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            Logic
+          </a>
+          , and{" "}
+          <a
+            href="https://www.ableton.com/"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            Ableton
+          </a>
+          . But it doesn't stop there – it led me to experiment with visual art
+          expressions and graphic design, expanding my creative horizons even
+          further.
+        </p>
+        <p>
+          From a young age, I've learned the intricacies of organizing memorable
+          events and leading teams of activists. It's more than just a hobby;
+          it's a lifestyle that continually shapes and enriches my journey.
+        </p>
       </div>
-
-      <p>
-        Music and sound immerse me in joy and thrills. Through this passion,
-        I've delved into a multitude of digital audio workstations (DAWs),
-        exploring the realms of{" "}
-        <a
-          href="https://www.reasonstudios.com/"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Reason
-        </a>
-        ,{" "}
-        <a
-          href="https://www.apple.com/logic-pro/"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Logic
-        </a>
-        , and{" "}
-        <a
-          href="https://www.ableton.com/"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Ableton
-        </a>
-        . But it doesn't stop there – it led me to experiment with visual art
-        expressions and graphic design, expanding my creative horizons even
-        further.
-      </p>
-      <p>
-        From a young age, I've learned the intricacies of organizing memorable
-        events and leading teams of activists. It's more than just a hobby; it's
-        a lifestyle that continually shapes and enriches my journey.
-      </p>
 
       <br />
       <p>
@@ -390,61 +373,38 @@ const MusicProjects: React.FC<MusicProjectsProps> = () => {
       <LineSplit />
       <br />
       <br />
-      <h2
-        style={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "right",
-        }}
-      >
-        Interactive ASCII Visionarium
-      </h2>
+      <h2>Interactive ASCII Visionarium</h2>
+      <br />
 
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          flexDirection: "row-reverse",
-        }}
-      >
-        <div style={{ flex: 1, marginLeft: 32 }}>
+      <div className="wrap-block">
+        <div className="wrap-figure wrap-figure--left">
+          <VideoAsset src={asciiMe} />
           <p>
-            AsciiVision is a captivating creative coding venture that blends
-            interaction design with some type of artistic retro vibe. Drawing on
-            your gullibility to give me access to your device's webcam via the
-            Camera API, AsciiVision seamlessly transforms the tangible into the
-            digital. Using JavaScript some wizardry, it transforms each pixel's
-            luminosity into a unique{" "}
-            <a
-              href="https://en.wikipedia.org/wiki/ASCII"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              ASCII
-            </a>{" "}
-            character, providing a dynamic interpretation of the live video
-            feed. I invite my users to experience this immersive and
-            exhilarating journey delivered by this fusion of interactive
-            computing and creative coding. You can even invert the colors. Have
-            fun playing around :-){" "}
+            <sub>
+              <b>Image 3:</b> AsciiVision redrawing a live webcam feed as ASCII
+              characters.
+            </sub>
           </p>
         </div>
-
-        <div
-          style={{
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "center",
-            marginRight: "-82px",
-            marginTop: "-20px",
-          }}
-        >
-          <div
-            style={{ textAlign: "center", width: "85%", marginLeft: "-75px" }}
+        <p>
+          AsciiVision is a captivating creative coding venture that blends
+          interaction design with some type of artistic retro vibe. Drawing on
+          your gullibility to give me access to your device's webcam via the
+          Camera API, AsciiVision seamlessly transforms the tangible into the
+          digital. Using some JavaScript wizardry, it transforms each pixel's
+          luminosity into a unique{" "}
+          <a
+            href="https://en.wikipedia.org/wiki/ASCII"
+            target="_blank"
+            rel="noopener noreferrer"
           >
-            <VideoAsset src={asciiMe} />
-          </div>
-        </div>
+            ASCII
+          </a>{" "}
+          character, providing a dynamic interpretation of the live video feed.
+          I invite my users to experience this immersive and exhilarating
+          journey delivered by this fusion of interactive computing and creative
+          coding. You can even invert the colors. Have fun playing around :-)
+        </p>
       </div>
       <br />
       <h3>Link to Project:</h3>
@@ -821,7 +781,7 @@ const MusicProjects: React.FC<MusicProjectsProps> = () => {
 
         <p style={{ marginTop: 8 }}>
           <sub>
-            <b>Image 3:</b> Live{" "}
+            <b>Image 4:</b> Live{" "}
             <a
               href="https://qc20.github.io/Cellular-Asciimata/"
               target="_blank"
@@ -855,98 +815,63 @@ const MusicProjects: React.FC<MusicProjectsProps> = () => {
       <LineSplit />
       <br />
       <div className="text-block">
-        <h2
-          style={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "right",
-          }}
-        >
-          <img src={paintBrush} width="15%" style={{ marginRight: "40px" }} />{" "}
-          My Oil Paintings{" "}
+        <h2>
+          <img src={paintBrush} width="12%" alt="" /> My Oil Paintings
         </h2>
+        <br />
 
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            flexDirection: "row-reverse",
-          }}
-        >
-          <div style={{ flex: 1, marginLeft: 32 }}>
+        <div className="wrap-block">
+          <div className="wrap-figure wrap-figure--left">
+            <VideoAsset src={PaintingPallets} />
             <p>
-              A more recent activity I've been picking up is oil painting.
-              What really excites me about this endeavor is that I have no
-              prior experience whatsoever. Actually, growing up left-handed
-              and with handwriting that was more or less intelligible, I guess
-              I was somewhat deterred from drawing, painting, or doing
-              anything by hand. <br />
-              <br></br>
-              However, in 2021, I started to pick up my first supplies and
-              first clean canvas. Having no idea what I was doing or how to
-              even begin learning, I decided to just throw myself into it and
-              hope something beautiful would spawn out of it. Moreover, I
-              think it was a deliberate decision of mine to not seek any type
-              of help or teaching about techniques or styles. The reason for
-              this was purely based on the idea that I wanted to see what I
-              would be able to create purely based on my own intuition and
-              creativity. <br /> <br></br>
-              What excites and inspires me when conceptualizing a new canvas
-              is starting from an initial feeling, exploring uncharted
-              techniques, experimenting with new texture designs, or using
-              paint products I haven't tried before. I persist until something
-              I like emerges, and then I continue from there. Overall, a
-              significant takeaway from oil painting is the opportunity to
-              refine and practice skills I initially lacked proficiency or
-              experience in. <br /> <br></br>
-              <div
-                style={{
-                  display: "flex",
-                  justifyContent: "center",
-                  alignItems: "center",
-                  marginRight: "0px",
-                }}
-              >
-                <div
-                  style={{
-                    textAlign: "center",
-                    width: "50%",
-                    marginRight: "10px",
-                  }}
-                >
-                  <img src={Painting2} style={{ width: "100%" }} alt="" />
-                </div>
-                <div
-                  style={{
-                    textAlign: "center",
-                    width: "50%",
-                    marginLeft: "10px",
-                  }}
-                >
-                  <img src={Painting3} style={{ width: "100%" }} alt="" />
-                </div>
-              </div>
+              <sub>
+                <b>Image 5:</b> Mixing palettes mid-session.
+              </sub>
             </p>
           </div>
+          <p>
+            A more recent activity I've been picking up is oil painting. What
+            really excites me about this endeavor is that I have no prior
+            experience whatsoever. Actually, growing up left-handed and with
+            handwriting that was more or less intelligible, I guess I was
+            somewhat deterred from drawing, painting, or doing anything by hand.
+          </p>
+          <p>
+            However, in 2021, I started to pick up my first supplies and first
+            clean canvas. Having no idea what I was doing or how to even begin
+            learning, I decided to just throw myself into it and hope something
+            beautiful would spawn out of it. Moreover, I think it was a
+            deliberate decision of mine to not seek any type of help or teaching
+            about techniques or styles. The reason for this was purely based on
+            the idea that I wanted to see what I would be able to create purely
+            based on my own intuition and creativity.
+          </p>
+          <p>
+            What excites and inspires me when conceptualizing a new canvas is
+            starting from an initial feeling, exploring uncharted techniques,
+            experimenting with new texture designs, or using paint products I
+            haven't tried before. I persist until something I like emerges, and
+            then I continue from there. Overall, a significant takeaway from oil
+            painting is the opportunity to refine and practice skills I
+            initially lacked proficiency or experience in.
+          </p>
 
-          <div
-            style={{
-              display: "flex",
-              flexDirection: "column",
-              alignItems: "center",
-              marginRight: "-82px",
-              marginTop: "-85px",
-            }}
-          >
-            <div
-              style={{
-                textAlign: "center",
-                width: "85%",
-                marginLeft: "-75px",
-              }}
-            >
-              <VideoAsset src={PaintingPallets} />
-            </div>
+          <div className="full-figure">
+            {/* No loading="lazy" here: the showcase scrolls inside a nested,
+                transformed window, and Chrome never fires the load for a lazy
+                image in that stack — it just stays blank. */}
+            <img
+              src={SummerhousePainting}
+              alt="Pouring paint across a two-by-two-metre canvas outdoors"
+            />
+            <p>
+              <sub>
+                <b>Image 6:</b> My largest canvas to date — 2×2 metres (4 m²),
+                and a genuinely overwhelming thing to take on. Working outdoors
+                let me layer freely with turpentine and other organic solvents
+                to get the effect I was after (summer '26).
+              </sub>
+            </p>
           </div>
         </div>
       </div>

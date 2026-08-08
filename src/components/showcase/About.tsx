@@ -76,7 +76,7 @@ const About: React.FC<AboutProps> = (props) => {
           that you can’t have yin without yang, and this applies to everything
           in life. In order to be a complete human being, you need to embrace
           and access both sides: the softness and flexibility of the yin, but
-          also the strength to push and perservere through challenges and
+          also the strength to push and persevere through challenges and
           hardships when needed.
         </p>
         <br />
@@ -108,21 +108,21 @@ const About: React.FC<AboutProps> = (props) => {
         <br />
 
         <br />
-        <div style={{}}>
-          <div
-            style={{
-              flex: 1,
-              textAlign: "justify",
-              alignSelf: "center",
-              flexDirection: "column",
-            }}
-          >
+        <div className="wrap-block">
             <h3>
               <img src={ComputerIcons} width="9%"></img> My academic passions
             </h3>
             <br />
 
-            <br />
+            <div className="wrap-figure">
+              <img src={meNow} alt="Jonas Kjeldmand Jensen" />
+              <p>
+                <sub>
+                  <b>Image 2:</b> Me not working particularly hard, April 2024
+                </sub>
+              </p>
+            </div>
+
             <p>
               My journey into the world of information technology started early.
               I remember spending countless hours on social sites, enhancing my
@@ -150,7 +150,7 @@ const About: React.FC<AboutProps> = (props) => {
               >
                 Pernille Bjørn
               </Link>{" "}
-              and my tenure at the .
+              and my tenure at the{" "}
               <Link
                 to="https://di.ku.dk/english/research/human-centred-computing/"
                 target="_blank"
@@ -187,7 +187,6 @@ const About: React.FC<AboutProps> = (props) => {
               centre.
             </p>
             <p>
-              <br />
               That combination pointed somewhere specific. If I understand how
               AI systems are built <i>and</i> how people actually experience
               them in practice, the most pressing place to apply that is where
@@ -205,19 +204,6 @@ const About: React.FC<AboutProps> = (props) => {
               that spans qualitative fieldwork and quantitative analysis — so
               the problem can be approached from more than one angle at once.{" "}
             </p>
-          </div>
-          <div style={styles.verticalImage}>
-            <img
-              src={meNow}
-              style={styles.image}
-              alt="Jonas Kjeldmand Jensen"
-            />
-            <p>
-              <sub>
-                <b>Image 2:</b> Me not working particularly hard, April 2024
-              </sub>
-            </p>
-          </div>
         </div>
         <br />
         <h3>About this site</h3>
@@ -270,17 +256,6 @@ const styles: StyleSheetCSS = {
     height: "auto",
     width: "100%",
     marginBottom: 32,
-  },
-  verticalImage: {
-    alignSelf: "center",
-    // width: '80%',
-    marginLeft: 32,
-    flex: 0.8,
-
-    alignItems: "center",
-    // marginBottom: 32,
-    textAlign: "center",
-    flexDirection: "column",
   },
 };
 

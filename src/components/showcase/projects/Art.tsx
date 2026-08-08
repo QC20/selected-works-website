@@ -69,70 +69,9 @@ const ArtProjects: React.FC<ArtProjectsProps> = (props) => {
       <h2>HapNav: Haptic game for the blind</h2>
       <br />
 
-      <div style={{ display: "flex", alignItems: "center" }}>
-        <div style={{ flex: 1, marginRight: 32 }}>
-          <p>
-            HapNav challenges players to navigate a pre-defined map entirely by
-            touch and intuition. Equipped with a joystick module, players rely
-            on a vibration motor for feedback. The primary aim of the game is to
-            successfully conquer the intricate maze-like level design, all while
-            relying solely on tactile cues and without any visual assistance.
-            The player's progress is determined by the absence of vibrations in
-            the controller. Whenever the player veers off the intended path, the
-            vibration motor responds with varying intensity, offering real-time
-            feedback about their proximity to the desired route that constitutes
-            the map's level design. Upon reaching the end of the level, a
-            triumphant vibration sequence will mark their victory.{" "}
-            <p>
-              <br />
-              HapNav empowers visually impaired players to navigate complex
-              maps, fostering a detailed mental model and enhancing spatial
-              understanding. By actively 'seeing' the map through touch, users
-              develop a unique two-dimensional perception of the virtual
-              environment.{" "}
-            </p>
-            <br />
-            <p>
-              Utilizing analogical metaphors, HapNav immerses players in a
-              stylized world, encouraging intuitive navigation and mental
-              imagery. This approach enhances spatial intuition, offering a
-              novel gaming experience where players construct mental maps and
-              maneuver seamlessly through digital landscapes.{" "}
-            </p>
-            <br></br>
-            <br />
-            <div className="captioned-image">
-              <img src={prototype} style={{ width: "100%" }} alt="" />
-              <p>
-                <sub>
-                  <b>Image 1:</b> Top view of the DIY setup.{" "}
-                  <a
-                    href={
-                      "https://github.com/QC20/Haptic-Game-For-The-Blind/tree/master/Controller-Designs"
-                    }
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
-                    Click here
-                  </a>{" "}
-                  to see schematic.
-                </sub>
-              </p>
-            </div>
-          </p>
-        </div>
-        <div
-          style={{
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "center",
-            marginRight: "0px",
-            marginTop: "-75px",
-          }}
-        >
-          <div style={{ textAlign: "center", width: "85%", marginLeft: "0px" }}>
-            <VideoAsset src={screenDemo} />
-          </div>
+      <div className="wrap-block">
+        <div className="wrap-figure">
+          <VideoAsset src={screenDemo} />
           <p>
             <sub>
               <b>Image 2:</b> Dev board showing the movement in the maze in
@@ -140,85 +79,92 @@ const ArtProjects: React.FC<ArtProjectsProps> = (props) => {
             </sub>
           </p>
         </div>
-      </div>
-
-      <h3
-        style={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "right",
-        }}
-      >
-        {" "}
-        Skillful Navigation & Freedom to Explore{" "}
-      </h3>
-      <br />
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          flexDirection: "row-reverse",
-        }}
-      >
-        <div style={{ flex: 1, marginLeft: "64px" }}>
+        <p>
+          HapNav challenges players to navigate a pre-defined map entirely by
+          touch and intuition. Equipped with a joystick module, players rely on
+          a vibration motor for feedback. The primary aim of the game is to
+          successfully conquer the intricate maze-like level design, all while
+          relying solely on tactile cues and without any visual assistance. The
+          player's progress is determined by the absence of vibrations in the
+          controller. Whenever the player veers off the intended path, the
+          vibration motor responds with varying intensity, offering real-time
+          feedback about their proximity to the desired route that constitutes
+          the map's level design. Upon reaching the end of the level, a
+          triumphant vibration sequence will mark their victory.
+        </p>
+        <p>
+          HapNav empowers visually impaired players to navigate complex maps,
+          fostering a detailed mental model and enhancing spatial understanding.
+          By actively 'seeing' the map through touch, users develop a unique
+          two-dimensional perception of the virtual environment.
+        </p>
+        <p>
+          Utilizing analogical metaphors, HapNav immerses players in a stylized
+          world, encouraging intuitive navigation and mental imagery. This
+          approach enhances spatial intuition, offering a novel gaming
+          experience where players construct mental maps and maneuver seamlessly
+          through digital landscapes.
+        </p>
+        <div className="captioned-image">
+          <img src={prototype} style={{ width: "100%" }} alt="" />
           <p>
-            At the heart of HapNav's gameplay lies a unique trial-and-error
-            approach. As players initiate the game, they must decipher the
-            shapes, bends, and twists of the map, progressively forming an
-            intuitive and detailed mental image of the map.{" "}
-            <p>
-              <br />
-              Unlike many traditional games, HapNav liberates players from
-              health systems, time limits, or other inhibiting factors. The
-              game's core intention is to offer a platform for unrestricted
-              exploration and learning within its two-dimensional world. Rely
-              solely on your mind's image of the map, fostering a sense of
-              freedom as you navigate the virtual landscape.{" "}
-            </p>
-            <br></br>
-            <br />
-            <div className="captioned-image">
-              <img src={HapNavDemo} style={{ width: "90%" }} alt="" />
-              <p>
-                <sub>
-                  <b>Image 3:</b> Go ahead and check out a{" "}
-                  <a
-                    href={"https://wokwi.com/projects/380777984099163137"}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
-                    {" "}
-                    live demo
-                  </a>{" "}
-                  of the game right here in your computer.{" "}
-                </sub>
-              </p>
-            </div>
+            <sub>
+              <b>Image 1:</b> Top view of the DIY setup.{" "}
+              <a
+                href={
+                  "https://github.com/QC20/Haptic-Game-For-The-Blind/tree/master/Controller-Designs"
+                }
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                Click here
+              </a>{" "}
+              to see schematic.
+            </sub>
           </p>
         </div>
+      </div>
 
-        <div
-          style={{
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "center",
-            marginRight: "-82px",
-          }}
-        >
-          <div
-            style={{ textAlign: "center", width: "85%", marginLeft: "-75px" }}
-          >
-            <VideoAsset src={PrototypeDemoVideo} />
-          </div>
-          <div
-            style={{ width: "85%", marginLeft: "-75px", textAlign: "center" }}
-          >
-            <p style={{ margin: "auto" }}>
-              <sub>
-                An early iteration of the prototype on an ILI9341 screen.
-              </sub>
-            </p>
-          </div>
+      <h3>Skillful Navigation &amp; Freedom to Explore</h3>
+      <br />
+      <div className="wrap-block">
+        <div className="wrap-figure wrap-figure--left">
+          <VideoAsset src={PrototypeDemoVideo} />
+          <p>
+            <sub>
+              An early iteration of the prototype on an ILI9341 screen.
+            </sub>
+          </p>
+        </div>
+        <p>
+          At the heart of HapNav's gameplay lies a unique trial-and-error
+          approach. As players initiate the game, they must decipher the shapes,
+          bends, and twists of the map, progressively forming an intuitive and
+          detailed mental image of the map.
+        </p>
+        <p>
+          Unlike many traditional games, HapNav liberates players from health
+          systems, time limits, or other inhibiting factors. The game's core
+          intention is to offer a platform for unrestricted exploration and
+          learning within its two-dimensional world. Rely solely on your mind's
+          image of the map, fostering a sense of freedom as you navigate the
+          virtual landscape.
+        </p>
+        <div className="captioned-image">
+          <img src={HapNavDemo} style={{ width: "90%" }} alt="" />
+          <p>
+            <sub>
+              <b>Image 3:</b> Go ahead and check out a{" "}
+              <a
+                href={"https://wokwi.com/projects/380777984099163137"}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                live demo
+              </a>{" "}
+              of the game right here in your computer.{" "}
+            </sub>
+          </p>
         </div>
       </div>
 
@@ -321,112 +267,75 @@ const ArtProjects: React.FC<ArtProjectsProps> = (props) => {
         <h2>Tromino: A Tetris-like game run on a LCD1602 screen</h2>
         <br />
 
-        <div style={{ display: "flex", alignItems: "center" }}>
-          <div style={{ flex: 1, marginRight: 8 }}>
+        <div className="wrap-block">
+          <div className="wrap-figure">
+            <VideoAsset src={TrominoVidDemo} />
             <p>
-              Taking something that wasn't supposed to be fun and hacking a game
-              onto it to give it a new function not originally intended is a
-              great pleasure of mine. In this project, I've taken the humble{" "}
-              
-              <a
-                  href={"http://wiki.sunfounder.cc/index.php?title=LCD1602_Module"}
-                  target="_blank"
-                  rel="noopener nreferrer noreferrer"
-                >
-                   LCD1602 screen
-                </a>
-              {" "}- a display you'll usually encounter as a clock or
-              as an interface for controlling some mundane machine - and
-              transformed it into a pocket-sized gaming device. By hooking it up
-              to an Arduino Uno microcontroller, I've enabled this simple
-              display to host a captivating game you can play using its onboard
-              buttons.{" "}
-              <p>
-                <br />
-                This game, which I've dubbed "Tromino," is a unique twist on the
-                classic Tetris. Instead of the familiar four-block{" "}
-                <a
-                  href={"https://en.wikipedia.org/wiki/Tetromino"}
-                  target="_blank"
-                  rel="noopener nreferrer noreferrer"
-                >
-                  tetrominos
-                </a>
-                ,{" "}
-                <a
-                  href={"https://en.wikipedia.org/wiki/Tromino"}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  Tromino
-                </a>{" "}
-                uses three-block pieces called trominos. These L-shaped or
-                straight-line shapes add an interesting challenge to the
-                gameplay, forcing players to think differently about how they
-                fit pieces together. The game logic follows the core principles
-                of Tetris but with some adaptations to suit the limited 16x2
-                display. Trominos fall from the top of the screen, and players
-                must rotate and position them to create solid lines across the
-                bottom. When a line is completed, it disappears, and the player
-                scores points. The game progressively speeds up as you play,
-                increasing the challenge and excitement.{" "}
-              </p>
-              <br />
-              <p>
-                What makes this project particularly intriguing is how it pushes
-                the boundaries of what's possible with such limited hardware.
-                The 16x2 LCD screen, typically used for simple text displays,
-                now becomes a dynamic playground. The onboard buttons, usually
-                meant for menu navigation, are repurposed as game controls. It's
-                a testament to the idea that with a bit of creativity and
-                coding, you can breathe new life into seemingly basic
-                electronics. This project not only showcases the versatility of
-                Arduino and LCD screens but also demonstrates how we can
-                reimagine and repurpose everyday technology. It's a perfect
-                blend of nostalgia for classic games and the maker spirit of
-                creating something unique and unexpected.{" "}
-              </p>
-              <br />
+              <sub>
+                <b>Image 8:</b> Top view of the Tromino case showing the game
+                run in real-time.
+              </sub>
             </p>
           </div>
-          <div
-            style={{
-              display: "flex",
-              flexDirection: "column",
-              alignItems: "center",
-              marginRight: "0px",
-              marginTop: "-75px",
-            }}
-          >
-            <div
-              style={{
-                textAlign: "center",
-                width: "85%",
-                marginLeft: "0px",
-                marginTop: "20%",
-              }}
+          <p>
+            Taking something that wasn't supposed to be fun and hacking a game
+            onto it to give it a new function not originally intended is a great
+            pleasure of mine. In this project, I've taken the humble{" "}
+            <a
+              href={"http://wiki.sunfounder.cc/index.php?title=LCD1602_Module"}
+              target="_blank"
+              rel="noopener noreferrer"
             >
-              <VideoAsset src={TrominoVidDemo} />
-            </div>
-            <p>
-              <div
-                style={{
-                  display: "flex",
-                  flexDirection: "column",
-                  alignItems: "center",
-                }}
-              >
-                <div>
-                  <b>Image 8: </b> Top view of the Tromino case showing
-                  {/* Add a space after the colon */}
-                </div>
-                <div style={{ marginLeft: "4.5em" }}>
-                  the game run in real-time.
-                </div>
-              </div>
-              <br />
-            </p>
-          </div>
+              LCD1602 screen
+            </a>{" "}
+            - a display you'll usually encounter as a clock or as an interface
+            for controlling some mundane machine - and transformed it into a
+            pocket-sized gaming device. By hooking it up to an Arduino Uno
+            microcontroller, I've enabled this simple display to host a
+            captivating game you can play using its onboard buttons.
+          </p>
+          <p>
+            This game, which I've dubbed "Tromino," is a unique twist on the
+            classic Tetris. Instead of the familiar four-block{" "}
+            <a
+              href={"https://en.wikipedia.org/wiki/Tetromino"}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              tetrominos
+            </a>
+            ,{" "}
+            <a
+              href={"https://en.wikipedia.org/wiki/Tromino"}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              Tromino
+            </a>{" "}
+            uses three-block pieces called trominos. These L-shaped or
+            straight-line shapes add an interesting challenge to the gameplay,
+            forcing players to think differently about how they fit pieces
+            together. The game logic follows the core principles of Tetris but
+            with some adaptations to suit the limited 16x2 display. Trominos
+            fall from the top of the screen, and players must rotate and
+            position them to create solid lines across the bottom. When a line
+            is completed, it disappears, and the player scores points. The game
+            progressively speeds up as you play, increasing the challenge and
+            excitement.
+          </p>
+          <p>
+            What makes this project particularly intriguing is how it pushes the
+            boundaries of what's possible with such limited hardware. The 16x2
+            LCD screen, typically used for simple text displays, now becomes a
+            dynamic playground. The onboard buttons, usually meant for menu
+            navigation, are repurposed as game controls. It's a testament to the
+            idea that with a bit of creativity and coding, you can breathe new
+            life into seemingly basic electronics. This project not only
+            showcases the versatility of Arduino and LCD screens but also
+            demonstrates how we can reimagine and repurpose everyday technology.
+            It's a perfect blend of nostalgia for classic games and the maker
+            spirit of creating something unique and unexpected.
+          </p>
         </div>
         <br />
         <div style={{ display: "flex" }}>
@@ -516,74 +425,9 @@ const ArtProjects: React.FC<ArtProjectsProps> = (props) => {
             flexibility.
           </p>
           <br />
-          <div style={{ display: "flex" }}>
-            <div
-              style={{
-                flex: 1,
-                textAlign: "justify",
-                alignSelf: "center",
-                flexDirection: "column",
-                marginRight: 32,
-              }}
-            >
-              <h3>Usage and Applications</h3>
-              <p>
-                The DIY Arduino board's adaptability and low power consumption
-                make it ideal for a wide range of applications, including but
-                not limited to:
-              </p>
-              <br />
-              <p>
-                <b>Internet of Things (IoT) Networks:</b> Build low-power IoT
-                devices that can operate for extended periods.
-              </p>
-              <p>
-                <b>Portable Sensors:</b>Create battery-operated sensors for data
-                collection in remote or mobile applications.
-              </p>
-              <p>
-                <b>Wireless Device Controllers:</b>Design custom wireless
-                controllers for various devices and systems.
-              </p>
-              <br />
-              <br />
-              <br />
-              <br />
-              <br />
-              <div style={{ textAlign: "right", marginLeft: 75 }}>
-                <p> Click the icon to learn more.</p>
-              </div>
-              <div
-                style={{
-                  display: "flex",
-                  flexDirection: "column",
-                  alignSelf: "flex-end",
-                }}
-              >
-                <div style={{ textAlign: "center" }}>
-                  <img
-                    src={githubWindows}
-                    style={{ width: "100%", marginTop: -130, marginLeft: -10 }}
-                    alt=""
-                  />
-                </div>
-              </div>
-            </div>
-            <div
-              style={{
-                display: "flex",
-                flexDirection: "column",
-                alignItems: "center",
-              }}
-            >
-              <div style={{ textAlign: "center" }}>
-                <img
-                  src={diyArduinoController}
-                  style={{ width: "100%" }}
-                  alt=""
-                />
-              </div>
-              {/* Adjusted width */}
+          <div className="wrap-block">
+            <div className="wrap-figure">
+              <img src={diyArduinoController} alt="" />
               <p>
                 <sub>
                   <b>Image 12:</b> RGB light circling through its colors. Find
@@ -598,8 +442,41 @@ const ArtProjects: React.FC<ArtProjectsProps> = (props) => {
                 </sub>
               </p>
             </div>
+            <h3>Usage and Applications</h3>
+            <br />
+            <p>
+              The DIY Arduino board's adaptability and low power consumption
+              make it ideal for a wide range of applications, including but not
+              limited to:
+            </p>
+            <p>
+              <b>Internet of Things (IoT) Networks:</b> Build low-power IoT
+              devices that can operate for extended periods.
+            </p>
+            <p>
+              <b>Portable Sensors:</b> Create battery-operated sensors for data
+              collection in remote or mobile applications.
+            </p>
+            <p>
+              <b>Wireless Device Controllers:</b> Design custom wireless
+              controllers for various devices and systems.
+            </p>
+            <p>
+              <a
+                href="https://github.com/QC20/DIY-Arduino-Controller/tree/main"
+                target="_blank"
+                rel="noopener noreferrer"
+                title="Click the icon to learn more."
+              >
+                <img
+                  src={githubWindows}
+                  style={{ width: 64, height: "auto", verticalAlign: "middle" }}
+                  alt="GitHub"
+                />
+              </a>{" "}
+              Click the icon to learn more.
+            </p>
           </div>
-          <p></p>
           <br />
           <div className="captioned-image">
             <img src={diyArduinoSetup2} style={{ width: "100%" }} alt="" />
@@ -675,7 +552,7 @@ const ArtProjects: React.FC<ArtProjectsProps> = (props) => {
                   >
                     LDR interactive screensaver
                   </a>{" "}
-                  reacting to the mouse placement and the sorrounding light.
+                  reacting to the mouse placement and the surrounding light.
                 </sub>
               </p>
             </div>

@@ -243,6 +243,144 @@ input:active {
     text-align: justify;
 }
 
+/*
+ * Magazine-style text wrap.
+ *
+ * App.css sets `div { display: flex }` globally, so any wrapper holding a
+ * paragraph and a picture became a flex row: the picture parked itself in a
+ * column on the side and squeezed the prose into a thin ribbon. `.wrap-block`
+ * opts a section back into normal block flow so a floated `.wrap-figure`
+ * behaves the way a figure does in print — the text runs alongside it and then
+ * closes underneath.
+ */
+.wrap-block {
+    display: block;
+    text-align: justify;
+    /* Size queries below resolve against this block's own width. The showcase
+       lives inside a draggable, resizable window, so the viewport width says
+       nothing useful about how much room the text actually has. */
+    container-type: inline-size;
+}
+
+/* Contain the float so the next section never rides up beside the figure. */
+.wrap-block::after {
+    content: '';
+    display: block;
+    clear: both;
+}
+
+.wrap-block p,
+.wrap-block h2,
+.wrap-block h3,
+.wrap-block h4,
+.wrap-block ul {
+    display: block;
+}
+
+.wrap-block > p {
+    margin-bottom: 16px;
+}
+
+.wrap-figure {
+    display: block;
+    float: right;
+    width: 40%;
+    margin: 6px 0 20px 28px;
+    text-align: center;
+}
+
+.wrap-figure--left {
+    float: left;
+    margin: 6px 28px 20px 0;
+}
+
+.wrap-figure img,
+.wrap-figure video {
+    display: block;
+    width: 100%;
+    height: auto;
+}
+
+.wrap-figure > div {
+    display: block;
+}
+
+.wrap-figure p {
+    display: block;
+    margin: 8px 0 0 0;
+    text-align: center;
+}
+
+/* Full-width figures inside a wrapping section start below the float rather
+   than squeezing in next to it. */
+.wrap-block .captioned-image {
+    clear: both;
+}
+
+/* A stack of images inside one figure, overlapping just enough to read as a
+   collage rather than a list. */
+.wrap-figure .stacked {
+    display: block;
+    margin-top: -14px;
+}
+
+/*
+ * Once the column is too narrow to hold prose beside a picture, drop the float
+ * and let the figure span the full width. Container queries handle the real
+ * case (a narrow window on a wide screen); the media query is the fallback for
+ * engines without container query support.
+ */
+@container (max-width: 640px) {
+    .wrap-figure,
+    .wrap-figure--left {
+        float: none;
+        width: 100%;
+        margin: 16px 0 24px 0;
+    }
+
+    .wrap-figure .stacked {
+        margin-top: -10px;
+    }
+}
+
+@media (max-width: 820px) {
+    .wrap-figure,
+    .wrap-figure--left {
+        float: none;
+        width: 100%;
+        margin: 16px 0 24px 0;
+    }
+}
+
+/* A figure that owns its own full-width band, used to close out a section. */
+.full-figure {
+    display: block;
+    clear: both;
+    width: 100%;
+    margin: 32px 0 16px 0;
+    text-align: center;
+}
+
+.full-figure img,
+.full-figure video {
+    display: inline-block;
+    width: 100%;
+    /* The source is 482px wide, so this is about as far as it stretches before
+       upscaling shows. `.App` sets image-rendering: pixelated for the desktop
+       chrome, which turns any upscale of a photograph into hard blocks — opt
+       this figure back into smooth interpolation. */
+    max-width: 640px;
+    height: auto;
+    image-rendering: auto;
+}
+
+.full-figure p {
+    display: block;
+    max-width: 720px;
+    margin: 12px auto 0 auto;
+    text-align: center;
+}
+
 .site-page {
     display: flex;
     left: 0px;
