@@ -18,29 +18,55 @@ export interface MusicPlayerProps {
 
 const MusicPlayer: React.FC<MusicPlayerProps> = (props) => {
     const [isPlaying, setIsPlaying] = useState(false);
-    const audioRef = useRef(new Audio(props.src));
+    // No element until something actually asks to hear this track — these are
+    // DJ sets in the tens of megabytes, and this page has four of them. The
+    // old code called `new Audio(props.src)` for all four the moment the page
+    // rendered, which starts every browser fetching and buffering right away;
+    // on iOS that reliably ran into the platform's limit on how many decoded
+    // media elements can be alive at once, and later players would go silent
+    // for reasons that had nothing to do with which button was pressed.
+    const audioRef = useRef<HTMLAudioElement | null>(null);
     const [currentTime, setCurrentTime] = useState(0);
     const [duration, setDuration] = useState(1);
 
-    // set current time
-    useEffect(() => {
-        audioRef.current.addEventListener('timeupdate', () => {
-            setCurrentTime(audioRef.current.currentTime);
-            setDuration(audioRef.current.duration);
-            if (audioRef.current.currentTime === audioRef.current.duration) {
+    /** Builds the element on first use and wires up the one listener it needs. */
+    const getAudio = () => {
+        if (audioRef.current) return audioRef.current;
+        const audio = new Audio(props.src);
+        audio.preload = 'none';
+        audio.addEventListener('timeupdate', () => {
+            setCurrentTime(audio.currentTime);
+            setDuration(audio.duration);
+            if (audio.currentTime === audio.duration) {
                 setIsPlaying(false);
             }
         });
-    }, []);
+        audioRef.current = audio;
+        return audio;
+    };
+
+    /** Fully lets go of the element rather than just pausing it, so switching
+     * to a different track actually frees the megabytes this one had buffered
+     * — not just silences them. */
+    const releaseAudio = () => {
+        const audio = audioRef.current;
+        if (!audio) return;
+        audio.pause();
+        audio.removeAttribute('src');
+        audio.load();
+        audioRef.current = null;
+        setCurrentTime(0);
+        setDuration(1);
+    };
 
     // fast fowrad 15 seconds
     const fastForward = () => {
-        audioRef.current.currentTime += 15;
+        getAudio().currentTime += 15;
     };
 
     // fast rewind to start of song
     const fastRewind = () => {
-        audioRef.current.currentTime -= 15;
+        getAudio().currentTime -= 15;
     };
 
     const togglePlay = () => {
@@ -56,12 +82,13 @@ const MusicPlayer: React.FC<MusicPlayerProps> = (props) => {
 
     useEffect(() => {
         if (props.currentSong === props.title) {
-            audioRef.current.play();
+            getAudio().play();
             setIsPlaying(true);
         } else {
-            audioRef.current.pause();
+            releaseAudio();
             setIsPlaying(false);
         }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [props.currentSong, props.title]);
 
     // format current time
@@ -72,16 +99,14 @@ const MusicPlayer: React.FC<MusicPlayerProps> = (props) => {
     };
 
     useEffect(() => {
+        if (!audioRef.current) return;
         if (isPlaying) audioRef.current.play();
         else audioRef.current.pause();
     }, [isPlaying]);
 
     useEffect(() => {
-        audioRef.current.currentTime = 0;
-        return () => {
-            // eslint-disable-next-line
-            audioRef.current.pause();
-        };
+        return () => releaseAudio();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     return (

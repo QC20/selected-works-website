@@ -4,6 +4,7 @@ import me from "../../assets/pictures/workingAtComputer.jpg";
 import meNow from "../../assets/pictures/currentme1.jpg";
 import { Link } from "react-router-dom";
 import ResumeDownload from "./ResumeDownload";
+import LazyImage from "../general/LazyImage";
 import sparkles from "../../assets//pictures/sparkles.gif";
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 import LineSplit from "../showcase/LineSplit";
@@ -57,7 +58,7 @@ const About: React.FC<AboutProps> = (props) => {
 
         <br />
         <div className="captioned-image">
-          <img
+          <LazyImage
             src={me}
             style={styles.image}
             title="My haircut tends to vary with the seasons"
@@ -115,7 +116,7 @@ const About: React.FC<AboutProps> = (props) => {
             <br />
 
             <div className="wrap-figure">
-              <img src={meNow} alt="Jonas Kjeldmand Jensen" />
+              <LazyImage src={meNow} alt="Jonas Kjeldmand Jensen" />
               <p>
                 <sub>
                   <b>Image 2:</b> Me not working particularly hard, April 2024

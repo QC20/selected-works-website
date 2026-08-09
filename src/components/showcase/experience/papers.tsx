@@ -4,6 +4,7 @@ import React from 'react';
 import ResumeDownload from '../ResumeDownload';
 import Window from '../../os/Window';
 import DosPlayer from '../../dos/DosPlayer';
+import LazyImage from '../../general/LazyImage';
 import audioIcons from '../../../assets/pictures/audioIconsLoop.png';
 import voiceinteractionTask from '../../../assets/pictures/VoiceInteractionTask.png';
 import transfer from '../../../assets/pictures/transfer.png';
@@ -119,7 +120,7 @@ const PapersProjects: React.FC<paperProps> = (props) => {
                 
                 <br></br>
                 <div className="captioned-image">
-                    <img src={voiceinteractionTask} style={{ width: '80%'}} alt="" />
+                    <LazyImage src={voiceinteractionTask} style={{ width: '80%'}} alt="" />
                     <p style={styles.caption}>
                         <sub>
                             <b>

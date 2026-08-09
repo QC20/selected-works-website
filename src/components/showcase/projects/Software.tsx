@@ -10,6 +10,7 @@ import circle from "../../../assets/pictures/projects/software/circle.png";
 import ResumeDownload from "../ResumeDownload";
 import LineSplit from "../../showcase/LineSplit";
 import VideoAsset from "../../general/VideoAsset";
+import LazyImage from "../../general/LazyImage";
 
 import rasPiCase from "../../../assets/pictures/projects/software/rasPiCase.jpg";
 import imAlwaysThisKind from "../../../assets/pictures/projects/software/imAlwaysThisKind.gif";
@@ -80,7 +81,7 @@ const SoftwareProjects: React.FC<SoftwareProjectsProps> = (props) => {
         </p>
         <br />
         <div className="captioned-image">
-          <img
+          <LazyImage
             src={rasPiCase}
             style={{ width: "75%" }}
             alt="Jonas Kjeldmand Jensen Voice User Interface (VUI / CUI)ß"
@@ -151,12 +152,12 @@ const SoftwareProjects: React.FC<SoftwareProjectsProps> = (props) => {
               pixels; the slight collision is deliberate, it reads as a stack
               of stills rather than a tidy list. */}
           <div className="wrap-figure wrap-figure--left">
-            <img
+            <LazyImage
               src={eyeTracking2}
               style={{ width: "72%", marginLeft: "auto", marginRight: "auto" }}
               alt="Heat map of a participant's gaze while reading"
             />
-            <img
+            <LazyImage
               className="stacked"
               src={eyeTracking1}
               alt="Gaze path recorded during the reading task"
@@ -203,7 +204,7 @@ const SoftwareProjects: React.FC<SoftwareProjectsProps> = (props) => {
         </p>
         <br />
         <div className="captioned-image">
-          <img src={eyeTrackingStudy} style={{ width: "75%" }} alt="" />
+          <LazyImage src={eyeTrackingStudy} style={{ width: "75%" }} alt="" />
 
           <p>
             <sub>
@@ -269,7 +270,7 @@ const SoftwareProjects: React.FC<SoftwareProjectsProps> = (props) => {
         </p>
         <br />
         <div className="captioned-image">
-          <img src={blimp} style={{ width: "80%" }} alt="" />
+          <LazyImage src={blimp} style={{ width: "80%" }} alt="" />
           <p style={styles.caption}>
             <sub>
               <b>Image 1:</b> 3D model of the model in two different sizes.

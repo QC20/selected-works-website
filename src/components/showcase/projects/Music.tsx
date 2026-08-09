@@ -37,6 +37,7 @@ import { styles } from "../../os/DragIndicator";
 import LineSplit from "../LineSplit";
 import ResumeDownload from "../ResumeDownload";
 import VideoAsset from "../../general/VideoAsset";
+import LazyImage from "../../general/LazyImage";
 
 import Window from "../../os/Window";
 import shortcut from "../../../../src/assets/pictures/projects/audio/shortcut.gif";
@@ -857,10 +858,12 @@ const MusicProjects: React.FC<MusicProjectsProps> = () => {
           </p>
 
           <div className="full-figure">
-            {/* No loading="lazy" here: the showcase scrolls inside a nested,
-                transformed window, and Chrome never fires the load for a lazy
-                image in that stack, so it just stays blank. */}
-            <img
+            {/* LazyImage, not loading="lazy": the showcase scrolls inside a
+                nested, transformed window, and native lazy-loading's
+                heuristic never fires in there — see useLazyMount.ts. This is
+                the biggest single file on the site (a 10MB gif), so it's the
+                one image on the page worth being deliberate about. */}
+            <LazyImage
               src={SummerhousePainting}
               alt="Pouring paint across a two-by-two-metre canvas outdoors"
             />

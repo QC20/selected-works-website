@@ -32,6 +32,7 @@ import TrominoVidDemo from "../../../assets/pictures/projects/software/Tromino-I
 
 import { styles } from "../../os/DragIndicator";
 import VideoAsset from "../../general/VideoAsset";
+import LazyImage from "../../general/LazyImage";
 
 export interface ArtProjectsProps {}
 
@@ -106,7 +107,7 @@ const ArtProjects: React.FC<ArtProjectsProps> = (props) => {
           through digital landscapes.
         </p>
         <div className="captioned-image">
-          <img src={prototype} style={{ width: "100%" }} alt="" />
+          <LazyImage src={prototype} style={{ width: "100%" }} alt="" />
           <p>
             <sub>
               <b>Image 1:</b> Top view of the DIY setup.{" "}
@@ -151,7 +152,7 @@ const ArtProjects: React.FC<ArtProjectsProps> = (props) => {
           virtual landscape.
         </p>
         <div className="captioned-image">
-          <img src={HapNavDemo} style={{ width: "90%" }} alt="" />
+          <LazyImage src={HapNavDemo} style={{ width: "90%" }} alt="" />
           <p>
             <sub>
               <b>Image 3:</b> Go ahead and check out a{" "}
@@ -198,7 +199,7 @@ const ArtProjects: React.FC<ArtProjectsProps> = (props) => {
           {/* First Instance */}
           <div style={{ flex: 1, marginRight: 16 }}>
             <div className="captioned-image">
-              <img src={prototype1} style={{ width: "100%" }} alt="" />
+              <LazyImage src={prototype1} style={{ width: "100%" }} alt="" />
               <p>
                 <sub>
                   <b>Image 5:</b> Fully enclosed Hapnav controller.{" "}
@@ -210,7 +211,7 @@ const ArtProjects: React.FC<ArtProjectsProps> = (props) => {
           {/* Second Instance */}
           <div style={{ flex: 1, marginRight: 16 }}>
             <div className="captioned-image">
-              <img src={prototype2} style={{ width: "100%" }} alt="" />
+              <LazyImage src={prototype2} style={{ width: "100%" }} alt="" />
               <p>
                 <sub>
                   <b>Image 6:</b> Insides views of Hapnav controller.{" "}
@@ -222,7 +223,7 @@ const ArtProjects: React.FC<ArtProjectsProps> = (props) => {
           {/* Third Instance */}
           <div style={{ flex: 1 }}>
             <div className="captioned-image">
-              <img src={prototype3} style={{ width: "100%" }} alt="" />
+              <LazyImage src={prototype3} style={{ width: "100%" }} alt="" />
               <p>
                 <sub>
                   <b>Image 7:</b> This is the minimal component version.{" "}
@@ -342,7 +343,7 @@ const ArtProjects: React.FC<ArtProjectsProps> = (props) => {
           {/* First Tromino image */}
           <div style={{ flex: 1, marginRight: 16 }}>
             <div className="captioned-image">
-              <img src={TromnoStartScreen2} style={{ width: "100%" }} alt="" />
+              <LazyImage src={TromnoStartScreen2} style={{ width: "100%" }} alt="" />
               <p>
                 <sub>
                   <b>Image 9:</b> Zoomed-out Tromino controller.{" "}
@@ -354,7 +355,7 @@ const ArtProjects: React.FC<ArtProjectsProps> = (props) => {
           {/* Second Tromino image */}
           <div style={{ flex: 1, marginRight: 16 }}>
             <div className="captioned-image">
-              <img src={TromnoInGame} style={{ width: "100%" }} alt="" />
+              <LazyImage src={TromnoInGame} style={{ width: "100%" }} alt="" />
               <p>
                 <sub>
                   <b>Image 10:</b> Tromino Gameplay window.{" "}
@@ -366,7 +367,7 @@ const ArtProjects: React.FC<ArtProjectsProps> = (props) => {
           {/* Third Tromino image */}
           <div style={{ flex: 1 }}>
             <div className="captioned-image">
-              <img src={TromnoGameOver} style={{ width: "100%" }} alt="" />
+              <LazyImage src={TromnoGameOver} style={{ width: "100%" }} alt="" />
               <p>
                 <sub>
                   <b>Image 11:</b> Tromino 'Game Over' and score window.{" "}
@@ -427,7 +428,7 @@ const ArtProjects: React.FC<ArtProjectsProps> = (props) => {
           <br />
           <div className="wrap-block">
             <div className="wrap-figure">
-              <img src={diyArduinoController} alt="" />
+              <LazyImage src={diyArduinoController} alt="" />
               <p>
                 <sub>
                   <b>Image 12:</b> RGB light circling through its colors. Find
@@ -479,7 +480,7 @@ const ArtProjects: React.FC<ArtProjectsProps> = (props) => {
           </div>
           <br />
           <div className="captioned-image">
-            <img src={diyArduinoSetup2} style={{ width: "100%" }} alt="" />
+            <LazyImage src={diyArduinoSetup2} style={{ width: "100%" }} alt="" />
             <p>
               <sub>
                 <b>Image 13:</b> Top view of the DIY setup.

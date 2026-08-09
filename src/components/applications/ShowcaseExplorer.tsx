@@ -1,18 +1,36 @@
-import React from 'react';
+import React, { Suspense, lazy } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
-import Home from '../showcase/Home';
-import About from '../showcase/About';
 import Window from '../os/Window';
-import Experience from '../showcase/Experience';    
-import Projects from '../showcase/Projects';
-import Contact from '../showcase/Contact';
-import SoftwareProjects from '../showcase/projects/Software';
-import MusicProjects from '../showcase/projects/Music';
-import ArtProjects from '../showcase/projects/Art';
 import VerticalNavbar from '../showcase/VerticalNavbar';
 import useInitialWindowSize from '../../hooks/useInitialWindowSize';
-import Papers from '../showcase/experience/papers';
-import PractitionerArticles from '../showcase/experience/PractitionerArticles';
+
+/**
+ * One chunk per page rather than one for the whole showcase.
+ *
+ * Opening My Showcase used to pull in every page's code (and, transitively,
+ * every `import x from '*.jpg'` those pages make — several of which are
+ * multi-megabyte gifs) in a single bundle, before any of it was needed. Home
+ * and Software and Art all loading because someone opened the window to read
+ * About was pure waste. `React.lazy` defers each page's module, and therefore
+ * its asset imports, until its route is actually visited.
+ *
+ * `LazyImage` and `VideoAsset` (see src/components/general) do the same thing
+ * one level down, deferring the *network fetch* of a given picture or clip
+ * until it's about to scroll into view — the two techniques solve different
+ * halves of the same problem and neither replaces the other.
+ */
+const Home = lazy(() => import('../showcase/Home'));
+const About = lazy(() => import('../showcase/About'));
+const Experience = lazy(() => import('../showcase/Experience'));
+const Projects = lazy(() => import('../showcase/Projects'));
+const Contact = lazy(() => import('../showcase/Contact'));
+const SoftwareProjects = lazy(() => import('../showcase/projects/Software'));
+const MusicProjects = lazy(() => import('../showcase/projects/Music'));
+const ArtProjects = lazy(() => import('../showcase/projects/Art'));
+const Papers = lazy(() => import('../showcase/experience/papers'));
+const PractitionerArticles = lazy(
+    () => import('../showcase/experience/PractitionerArticles')
+);
 
 export interface ShowcaseExplorerProps extends WindowAppProps {}
 
@@ -35,30 +53,50 @@ const ShowcaseExplorer: React.FC<ShowcaseExplorerProps> = (props) => {
             <Router>
                 <div className="site-page">
                     <VerticalNavbar />
-                    <Routes>
-                        <Route path="/" element={<Home />} />
-                        <Route path="/about" element={<About />} />
-                        <Route path="/experience" element={<Experience />} />
-                        <Route
-                            path="/experience/papers"
-                            element={<Papers />}
-                        />
-                        <Route
-                            path="/experience/practitioner-articles"
-                            element={<PractitionerArticles />}
-                        />
-                        <Route path="/projects" element={<Projects />} />
-                        <Route path="/contact" element={<Contact />} />
-                        <Route
-                            path="/projects/software"
-                            element={<SoftwareProjects />}
-                        />
-                        <Route
-                            path="/projects/music"
-                            element={<MusicProjects />}
-                        />
-                        <Route path="/projects/art" element={<ArtProjects />} />
-                    </Routes>
+                    {/* Only shows up on the first visit to a given page this
+                        session — the chunk is cached after that, same as any
+                        other script tag would be. */}
+                    <Suspense
+                        fallback={
+                            <div
+                                className="site-page-content"
+                                style={{ alignItems: 'flex-start' }}
+                            >
+                                <p className="loading">Loading</p>
+                            </div>
+                        }
+                    >
+                        <Routes>
+                            <Route path="/" element={<Home />} />
+                            <Route path="/about" element={<About />} />
+                            <Route
+                                path="/experience"
+                                element={<Experience />}
+                            />
+                            <Route
+                                path="/experience/papers"
+                                element={<Papers />}
+                            />
+                            <Route
+                                path="/experience/practitioner-articles"
+                                element={<PractitionerArticles />}
+                            />
+                            <Route path="/projects" element={<Projects />} />
+                            <Route path="/contact" element={<Contact />} />
+                            <Route
+                                path="/projects/software"
+                                element={<SoftwareProjects />}
+                            />
+                            <Route
+                                path="/projects/music"
+                                element={<MusicProjects />}
+                            />
+                            <Route
+                                path="/projects/art"
+                                element={<ArtProjects />}
+                            />
+                        </Routes>
+                    </Suspense>
                 </div>
             </Router>
         </Window>

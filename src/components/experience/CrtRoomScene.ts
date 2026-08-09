@@ -337,12 +337,99 @@ export function createCrtRoomScene(
     canvas.addEventListener('pointerdown', onCanvasPointerDown);
 
     // ---- Ambient office audio (on from the moment you arrive) -----------------
-    const audio = new Audio(`${BASE}/audio/office.mp3`);
-    audio.loop = true;
+    //
+    // Eight recordings (public/audio/step-outside/), one picked at random each
+    // time the room is entered, so it doesn't sound identical on every visit.
+    // Looping is done by hand rather than with the `loop` attribute, because a
+    // native loop can't be faded across its own seam — see `loopEnvelope` below,
+    // which fades the last two seconds out and the first two back in every time
+    // it wraps, so the restart reads as a breath rather than a splice.
+    //
+    // Volume is routed through a Web Audio GainNode instead of the element's own
+    // `.volume`. iPhone Safari (not iPad, not Mac) ignores `.volume` on inline
+    // media entirely — the hardware buttons are the only thing allowed to
+    // change loudness there — so anything driven by that property is silently
+    // stuck at full scale on exactly the device this most needed to be quiet
+    // on. A GainNode sits downstream of that restriction and is honoured
+    // everywhere.
+    //
+    // The eight files were peak-matched to a common, deliberately quiet
+    // ceiling before they were ever added to the repo (attenuation only —
+    // the quietest of the eight set the ceiling, so nothing was boosted past
+    // its own original level). Everything from here on is fades and muting:
+    // this only ever turns them down further, never back up past that.
+    const TRACK_COUNT = 8;
+    const track = 1 + Math.floor(Math.random() * TRACK_COUNT);
+    const audio = new Audio(
+        `${PUBLIC}/audio/step-outside/Office_Background_Sounds_${track}.mp3`
+    );
     audio.preload = 'auto';
-    audio.volume = 0;
-    let fadeTimer: number | undefined;
+
+    let audioCtx: AudioContext | null = null;
+    let gainNode: GainNode | null = null;
+    try {
+        const AudioCtxCtor =
+            window.AudioContext ||
+            (window as unknown as { webkitAudioContext?: typeof AudioContext })
+                .webkitAudioContext;
+        if (AudioCtxCtor) {
+            audioCtx = new AudioCtxCtor();
+            const source = audioCtx.createMediaElementSource(audio);
+            gainNode = audioCtx.createGain();
+            gainNode.gain.value = 0;
+            source.connect(gainNode);
+            gainNode.connect(audioCtx.destination);
+        }
+    } catch {
+        // No Web Audio API at all (very old browser). `applyGain` below falls
+        // back to the element's own volume rather than staying silent.
+    }
+
+    /** How long the top and tail of every loop take to fade, in seconds. */
+    const LOOP_FADE_S = 2;
+    /** How often the fade/loop envelope is recalculated. */
+    const ENVELOPE_POLL_S = 0.05;
+
     let wantSound = true;
+    /** Eases toward 0 (muted) or 1 (unmuted) — the room-level fade. */
+    let muteLevel = 0;
+    let muteTarget = 0;
+
+    /** Where the current loop sits in its own fade-in/fade-out, 0..1. */
+    const loopEnvelope = (): number => {
+        const dur = audio.duration;
+        if (!isFinite(dur) || dur <= 0) return 1;
+        const fade = Math.min(LOOP_FADE_S, dur / 2);
+        if (fade <= 0) return 1;
+        const distanceFromEdge = Math.min(audio.currentTime, dur - audio.currentTime);
+        return Math.max(0, Math.min(1, distanceFromEdge / fade));
+    };
+
+    const applyGain = () => {
+        muteLevel += (muteTarget - muteLevel) * 0.12;
+        if (Math.abs(muteTarget - muteLevel) < 0.002) muteLevel = muteTarget;
+
+        const g = muteLevel * loopEnvelope();
+        if (gainNode && audioCtx) {
+            gainNode.gain.linearRampToValueAtTime(
+                g,
+                audioCtx.currentTime + ENVELOPE_POLL_S
+            );
+        } else {
+            audio.volume = g;
+        }
+
+        // Fully faded out and staying that way: stop decoding rather than
+        // idling a paused-but-loaded stream.
+        if (muteLevel === 0 && muteTarget === 0 && !audio.paused) audio.pause();
+    };
+    const envelopeTimer = window.setInterval(applyGain, ENVELOPE_POLL_S * 1000);
+
+    // Restart in place on end rather than the `loop` attribute — see above.
+    audio.addEventListener('ended', () => {
+        audio.currentTime = 0;
+        if (wantSound) startPlayback();
+    });
 
     // Autoplay policies can still refuse the first play() even though a click
     // opened the experience — iOS is strict about how far from the gesture the
@@ -364,24 +451,16 @@ export function createCrtRoomScene(
         gestureEvents.forEach((t) => window.addEventListener(t, onUnlockGesture, true));
     };
     const startPlayback = () => {
+        audioCtx?.resume();
         const p = audio.play();
         if (p && typeof p.catch === 'function') p.catch(armUnlock);
     };
 
     const setMuted = (muted: boolean) => {
         wantSound = !muted;
-        window.clearInterval(fadeTimer);
-        const target = muted ? 0 : 0.5;
+        muteTarget = muted ? 0 : 1;
         if (muted) clearUnlock();
         else startPlayback();
-        fadeTimer = window.setInterval(() => {
-            const next = audio.volume + (target - audio.volume) * 0.12;
-            audio.volume = Math.abs(next - target) < 0.01 ? target : next;
-            if (audio.volume === target) {
-                window.clearInterval(fadeTimer);
-                if (muted) audio.pause();
-            }
-        }, 40);
     };
 
     // Start the fade-in immediately: the click that opened the room is the most
@@ -509,7 +588,7 @@ export function createCrtRoomScene(
     const dispose = () => {
         running = false;
         cancelAnimationFrame(raf);
-        window.clearInterval(fadeTimer);
+        window.clearInterval(envelopeTimer);
         window.removeEventListener('resize', resize);
         document.removeEventListener('visibilitychange', onVisibility);
         canvas.removeEventListener('pointerdown', onCanvasPointerDown);
@@ -518,6 +597,8 @@ export function createCrtRoomScene(
 
         audio.pause();
         audio.src = '';
+        gainNode?.disconnect();
+        audioCtx?.close().catch(() => {});
         controls?.dispose();
         dracoLoader.dispose();
 
