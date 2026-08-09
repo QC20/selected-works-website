@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import Colors from '../../constants/colors';
+import { TASKBAR_HEIGHT } from './metrics';
 import { playChime, playClick } from './sounds';
 import { useSaveablePrograms } from './saveablePrograms';
 
@@ -426,7 +427,7 @@ const styles: StyleSheetCSS = {
         position: 'absolute',
         right: 16,
         // Clear of the taskbar.
-        bottom: 44,
+        bottom: TASKBAR_HEIGHT + 12,
         flexDirection: 'column',
         alignItems: 'flex-end',
         gap: 2,

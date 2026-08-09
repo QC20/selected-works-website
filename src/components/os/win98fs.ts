@@ -36,6 +36,22 @@ export const DOCS_DIR = '/my-documents';
 export const NOTES_DIR = `${DOCS_DIR}/notes`;
 export const PAINTINGS_DIR = `${DOCS_DIR}/paintings`;
 
+/**
+ * Where a document goes when it is somewhere other than its own folder.
+ *
+ * Dragging a note out of Notes and onto the desktop really moves it: the file
+ * leaves `/my-documents/notes` and lands in `/desktop`, so the folder it came
+ * from stops listing it, exactly the way moving a file out of a folder behaves
+ * anywhere else. The Recycle Bin works the same way with `/recycled`.
+ *
+ * Neither is a place a file is meant to live. On the next visit anything found
+ * in either is walked back to the folder it belongs to (see
+ * `documentFiles.ts`), so a desktop left in a mess tidies itself up, and
+ * throwing something away is only permanent once the bin is emptied.
+ */
+export const DESKTOP_DIR = '/desktop';
+export const RECYCLED_DIR = '/recycled';
+
 /** One file on the fake drive. */
 export interface Win98File {
     name: string;
@@ -72,6 +88,15 @@ interface BrowserFsModule {
         (path: string, cb: (err: Error | null, data?: Uint8Array) => void): void;
     };
     unlink: (path: string, cb: (err: Error | null) => void) => void;
+    /**
+     * Optional: not every BrowserFS backend implements it, and the fallback in
+     * `moveDocument` is what covers the ones that don't.
+     */
+    rename?: (
+        from: string,
+        to: string,
+        cb: (err: Error | null) => void
+    ) => void;
     stat: (
         path: string,
         cb: (err: Error | null, stats?: BrowserFsStats) => void
@@ -362,6 +387,43 @@ export const writeDocument = async (
             error ? reject(error) : resolve()
         );
     });
+};
+
+/** The file name at the end of a path. */
+export const baseName = (path: string): string =>
+    path.slice(path.lastIndexOf('/') + 1);
+
+/**
+ * Moves a file from one folder on the fake drive to another, and answers with
+ * the path it ended up at.
+ *
+ * BrowserFS's IndexedDB backend does implement `rename`, which is a single
+ * transaction and therefore the one way to move a file without ever having two
+ * copies of it on disk. Not every backend does, though, and the read-write-
+ * unlink fallback below is what keeps this working if the store is ever
+ * reconfigured — losing the original only if the copy already succeeded.
+ */
+export const moveDocument = async (
+    from: string,
+    toDirectory: string,
+    name: string = baseName(from)
+): Promise<string> => {
+    const to = `${toDirectory}/${name}`;
+    if (from === to) return to;
+
+    const fs = await getFs();
+    await ensureDir(fs, toDirectory);
+
+    const renamed = await new Promise<boolean>((resolve) => {
+        if (!fs.rename) return resolve(false);
+        fs.rename(from, to, (error) => resolve(!error));
+    });
+    if (renamed) return to;
+
+    const bytes = await readDocumentBytes(from);
+    await writeDocument(toDirectory, name, bytes);
+    await deleteDocument(from).catch(() => undefined);
+    return to;
 };
 
 const SEED_FLAG = 'win98fs.seeded.v1';

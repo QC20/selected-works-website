@@ -108,6 +108,8 @@ export interface FileMenuActions {
     open?: () => void;
     delete: () => void;
     restore?: () => void;
+    /** "Restore" in the bin; "Put back in My Documents" out on the desktop. */
+    restoreLabel?: string;
 }
 
 export function fileMenu(actions: FileMenuActions): ContextMenuItem[] {
@@ -121,7 +123,7 @@ export function fileMenu(actions: FileMenuActions): ContextMenuItem[] {
         ...(actions.restore
             ? [
                   {
-                      label: 'Restore',
+                      label: actions.restoreLabel || 'Restore',
                       onClick: actions.restore,
                       separatorBefore: true,
                   },

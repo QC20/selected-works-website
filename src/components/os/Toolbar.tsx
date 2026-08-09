@@ -3,6 +3,7 @@ import Colors from '../../constants/colors';
 import { Icon } from '../general';
 import { IconName } from '../../assets/icons';
 import { Resolution, RESOLUTIONS, scaleFor } from './resolution';
+import { TASKBAR_HEIGHT } from './metrics';
 import StockTicker from './StockTicker';
 import WeatherPanel from './WeatherPanel';
 import {
@@ -518,7 +519,7 @@ const Toolbar: React.FC<ToolbarProps> = ({
                             )}
                         >
                             <Icon
-                                size={18}
+                                size={20}
                                 icon="windowsStartIcon"
                                 style={styles.startIcon}
                             />
@@ -549,7 +550,7 @@ const Toolbar: React.FC<ToolbarProps> = ({
                                         )}
                                     >
                                         <Icon
-                                            size={18}
+                                            size={20}
                                             icon={windows[key].icon}
                                             style={styles.tabIcon}
                                         />
@@ -629,7 +630,7 @@ const Toolbar: React.FC<ToolbarProps> = ({
                         data-open={weatherOpen}
                         onPointerDown={trayToggle(setWeatherOpen)}
                     >
-                        <Icon icon="weatherPartlyIcon" size={16} />
+                        <Icon icon="weatherPartlyIcon" size={18} />
                     </div>
                     <div
                         style={styles.trayIconWrap}
@@ -637,7 +638,7 @@ const Toolbar: React.FC<ToolbarProps> = ({
                         data-open={tickerOpen}
                         onPointerDown={trayToggle(setTickerOpen)}
                     >
-                        <Icon icon="stocksIcon" size={16} />
+                        <Icon icon="stocksIcon" size={18} />
                     </div>
 
                     {/* Dial-Up Networking's connection status. */}
@@ -655,7 +656,7 @@ const Toolbar: React.FC<ToolbarProps> = ({
                             icon={
                                 connection.online ? 'dialupIcon' : 'offlineIcon'
                             }
-                            size={16}
+                            size={18}
                         />
                     </div>
 
@@ -677,7 +678,7 @@ const Toolbar: React.FC<ToolbarProps> = ({
                         data-open={resMenuOpen}
                         onPointerDown={trayToggle(setResMenuOpen)}
                     >
-                        <Icon icon="displayIcon" size={16} />
+                        <Icon icon="displayIcon" size={18} />
                     </div>
 
                     {/* A real control now: this is what silences the desktop. */}
@@ -697,7 +698,7 @@ const Toolbar: React.FC<ToolbarProps> = ({
                             }
                         }}
                     >
-                        <Icon icon={muted ? 'volumeOff' : 'volumeOn'} size={16} />
+                        <Icon icon={muted ? 'volumeOff' : 'volumeOn'} size={18} />
                     </div>
 
                     <p
@@ -720,7 +721,9 @@ const styles: StyleSheetCSS = {
         position: 'absolute',
         bottom: 0,
         width: '100%',
-        height: 32,
+        // See metrics.ts: taller than the original 32 so the bar is findable
+        // on a phone or an iPad, where it used to read as a thin grey edge.
+        height: TASKBAR_HEIGHT,
         background: Colors.lightGray,
         borderTop: `1px solid ${Colors.lightGray}`,
         zIndex: 100000,
@@ -755,7 +758,9 @@ const styles: StyleSheetCSS = {
     },
     startWindow: {
         position: 'absolute',
-        bottom: 28,
+        // Overlaps the bar's top edge by a few pixels, the way the real menu
+        // sits on top of it rather than floating above.
+        bottom: TASKBAR_HEIGHT - 4,
         display: 'flex',
         flex: 1,
         width: 256,
@@ -936,12 +941,14 @@ const styles: StyleSheetCSS = {
         // reports one), and a fixed width either clipped the clock or left a
         // gap depending on the device.
         flexShrink: 0,
-        gap: 4,
-        height: 24,
+        gap: 5,
+        // Grows with the bar, so the tray keeps its inset well and the icons
+        // inside it have room to be drawn a couple of pixels larger.
+        height: TASKBAR_HEIGHT - 8,
         boxSizing: 'border-box',
         marginRight: 4,
-        paddingLeft: 4,
-        paddingRight: 4,
+        paddingLeft: 5,
+        paddingRight: 5,
         border: `1px solid ${Colors.white}`,
         borderTopColor: Colors.darkGray,
 
@@ -953,8 +960,8 @@ const styles: StyleSheetCSS = {
         opacity: 0.45,
     },
     clippyGlyph: {
-        fontSize: 13,
-        lineHeight: '16px',
+        fontSize: 15,
+        lineHeight: '18px',
     },
     startMenuClippy: {
         width: 32,
@@ -1008,11 +1015,11 @@ const styles: StyleSheetCSS = {
         height: 18,
     },
     tabText: {
-        fontSize: 14,
+        fontSize: 15,
         fontFamily: 'MSSerif',
     },
     timeText: {
-        fontSize: 12,
+        fontSize: 13,
         fontFamily: 'MSSerif',
         cursor: 'pointer',
         // Instant taps on touch devices (no 300ms double-tap-zoom wait).

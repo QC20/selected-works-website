@@ -8,6 +8,7 @@ import Button from './Button';
 import DragIndicator from './DragIndicator';
 import ResizeIndicator from './ResizeIndicator';
 import { getResolutionScale } from './resolution';
+import { TASKBAR_HEIGHT } from './metrics';
 import { useTheme } from './theme';
 
 export interface WindowProps {
@@ -198,7 +199,7 @@ const Window: React.FC<WindowProps> = (props) => {
                 left,
             });
             setWidth(window.innerWidth);
-            setHeight(window.innerHeight - 32);
+            setHeight(window.innerHeight - TASKBAR_HEIGHT);
             setTop(0);
             setLeft(0);
             setIsMaximized(true);

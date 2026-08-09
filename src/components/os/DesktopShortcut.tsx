@@ -9,8 +9,17 @@ export interface DesktopShortcutProps {
     shortcutName: string;
     invertText?: boolean;
     onOpen: () => void;
-    /** Fires with the drag delta (in desktop coords) when a drag finishes. */
-    onMoved?: (dx: number, dy: number) => void;
+    /**
+     * Fires when a drag finishes: how far the icon travelled, in desktop
+     * coords, plus where the pointer was let go, in screen coords — the caller
+     * needs the latter to tell "moved a bit to the left" from "dropped on the
+     * Recycle Bin".
+     */
+    onMoved?: (
+        dx: number,
+        dy: number,
+        screen: { x: number; y: number }
+    ) => void;
     /** Right-click (or long-press on touch) — see `Desktop.tsx`. */
     onContextMenu?: (screenX: number, screenY: number) => void;
     /**
@@ -135,7 +144,8 @@ const DesktopShortcut: React.FC<DesktopShortcutProps> = ({
                 if (start?.moved) {
                     onMoved(
                         (ev.clientX - start.x) / scale,
-                        (ev.clientY - start.y) / scale
+                        (ev.clientY - start.y) / scale,
+                        { x: ev.clientX, y: ev.clientY }
                     );
                 }
             };

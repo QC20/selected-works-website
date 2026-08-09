@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import Colors from '../../constants/colors';
+import { TASKBAR_HEIGHT } from './metrics';
 
 /**
  * "Click here to begin."
@@ -68,7 +69,7 @@ const styles: StyleSheetCSS = {
         position: 'absolute',
         // Just above the taskbar, a little to the right of the Start button,
         // where Windows 95 put it.
-        bottom: 40,
+        bottom: TASKBAR_HEIGHT + 8,
         left: 60,
         alignItems: 'center',
         padding: '5px 10px 5px 22px',

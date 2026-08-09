@@ -56,11 +56,15 @@ export const STORE_APPS: StoreApp[] = [
     // more (see APPLICATIONS in Desktop.tsx), and a checkbox here that adds an
     // icon which never appears is worse than not offering it. It is still in
     // Start > Games and Hard Disk (C:) > Games.
+    // Scrabble is deliberately absent for the same reason as The Oregon Trail:
+    // it has no desktop icon in the current line-up (see DESKTOP_ORDER in
+    // Desktop.tsx), and a checkbox that installs an icon which never turns up
+    // is worse than not offering it. Start > Games and C:\Games still have it.
     {
-        key: 'scrabble',
-        name: 'Scrabble',
-        blurb: 'Word game for one, against a dictionary that does not lose.',
-        size: 3200,
+        key: 'pinball',
+        name: 'Pinball',
+        blurb: '3D Pinball: Space Cadet. Still the best thing Windows shipped.',
+        size: 6700,
         category: 'Games',
     },
     {
@@ -103,6 +107,23 @@ export const STORE_APPS: StoreApp[] = [
         name: 'About',
         blurb: 'Who built this machine, and why it looks like 1995.',
         size: 400,
+        category: 'Accessories',
+    },
+    // The two programs that write files you keep. Removing the icon does not
+    // touch anything already saved in My Documents — as ever, it only takes the
+    // shortcut off the desktop.
+    {
+        key: 'paint',
+        name: 'Paint',
+        blurb: 'Draw something. It is saved, and everyone else can see it.',
+        size: 29_000,
+        category: 'Accessories',
+    },
+    {
+        key: 'notepad',
+        name: 'Notes',
+        blurb: 'Notepad. Write something down and leave it on the drive.',
+        size: 160,
         category: 'Accessories',
     },
 ];

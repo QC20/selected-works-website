@@ -43,26 +43,33 @@ import {
 } from './resolution';
 import {
     IconPos,
+    PlacedIcon,
     SHORTCUT_ORIGIN,
     arrangeIcons,
     defaultPosition,
     iconBounds,
     lineUpIcons,
     loadPositions,
+    resolveLayout,
+    rowsPerColumn,
     savePositions,
+    screenToIconSlot,
     snap,
 } from './iconPositions';
 import FileIcon from './FileIcon';
 import PictureViewer from '../applications/PictureViewer';
 import { siteByKey } from './websites';
+import { DesktopFile, updateFile, useDesktopFiles } from './desktopFiles';
 import {
-    DesktopFile,
-    emptyRecycleBin,
-    moveToRecycleBin,
-    updateFile,
-    useDesktopFiles,
-} from './desktopFiles';
-import { PAINTINGS_DIR, Win98File } from './win98fs';
+    binFile,
+    emptyBin,
+    kindForName,
+    reclaimStrayDocuments,
+    sendDocumentHome,
+    takeDocumentToBin,
+    takeDocumentToDesktop,
+} from './documentFiles';
+import { Win98File } from './win98fs';
 import Store from '../applications/Store';
 import SystemProperties from '../applications/SystemProperties';
 import ContextMenu, { ContextMenuItem } from './ContextMenu';
@@ -132,18 +139,23 @@ type ExtendedWindowAppProps<T> = T & WindowAppProps;
 /** A desktop icon and the app it opens. */
 type DesktopIcon = DesktopShortcutProps & { appKey: string };
 
+/**
+ * Icon ids for the layout.
+ *
+ * App shortcuts and files share one grid and one no-two-in-a-slot rule, so they
+ * need names drawn from one space. The app key rather than the label, so
+ * relabelling Notepad to "Notes" doesn't lose where the user had put it.
+ */
+const shortcutId = (shortcut: DesktopIcon): string =>
+    `shortcut:${shortcut.appKey}`;
+const fileIconId = (file: DesktopFile): string => `file:${file.id}`;
+
 const APPLICATIONS: {
     [key in string]: {
         key: string;
         name: string;
         shortcutIcon: IconName;
         component: React.FC<ExtendedWindowAppProps<any>>;
-        /**
-         * No icon on the desktop. Reached some other way instead — from the
-         * Start menu (Settings, Run), from inside a folder (Credits,
-         * Minesweeper), or by typing the name into Run.
-         */
-        noDesktopIcon?: boolean;
     };
 } = {
     showcase: {
@@ -162,8 +174,6 @@ const APPLICATIONS: {
         component: WebFrame,
     },
 
-    // Sits directly after Internet Explorer on the desktop; everything below
-    // shifts down one grid slot to make room (see defaultPosition).
     myComputer: {
         key: 'myComputer',
         name: 'My Computer',
@@ -171,9 +181,8 @@ const APPLICATIONS: {
         component: MyComputer,
     },
 
-    // Takes the slot The Oregon Trail used to hold. The bin is somewhere you
-    // end up needing rather than somewhere you go looking, so it earns a place
-    // near the top of the first column more than a single game does.
+    // Last in the first column, where the bin has sat since Windows 95 put it
+    // on the desktop and refused to let anyone take it off again.
     recycleBin: {
         key: 'recycleBin',
         name: 'Recycle Bin',
@@ -181,16 +190,11 @@ const APPLICATIONS: {
         component: RecycleBin,
     },
 
-    // No desktop icon on purpose: the desktop was crowded and one emulated
-    // game does not need to be the fourth thing you see. Still reachable
-    // everywhere else — Start > Games, Hard Disk (C:) > Games, the Store, and
-    // by typing "The Oregon Trail" into Run.
     trail: {
         key: 'trail',
         name: 'The Oregon Trail',
         shortcutIcon: 'trailIcon',
         component: OregonTrail,
-        noDesktopIcon: true,
     },
     doom: {
         key: 'doom',
@@ -200,7 +204,9 @@ const APPLICATIONS: {
     },
     guestbook: {
         key: 'guestbook',
-        name: 'MSN',
+        // The Store and the desktop both called this MSN Messenger while the
+        // window called it MSN; it is one program, so it has one name.
+        name: 'MSN Messenger',
         shortcutIcon: 'msnIcon',
         component: Guestbook,
     },
@@ -211,10 +217,9 @@ const APPLICATIONS: {
         component: Scrabble,
     },
 
-    // The desktop shows the folder; everything inside it (Paint, Notepad,
-    // Solitaire, Credits, …) is launched from there — or from the Start menu,
-    // from My Computer > Hard Disk (C:), or from Run — so none of its contents
-    // gets a desktop icon of its own.
+    // Reached from the Start menu, from My Computer > Hard Disk (C:), and from
+    // Run. Paint and Notepad, the two programs in it that write files you keep,
+    // have earned icons of their own on the desktop; the rest are in here.
     programs: {
         key: 'programs',
         name: 'Programs',
@@ -227,7 +232,6 @@ const APPLICATIONS: {
         name: 'Credits',
         shortcutIcon: 'credits',
         component: Credits,
-        noDesktopIcon: true,
     },
 
     minesweeper: {
@@ -235,13 +239,10 @@ const APPLICATIONS: {
         name: 'Minesweeper',
         shortcutIcon: 'minesweeperIcon',
         component: Minesweeper,
-        noDesktopIcon: true,
     },
 
     // Launches the 3D CRT-room experience instead of a window (see Desktop render).
     // `component` is unused for this entry; kept only to satisfy the map's type.
-    // Sits above Interactive Attractor: it is the biggest thing on the machine
-    // and wants to be found before the toy next to it.
     stepOutside: {
         key: 'stepOutside',
         name: 'Step Outside',
@@ -288,15 +289,14 @@ const APPLICATIONS: {
         component: Store,
     },
 
-    // The two games written for this desktop. Deliberately no desktop icon:
-    // they're reached from Hard Disk (C:) > Games and Start > Games, like the
-    // rest of the games that aren't already on the desktop.
+    // The two games written for this desktop. Reached from Hard Disk (C:) >
+    // Games and Start > Games, like the rest of the games that aren't on the
+    // desktop.
     snake: {
         key: 'snake',
         name: 'Snake',
         shortcutIcon: 'snakeIcon',
         component: Snake,
-        noDesktopIcon: true,
     },
 
     tetris: {
@@ -304,7 +304,6 @@ const APPLICATIONS: {
         name: 'Tetris',
         shortcutIcon: 'tetrisIcon',
         component: Tetris,
-        noDesktopIcon: true,
     },
 
     // Right-click My Computer > Properties, and Run "systemProperties".
@@ -313,7 +312,6 @@ const APPLICATIONS: {
         name: 'System Properties',
         shortcutIcon: 'systemIcon',
         component: SystemProperties,
-        noDesktopIcon: true,
     },
 
     // Start-menu entries. They open real windows (taskbar entry, minimize,
@@ -323,7 +321,6 @@ const APPLICATIONS: {
         name: 'Display Properties',
         shortcutIcon: 'settingsIcon',
         component: Settings,
-        noDesktopIcon: true,
     },
 
     run: {
@@ -331,7 +328,6 @@ const APPLICATIONS: {
         name: 'Run',
         shortcutIcon: 'runIcon',
         component: Run,
-        noDesktopIcon: true,
     },
 
     // --- Start -> Projects ------------------------------------------------
@@ -342,7 +338,6 @@ const APPLICATIONS: {
         name: 'Pin Portrait',
         shortcutIcon: 'ieIcon',
         component: WebFrame,
-        noDesktopIcon: true,
     },
 
     emojiHeatmap: {
@@ -350,7 +345,6 @@ const APPLICATIONS: {
         name: 'Emoji Heatmap',
         shortcutIcon: 'ieIcon',
         component: WebFrame,
-        noDesktopIcon: true,
     },
 
     // --- Start -> Resume --------------------------------------------------
@@ -359,7 +353,6 @@ const APPLICATIONS: {
         name: 'Resume File - My CV',
         shortcutIcon: 'resumeFileIcon',
         component: ResumeFile,
-        noDesktopIcon: true,
     },
 
     selectedWebsites: {
@@ -367,7 +360,6 @@ const APPLICATIONS: {
         name: 'Selected Websites',
         shortcutIcon: 'selectedWebsitesIcon',
         component: WebFrame,
-        noDesktopIcon: true,
     },
 
     scroll: {
@@ -375,7 +367,6 @@ const APPLICATIONS: {
         name: 'Scroll.',
         shortcutIcon: 'scrollIcon',
         component: WebFrame,
-        noDesktopIcon: true,
     },
 
     // Start -> Resume. linkedin.com refuses to be framed, so this one leaves for
@@ -385,7 +376,6 @@ const APPLICATIONS: {
         name: 'LinkedIn',
         shortcutIcon: 'linkedinIcon',
         component: WebFrame,
-        noDesktopIcon: true,
     },
 
     // --- My Computer > Hard Disk (D:) > Utility ----------------------------
@@ -395,7 +385,6 @@ const APPLICATIONS: {
         name: 'Market Watch',
         shortcutIcon: 'stocksIcon',
         component: StockWatch,
-        noDesktopIcon: true,
     },
 
     taskManager: {
@@ -403,7 +392,6 @@ const APPLICATIONS: {
         name: 'Task Manager',
         shortcutIcon: 'taskManagerIcon',
         component: TaskManager,
-        noDesktopIcon: true,
     },
 
     patchNotes: {
@@ -411,7 +399,6 @@ const APPLICATIONS: {
         name: 'Patch Notes',
         shortcutIcon: 'patchNotesIcon',
         component: PatchNotes,
-        noDesktopIcon: true,
     },
 
     resetStorage: {
@@ -419,7 +406,6 @@ const APPLICATIONS: {
         name: 'Reset Storage',
         shortcutIcon: 'resetStorageIcon',
         component: ResetStorage,
-        noDesktopIcon: true,
     },
 };
 
@@ -429,9 +415,9 @@ const APPLICATIONS: {
  * ProgramFrame around a static page under `public/98/`, so they're registered
  * from that one list rather than spelled out here.
  *
- * None of them gets a desktop icon. Like the real Windows 98, they're reached
- * from the Programs folder — on the desktop, in the Start menu, or inside My
- * Computer > Hard Disk (C:) — and, as always here, by typing the name into Run.
+ * Most of them are reached the way Windows 98 reached them: the Programs
+ * folder, the Start menu, My Computer > Hard Disk (C:), or by typing the name
+ * into Run. Three are on the desktop — see DESKTOP_ORDER.
  */
 WIN98_PROGRAMS.forEach((program) => {
     APPLICATIONS[program.key] = {
@@ -439,9 +425,58 @@ WIN98_PROGRAMS.forEach((program) => {
         name: program.name,
         shortcutIcon: program.icon,
         component: ProgramFrame,
-        noDesktopIcon: true,
     };
 });
+
+/**
+ * The desktop, in order.
+ *
+ * This list *is* the desktop: what has an icon, and where it sits. Positions
+ * are filled a column at a time (`GRID.perColumn` of them, top to bottom, then
+ * across), so the first eight are the left-hand column and the rest are the
+ * one beside it.
+ *
+ *   My Showcase           Interactive Attractor
+ *   My Computer           GitHub
+ *   Internet Explorer     Step Outside
+ *   Doom                  Mail
+ *   Pinball               MSN Messenger
+ *   Store                 Paint
+ *   About                 Notes
+ *   Recycle Bin
+ *
+ * Everything else in APPLICATIONS is still on the machine and still opens the
+ * same window — from the Start menu, from a folder, or by typing its name into
+ * Run. Not being on the desktop is a statement about the desktop, not about the
+ * program.
+ */
+const DESKTOP_ORDER: string[] = [
+    'showcase',
+    'myComputer',
+    'internet',
+    'doom',
+    'pinball',
+    'store',
+    'about',
+    'recycleBin',
+    'floating',
+    'github',
+    'stepOutside',
+    'mail',
+    'guestbook',
+    'paint',
+    'notepad',
+];
+
+/**
+ * Where the desktop label differs from the program's own name.
+ *
+ * Only Notepad, and only because what it is *for* here is the notes you write
+ * and keep in My Documents. The window it opens is still Notepad.
+ */
+const DESKTOP_LABELS: { [key: string]: string } = {
+    notepad: 'Notes',
+};
 
 /**
  * What you can type into Run. Everything except Run itself, and no "Step
@@ -520,17 +555,42 @@ const Desktop: React.FC<DesktopProps> = (props) => {
         setResolutionState(r);
     }, []);
 
-    // User-arranged desktop icon positions (keyed by icon name, persisted).
+    /**
+     * Where the user has dragged things to, keyed by `PlacedIcon.id`.
+     *
+     * This lasts the visit and no longer (see `iconPositions.ts`), so every
+     * icon is back in its own slot the next time the site is opened.
+     */
     const [iconPositions, setIconPositions] = useState<Record<string, IconPos>>(
         loadPositions
     );
 
+    /**
+     * The icon the user last put down. It is the one thing the overlap rule
+     * will not move: whatever else has to shuffle, the icon you just dropped
+     * stays under your finger.
+     */
+    const [pinnedIcon, setPinnedIcon] = useState<string | undefined>(undefined);
+
+    /**
+     * The grid shrinks when the window does, and icons that no longer fit have
+     * to be given somewhere else to sit — so a resize (or an iPad turned on its
+     * side) has to re-run the layout.
+     */
+    const [, bumpLayout] = useState(0);
+    useEffect(() => {
+        const onResize = () => bumpLayout((n) => n + 1);
+        window.addEventListener('resize', onResize);
+        return () => window.removeEventListener('resize', onResize);
+    }, []);
+
     const moveIcon = useCallback(
-        (name: string, from: IconPos, dx: number, dy: number) => {
+        (id: string, from: IconPos, dx: number, dy: number) => {
             const scale = scaleFor(loadResolution());
             const next = snap(from.x + dx, from.y + dy, iconBounds(scale));
+            setPinnedIcon(id);
             setIconPositions((prev) => {
-                const updated = { ...prev, [name]: next };
+                const updated = { ...prev, [id]: next };
                 savePositions(updated);
                 return updated;
             });
@@ -545,7 +605,7 @@ const Desktop: React.FC<DesktopProps> = (props) => {
      */
     const arrange = useCallback(
         (order: ArrangeOrder) => {
-            const system = ['showcase', 'myComputer', 'internet', 'programs', 'recycleBin', 'store'];
+            const system = ['showcase', 'myComputer', 'internet', 'recycleBin', 'store'];
             const sorted = [...shortcuts].sort((a, b) => {
                 if (order === 'type') {
                     const rank = (s: DesktopIcon) => {
@@ -557,12 +617,21 @@ const Desktop: React.FC<DesktopProps> = (props) => {
                 }
                 return a.shortcutName.localeCompare(b.shortcutName);
             });
-            setIconPositions(arrangeIcons(sorted.map((s) => s.shortcutName)));
+            // Nothing is pinned any more — the whole point of Arrange is that
+            // it overrides where things were put, including the last drag.
+            setPinnedIcon(undefined);
+            setIconPositions(
+                arrangeIcons(
+                    sorted.map((s) => shortcutId(s)),
+                    iconBounds(scaleFor(loadResolution()))
+                )
+            );
         },
         [shortcuts]
     );
 
     const lineUp = useCallback(() => {
+        setPinnedIcon(undefined);
         setIconPositions(lineUpIcons(scaleFor(loadResolution())));
     }, []);
 
@@ -591,34 +660,103 @@ const Desktop: React.FC<DesktopProps> = (props) => {
     >(() => {});
     // Same again, for a text file saved on the fake C: drive (My Documents).
     const openDocumentRef = useRef<(file: Win98File) => void>(() => {});
+    // And for a document dragged out of one of those folders (see below).
+    const onDocumentDroppedOutRef = useRef<
+        (file: Win98File, screen: { x: number; y: number }) => Promise<void>
+    >(() => Promise.resolve());
+
+    /** Was this drop on top of the Recycle Bin icon? Screen coordinates. */
+    const overBin = useCallback((screen: { x: number; y: number }): boolean => {
+        const bin = binShortcutRef.current?.getBoundingClientRect();
+        return (
+            !!bin &&
+            screen.x >= bin.left &&
+            screen.x <= bin.right &&
+            screen.y >= bin.top &&
+            screen.y <= bin.bottom
+        );
+    }, []);
 
     const onFileDropped = useCallback(
-        (file: DesktopFile, dx: number, dy: number, screen: { x: number; y: number }) => {
-            const bin = binShortcutRef.current?.getBoundingClientRect();
-            const droppedOnBin =
-                !!bin &&
-                screen.x >= bin.left &&
-                screen.x <= bin.right &&
-                screen.y >= bin.top &&
-                screen.y <= bin.bottom;
-
-            if (droppedOnBin) {
-                moveToRecycleBin(file.id);
+        (
+            file: DesktopFile,
+            // Where the icon was *drawn*, which is not always where the file
+            // says it is: the overlap rule may have moved it since. Measuring
+            // the drag from anywhere else makes the icon jump on release.
+            from: IconPos,
+            dx: number,
+            dy: number,
+            screen: { x: number; y: number }
+        ) => {
+            if (overBin(screen)) {
+                binFile(file);
                 setSelectedFileId(null);
                 return;
             }
 
             const scale = scaleFor(loadResolution());
+            setPinnedIcon(fileIconId(file));
             updateFile(file.id, {
-                desktopPos: snap(
-                    file.desktopPos.x + dx,
-                    file.desktopPos.y + dy,
-                    iconBounds(scale)
-                ),
+                desktopPos: snap(from.x + dx, from.y + dy, iconBounds(scale)),
             });
         },
-        []
+        [overBin]
     );
+
+    /**
+     * A desktop shortcut let go of.
+     *
+     * Dropping one on the Recycle Bin is the direct-manipulation way of saying
+     * what the right-click menu's Delete says, and it means the same thing: the
+     * icon goes, the program stays on the machine, and the choice is remembered
+     * for this visitor (see `installedApps.ts`). Only the Store's own apps can
+     * go — drag My Computer at the bin and it simply lands next to it, which is
+     * also what Windows 95 did.
+     */
+    const onShortcutDropped = useCallback(
+        (
+            shortcut: DesktopIcon,
+            at: IconPos,
+            dx: number,
+            dy: number,
+            screen: { x: number; y: number }
+        ) => {
+            if (
+                shortcut.appKey !== 'recycleBin' &&
+                isOptional(shortcut.appKey) &&
+                overBin(screen)
+            ) {
+                uninstall(shortcut.appKey);
+                return;
+            }
+            moveIcon(shortcutId(shortcut), at, dx, dy);
+        },
+        [moveIcon, overBin]
+    );
+
+    /**
+     * A document dragged out of My Documents and let go of somewhere else.
+     *
+     * The file really moves — out of Notes or Paintings, onto the desktop or
+     * into the bin — so the folder it came from stops listing it. Awaited so the
+     * folder can refresh once it is true rather than a moment before.
+     */
+    const onDocumentDroppedOut = useCallback(
+        async (file: Win98File, screen: { x: number; y: number }) => {
+            if (overBin(screen)) {
+                await takeDocumentToBin(file);
+                return;
+            }
+            const scale = scaleFor(loadResolution());
+            const id = await takeDocumentToDesktop(
+                file,
+                screenToIconSlot(screen.x, screen.y, scale)
+            );
+            setPinnedIcon(`file:${id}`);
+        },
+        [overBin]
+    );
+    onDocumentDroppedOutRef.current = onDocumentDroppedOut;
 
     useEffect(() => {
         if (shutdown === true) {
@@ -629,17 +767,15 @@ const Desktop: React.FC<DesktopProps> = (props) => {
 
     useEffect(() => {
         const newShortcuts: DesktopIcon[] = [];
-        Object.keys(APPLICATIONS).forEach((key) => {
+        DESKTOP_ORDER.forEach((key) => {
             const app = APPLICATIONS[key];
+            if (!app) return;
             // Don't offer the 3D experience from inside the 3D monitor.
             if (IS_EMBEDDED_IN_CRT && FULLSCREEN_EXPERIENCES.includes(app.key)) {
                 return;
             }
-            if (app.noDesktopIcon) {
-                return;
-            }
             newShortcuts.push({
-                shortcutName: app.name,
+                shortcutName: DESKTOP_LABELS[app.key] || app.name,
                 icon: app.shortcutIcon,
                 // Every launcher — shortcut, Start menu, Run, folder — goes
                 // through the same openApp, so an app opens identically
@@ -651,12 +787,17 @@ const Desktop: React.FC<DesktopProps> = (props) => {
         });
 
         newShortcuts.forEach((shortcut) => {
-            if (shortcut.shortcutName === "My Showcase") {
+            if (shortcut.appKey === 'showcase') {
                 shortcut.onOpen();
             }
         });
 
         setShortcuts(newShortcuts);
+
+        // Anything a previous visit left lying about goes back to My Documents
+        // (see documentFiles.ts). Costs nothing — and doesn't open the drive at
+        // all — unless something was actually left out.
+        reclaimStrayDocuments();
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
@@ -922,6 +1063,9 @@ const Desktop: React.FC<DesktopProps> = (props) => {
                             openPictureRef.current(name, full, size)
                         }
                         openDocument={(file) => openDocumentRef.current(file)}
+                        onDragOut={(file, screen) =>
+                            onDocumentDroppedOutRef.current(file, screen)
+                        }
                     />
                 );
                 return;
@@ -1045,7 +1189,11 @@ const Desktop: React.FC<DesktopProps> = (props) => {
         (file: Win98File) => {
             // A painting opens in Paint, a note in Notepad — whichever program
             // wrote it. Both take the file the same way, on `?path=`.
-            const isPainting = file.path.startsWith(PAINTINGS_DIR);
+            //
+            // Decided by the name and not by the folder, because a document
+            // out on the desktop is not in its folder any more (see
+            // `documentFiles.ts`) and still has to open in the right program.
+            const isPainting = kindForName(file.name) === 'painting';
             const program = win98ProgramByKey(isPainting ? 'paint' : 'notepad');
             if (!program) return;
             const page = isPainting
@@ -1072,9 +1220,23 @@ const Desktop: React.FC<DesktopProps> = (props) => {
     );
     openDocumentRef.current = openDocument;
 
-    /** Double-clicking a picture on the desktop opens it in the viewer. */
+    /**
+     * Double-clicking a file on the desktop.
+     *
+     * A note or a painting opens in the program that wrote it, wherever the
+     * file currently happens to be sitting; a picture opens in the viewer.
+     */
     const openFile = useCallback(
         (file: DesktopFile) => {
+            if (file.doc) {
+                openDocumentRef.current({
+                    name: file.name,
+                    path: file.doc.path,
+                    size: file.size * 1024,
+                    modified: null,
+                });
+                return;
+            }
             if (!file.image) return;
             openPicture(file.name, file.image, file.size, file.icon);
         },
@@ -1134,7 +1296,7 @@ const Desktop: React.FC<DesktopProps> = (props) => {
                     screenY,
                     recycleBinMenu({
                         open: () => openAppRef.current('recycleBin'),
-                        empty: binIsEmpty ? undefined : emptyRecycleBin,
+                        empty: binIsEmpty ? undefined : emptyBin,
                         properties: () => openAppRef.current('systemProperties'),
                     })
                 );
@@ -1169,13 +1331,53 @@ const Desktop: React.FC<DesktopProps> = (props) => {
                 screenX,
                 screenY,
                 fileMenu({
-                    open: file.image ? () => openFile(file) : undefined,
-                    delete: () => moveToRecycleBin(file.id),
+                    open: file.image || file.doc ? () => openFile(file) : undefined,
+                    delete: () => binFile(file),
+                    // A note or a painting out on the desktop can be sent back
+                    // to the folder it came from without going via the bin.
+                    restore: file.doc
+                        ? () => sendDocumentHome(file)
+                        : undefined,
+                    restoreLabel: 'Put back in My Documents',
                 })
             );
         },
         [openContextMenu, openFile]
     );
+
+    // --- Where everything ends up ------------------------------------------
+    //
+    // Shortcuts and files are laid out together, in one pass, because they
+    // share one grid and the rule is that nothing on it may cover anything
+    // else. Recomputed every render rather than memoized: it is fifteen icons
+    // and a handful of files, and the inputs (what's installed, how big the
+    // window is) are exactly the kind that a stale memo gets wrong.
+    const bounds = iconBounds(resolutionScale);
+    const rows = rowsPerColumn(bounds);
+
+    const visibleShortcuts = shortcuts
+        // Anything removed in the Store keeps its grid slot for the icons
+        // around it — taking the index before filtering means uninstalling Doom
+        // doesn't shuffle the whole column up.
+        .map((shortcut, i) => ({ shortcut, i }))
+        .filter(({ shortcut }) => isInstalled(shortcut.appKey));
+
+    const placed: PlacedIcon[] = visibleShortcuts
+        .map(({ shortcut, i }) => ({
+            id: shortcutId(shortcut),
+            name: shortcut.shortcutName,
+            // Where the user dragged it, or the slot the line-up gives it.
+            pos: iconPositions[shortcutId(shortcut)] || defaultPosition(i, rows),
+        }))
+        .concat(
+            desktopFiles.map((file) => ({
+                id: fileIconId(file),
+                name: file.name,
+                pos: file.desktopPos,
+            }))
+        );
+
+    const layout = resolveLayout(placed, bounds, pinnedIcon);
 
     return !shutdown ? (
         <div style={styles.desktop}>
@@ -1258,26 +1460,16 @@ const Desktop: React.FC<DesktopProps> = (props) => {
                 );
             })}
             <div style={styles.shortcuts}>
-                {shortcuts
-                    // Anything removed in the Store keeps its grid slot for the
-                    // icons around it — filtering after the index is taken means
-                    // uninstalling Doom doesn't shuffle the whole column up.
-                    .map((shortcut, i) => ({ shortcut, i }))
-                    .filter(({ shortcut }) => isInstalled(shortcut.appKey))
-                    .map(({ shortcut, i }) => {
-                    // Use the user's arranged position if they've dragged this
-                    // icon, otherwise fall back to the classic grid slot.
-                    const pos =
-                        iconPositions[shortcut.shortcutName] ||
-                        defaultPosition(i);
-                    const isBin = shortcut.shortcutName === 'Recycle Bin';
+                {visibleShortcuts.map(({ shortcut }) => {
+                    const pos = layout[shortcutId(shortcut)];
+                    const isBin = shortcut.appKey === 'recycleBin';
                     return (
                         <div
                             style={Object.assign({}, styles.shortcutContainer, {
                                 top: pos.y,
                                 left: pos.x,
                             })}
-                            key={`shortcut-${shortcut.shortcutName}`}
+                            key={`shortcut-${shortcut.appKey}`}
                         >
                             <DesktopShortcut
                                 // The bin looks full or empty, like the real one.
@@ -1289,8 +1481,14 @@ const Desktop: React.FC<DesktopProps> = (props) => {
                                 innerRef={isBin ? binShortcutRef : undefined}
                                 shortcutName={shortcut.shortcutName}
                                 onOpen={shortcut.onOpen}
-                                onMoved={(dx, dy) =>
-                                    moveIcon(shortcut.shortcutName, pos, dx, dy)
+                                onMoved={(dx, dy, screen) =>
+                                    onShortcutDropped(
+                                        shortcut,
+                                        pos,
+                                        dx,
+                                        dy,
+                                        screen
+                                    )
                                 }
                                 onContextMenu={(x, y) =>
                                     onShortcutContextMenu(shortcut, x, y)
@@ -1300,23 +1498,29 @@ const Desktop: React.FC<DesktopProps> = (props) => {
                     );
                 })}
 
-                {/* Files sitting on the desktop — restored from the bin, or
-                    dragged onto it to throw them away again. */}
-                {desktopFiles.map((file) => (
-                    <FileIcon
-                        key={file.id}
-                        file={file}
-                        pos={file.desktopPos}
-                        variant="desktop"
-                        selected={selectedFileId === file.id}
-                        onSelect={() => setSelectedFileId(file.id)}
-                        onOpen={() => openFile(file)}
-                        onDropped={(dx, dy, screen) =>
-                            onFileDropped(file, dx, dy, screen)
-                        }
-                        onContextMenu={(x, y) => onFileContextMenu(file, x, y)}
-                    />
-                ))}
+                {/* Files sitting on the desktop — carried out of My Documents,
+                    restored from the bin, or dropped on it to throw them away
+                    again. */}
+                {desktopFiles.map((file) => {
+                    const pos = layout[fileIconId(file)];
+                    return (
+                        <FileIcon
+                            key={file.id}
+                            file={file}
+                            pos={pos}
+                            variant="desktop"
+                            selected={selectedFileId === file.id}
+                            onSelect={() => setSelectedFileId(file.id)}
+                            onOpen={() => openFile(file)}
+                            onDropped={(dx, dy, screen) =>
+                                onFileDropped(file, pos, dx, dy, screen)
+                            }
+                            onContextMenu={(x, y) =>
+                                onFileContextMenu(file, x, y)
+                            }
+                        />
+                    );
+                })}
             </div>
 
             <StartBalloon dismissed={startMenuUsed} />

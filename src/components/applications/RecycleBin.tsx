@@ -2,15 +2,12 @@ import React, { useCallback, useRef, useState } from 'react';
 import Window from '../os/Window';
 import FileIcon from '../os/FileIcon';
 import Colors from '../../constants/colors';
+import { DesktopFile, filesIn, updateFile, useDesktopFiles } from '../os/desktopFiles';
 import {
-    DesktopFile,
-    deleteFile,
-    emptyRecycleBin,
-    filesIn,
-    restoreToDesktop,
-    updateFile,
-    useDesktopFiles,
-} from '../os/desktopFiles';
+    deleteForever,
+    emptyBin,
+    restoreFile,
+} from '../os/documentFiles';
 import { getResolutionScale } from '../os/resolution';
 import { screenToIconSlot } from '../os/iconPositions';
 
@@ -48,8 +45,8 @@ const RecycleBin: React.FC<RecycleBinProps> = ({
 
             if (droppedOutside) {
                 // Out of the bin and onto the desktop, landing under the cursor.
-                restoreToDesktop(
-                    file.id,
+                restoreFile(
+                    file,
                     screenToIconSlot(screen.x, screen.y, getResolutionScale())
                 );
                 setSelectedId(null);
@@ -67,15 +64,20 @@ const RecycleBin: React.FC<RecycleBinProps> = ({
         []
     );
 
+    /**
+     * Restore puts a file back where it was thrown away from — the desktop if
+     * that is where it came from, My Documents if it was dragged straight out
+     * of the folder (see `documentFiles.ts`).
+     */
     const handleRestore = useCallback(() => {
         if (!selected) return;
-        restoreToDesktop(selected.id);
+        restoreFile(selected);
         setSelectedId(null);
     }, [selected]);
 
     const handlePermanentDelete = useCallback(() => {
         if (!selected) return;
-        deleteFile(selected.id);
+        deleteForever(selected);
         setSelectedId(null);
     }, [selected]);
 
@@ -86,7 +88,7 @@ const RecycleBin: React.FC<RecycleBinProps> = ({
                 'Are you sure you want to permanently delete all items in the Recycle Bin?'
             )
         ) {
-            emptyRecycleBin();
+            emptyBin();
             setSelectedId(null);
         }
     }, [contents.length]);

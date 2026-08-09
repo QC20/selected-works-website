@@ -21,6 +21,23 @@ import { IconPos } from './iconPositions';
 
 export type FileLocation = 'desktop' | 'recycleBin';
 
+/**
+ * A file icon that stands for a real file on the fake C: drive — something the
+ * visitor wrote in Notepad or drew in Paint, carried out of My Documents.
+ *
+ * The drive is the truth; this is only the icon's half of it. See
+ * `documentFiles.ts`, which moves the two in step.
+ */
+export interface DocumentRef {
+    /** Where the file is *now*, which changes as it is moved about. */
+    path: string;
+    kind: 'note' | 'painting';
+    /** Which folder it belongs to when it goes home. */
+    home: string;
+    /** Where Restore puts it back: out on the desktop, or in its folder. */
+    restoreTo: 'desktop' | 'folder';
+}
+
 export interface DesktopFile {
     id: string;
     /** Shown under the icon and in the picture viewer's title bar. */
@@ -35,6 +52,11 @@ export interface DesktopFile {
     binPos: IconPos;
     /** Set for image files: opens in the picture viewer on double-click. */
     image?: string;
+    /**
+     * Set when this icon is a document out of My Documents. Its presence is
+     * also what keeps the icon out of localStorage — see `persist`.
+     */
+    doc?: DocumentRef;
 }
 
 const KEY = 'desktopFiles.v1';
@@ -88,7 +110,15 @@ function load(): DesktopFile[] {
 
 function persist(): void {
     try {
-        localStorage.setItem(KEY, JSON.stringify(files));
+        // Document icons are deliberately left out. A note or a painting is
+        // only ever *visiting* the desktop — the drive says it lives in My
+        // Documents, and on the next visit that is where it will be found (see
+        // `reclaimStrayDocuments`). Writing its icon down here would leave a
+        // shortcut pointing at a file that had already walked home.
+        localStorage.setItem(
+            KEY,
+            JSON.stringify(files.filter((f) => !f.doc))
+        );
     } catch {
         /* storage full / disabled — the layout just won't survive a reload */
     }
@@ -113,6 +143,19 @@ export function updateFile(id: string, patch: Partial<DesktopFile>): void {
     commit(files.map((f) => (f.id === id ? { ...f, ...patch } : f)));
 }
 
+/** Puts a new icon on the desktop. A repeat id replaces what was there. */
+export function addFile(file: DesktopFile): void {
+    commit(files.filter((f) => f.id !== file.id).concat(file));
+}
+
+/**
+ * Takes an icon off the desktop without deleting anything. Used when a document
+ * goes back to My Documents: the file is fine, it just isn't out here any more.
+ */
+export function removeFile(id: string): void {
+    commit(files.filter((f) => f.id !== id));
+}
+
 /** Move a file to the desktop, landing it where it was dropped. */
 export function restoreToDesktop(id: string, at?: IconPos): void {
     updateFile(id, at ? { location: 'desktop', desktopPos: at } : { location: 'desktop' });
@@ -122,11 +165,6 @@ export function restoreToDesktop(id: string, at?: IconPos): void {
 export function moveToRecycleBin(id: string): void {
     const taken = filesIn('recycleBin').length;
     updateFile(id, { location: 'recycleBin', binPos: defaultBinPosition(taken) });
-}
-
-/** Permanently delete a single file. */
-export function deleteFile(id: string): void {
-    commit(files.filter((f) => f.id !== id));
 }
 
 /** Permanently delete everything in the bin. */

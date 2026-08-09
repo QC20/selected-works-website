@@ -1,4 +1,5 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import Window from '../os/Window';
 import Colors from '../../constants/colors';
 import { Icon } from '../general';
@@ -16,6 +17,11 @@ import {
     seedDocuments,
 } from '../os/win98fs';
 import { syncCommunityFiles } from '../os/communityFiles';
+import {
+    reclaimStrayDocuments,
+    takeDocumentToBin,
+    watchDrive,
+} from '../os/documentFiles';
 
 /**
  * My Computer — one window that browses a small fake filesystem, modelled on
@@ -204,12 +210,26 @@ export interface MyComputerProps extends WindowAppProps {
      * Paint for a painting.
      */
     openDocument: (file: Win98File) => void;
+    /**
+     * A document dragged clean out of this window and let go of on the desktop
+     * (or on the Recycle Bin). The desktop decides where it lands and does the
+     * actual move; we just refresh once it resolves, because by then the file
+     * is genuinely no longer in this folder.
+     */
+    onDragOut?: (
+        file: Win98File,
+        screen: { x: number; y: number }
+    ) => Promise<void>;
 }
+
+/** How far a press has to travel before it is a drag and not a click. */
+const DRAG_THRESHOLD = 5;
 
 const MyComputer: React.FC<MyComputerProps> = ({
     openApp,
     openPicture,
     openDocument,
+    onDragOut,
     onInteract,
     onClose,
     onMinimize,
@@ -232,9 +252,15 @@ const MyComputer: React.FC<MyComputerProps> = ({
     const documentDir = location === 'paintings' ? PAINTINGS_DIR : NOTES_DIR;
 
     const refreshDocuments = useCallback(
-        (directory: string) => {
+        /**
+         * `quiet` re-reads without emptying the view first. The gallery sync
+         * finishes long after the folder is already on screen, and blanking it
+         * back to "Reading drive C:…" at that point makes a folder you are
+         * looking at flicker for no reason.
+         */
+        (directory: string, quiet = false) => {
             setDocumentsError(null);
-            setDocuments(null);
+            if (!quiet) setDocuments(null);
             listDocuments(directory).then(
                 (files) => setDocuments(files),
                 (error) => {
@@ -263,16 +289,45 @@ const MyComputer: React.FC<MyComputerProps> = ({
     useEffect(() => {
         if (!isDocumentFolder) return;
         let cancelled = false;
-        seedDocuments()
+
+        // Everything that has to be true of the *local* drive before the folder
+        // can be listed honestly: strays walked home, seeds written. Both are
+        // IndexedDB work and take milliseconds.
+        const local = reclaimStrayDocuments()
             .catch(() => undefined)
-            .then(() => syncCommunityFiles())
+            .then(() => seedDocuments())
             .catch(() => undefined)
             .then(() => {
                 if (!cancelled) refreshDocuments(documentDir);
             });
+
+        // The gallery is a network request to somebody else's server, and it is
+        // deliberately *not* in that chain. It used to be, and a slow or
+        // sleeping backend left the folder saying "Reading drive C:…" forever
+        // over a drive that had been readable the whole time. Now the folder
+        // shows what is on the machine straight away and fills in with everyone
+        // else's work when — and if — it arrives.
+        local
+            .then(() => syncCommunityFiles())
+            .then(() => {
+                if (!cancelled) refreshDocuments(documentDir, true);
+            })
+            .catch(() => undefined);
+
         return () => {
             cancelled = true;
         };
+    }, [isDocumentFolder, documentDir, refreshDocuments]);
+
+    /**
+     * A document can leave this folder without this window being touched — put
+     * in the bin from the desktop, or sent home from a right-click menu. Rather
+     * than let the listing quietly disagree with the drive, re-read it whenever
+     * something moves.
+     */
+    useEffect(() => {
+        if (!isDocumentFolder) return;
+        return watchDrive(() => refreshDocuments(documentDir, true));
     }, [isDocumentFolder, documentDir, refreshDocuments]);
 
     /**
@@ -376,6 +431,85 @@ const MyComputer: React.FC<MyComputerProps> = ({
         }, 300);
     };
 
+    // --- Carrying a file out of the folder -----------------------------------
+    //
+    // A file you cannot pick up is a row in a list, so the documents in Notes
+    // and Paintings can be dragged straight out of this window: onto the
+    // desktop, or onto the Recycle Bin. Everything else in My Computer is a
+    // folder or a program and stays where it is.
+
+    /** The window's own box, so "let go outside it" can be tested. */
+    const frameRef = useRef<HTMLDivElement>(null);
+    /** The ghost that follows the pointer while a file is being carried. */
+    const [carrying, setCarrying] = useState<{
+        entry: Entry;
+        x: number;
+        y: number;
+    } | null>(null);
+    const carryRef = useRef<{ x: number; y: number; moved: boolean } | null>(
+        null
+    );
+
+    const startCarrying = (entry: Entry, e: React.PointerEvent) => {
+        const document_ = entry.document;
+        if (!document_ || !onDragOut) return;
+        const start = { x: e.clientX, y: e.clientY, moved: false };
+        carryRef.current = start;
+
+        const onMove = (ev: PointerEvent) => {
+            if (!carryRef.current) return;
+            if (
+                !carryRef.current.moved &&
+                Math.hypot(ev.clientX - start.x, ev.clientY - start.y) <
+                    DRAG_THRESHOLD
+            ) {
+                return;
+            }
+            // Carrying a file is not clicking it — don't let the second half of
+            // the click-click-to-open gesture fire when the drag ends.
+            carryRef.current.moved = true;
+            pending.current = null;
+            setCarrying({ entry, x: ev.clientX, y: ev.clientY });
+        };
+
+        const onUp = (ev: PointerEvent) => {
+            window.removeEventListener('pointermove', onMove);
+            window.removeEventListener('pointerup', onUp);
+            const moved = carryRef.current?.moved;
+            carryRef.current = null;
+            setCarrying(null);
+            if (!moved) return;
+
+            const box = frameRef.current?.getBoundingClientRect();
+            const outside =
+                !!box &&
+                (ev.clientX < box.left ||
+                    ev.clientX > box.right ||
+                    ev.clientY < box.top ||
+                    ev.clientY > box.bottom);
+            // Let go still inside the window and nothing happens: this is a
+            // folder, not a canvas, and there is nowhere else in here to put it.
+            if (!outside) return;
+
+            onDragOut(document_, { x: ev.clientX, y: ev.clientY })
+                .catch(() => undefined)
+                .then(() => refreshDocuments(documentDir));
+        };
+
+        window.addEventListener('pointermove', onMove);
+        window.addEventListener('pointerup', onUp);
+    };
+
+    /** Delete, on the selected document: into the Recycle Bin, not gone. */
+    const binSelected = () => {
+        const file = selectedEntry?.document;
+        if (!file) return;
+        setSelected(null);
+        takeDocumentToBin(file)
+            .catch(() => undefined)
+            .then(() => refreshDocuments(documentDir));
+    };
+
     const openSelected = () => {
         const entry = entries.find((e) => e.key === selected);
         if (!entry) return;
@@ -420,7 +554,7 @@ const MyComputer: React.FC<MyComputerProps> = ({
             minimizeWindow={onMinimize}
             bottomLeftText={status}
         >
-            <div style={styles.container}>
+            <div style={styles.container} ref={frameRef}>
                 <div style={styles.menuBar}>
                     <span style={styles.menuItem}>
                         File<u style={{ marginLeft: '-2px' }}>_</u>
@@ -534,21 +668,37 @@ const MyComputer: React.FC<MyComputerProps> = ({
                         drive rather than in the build, so they're the only ones
                         that can be handed to the real computer. */}
                     {isDocumentFolder && (
-                        <button
-                            style={Object.assign(
-                                {},
-                                styles.toolButton,
-                                !selectedEntry?.document && styles.disabled
-                            )}
-                            onClick={() => {
-                                const file = selectedEntry?.document;
-                                if (file) downloadDocument(file);
-                            }}
-                            disabled={!selectedEntry?.document}
-                            title="Save a copy of the selected file to your own computer"
-                        >
-                            ↓ Download
-                        </button>
+                        <>
+                            <button
+                                style={Object.assign(
+                                    {},
+                                    styles.toolButton,
+                                    !selectedEntry?.document && styles.disabled
+                                )}
+                                onClick={() => {
+                                    const file = selectedEntry?.document;
+                                    if (file) downloadDocument(file);
+                                }}
+                                disabled={!selectedEntry?.document}
+                                title="Save a copy of the selected file to your own computer"
+                            >
+                                ↓ Download
+                            </button>
+                            {/* Into the bin, not gone: it can be taken back out
+                                again until the bin is emptied. */}
+                            <button
+                                style={Object.assign(
+                                    {},
+                                    styles.toolButton,
+                                    !selectedEntry?.document && styles.disabled
+                                )}
+                                onClick={binSelected}
+                                disabled={!selectedEntry?.document}
+                                title="Move the selected file to the Recycle Bin"
+                            >
+                                Delete
+                            </button>
+                        </>
                     )}
                 </div>
 
@@ -591,11 +741,19 @@ const MyComputer: React.FC<MyComputerProps> = ({
                             <div
                                 key={entry.key}
                                 id={`mc-item-${entry.key}`}
-                                style={styles.item}
+                                style={Object.assign(
+                                    {},
+                                    styles.item,
+                                    // A document has to swallow touch panning,
+                                    // or a drag off the window scrolls the
+                                    // folder instead of carrying the file.
+                                    entry.document && styles.draggableItem
+                                )}
                                 onPointerDown={(e) => {
                                     e.stopPropagation();
                                     setAddressOpen(false);
                                     pressEntry(entry);
+                                    startCarrying(entry, e);
                                 }}
                             >
                                 <div style={styles.iconBox}>
@@ -627,6 +785,39 @@ const MyComputer: React.FC<MyComputerProps> = ({
                     )}
                 </div>
             </div>
+
+            {/* The file under the pointer while it is being carried.
+                Portalled to <body> on purpose: the desktop is inside a scaled
+                transform, and a `position: fixed` child of that would be laid
+                out in the desktop's coordinate space instead of the screen's —
+                the ghost would drift away from the cursor at every resolution
+                except 800x600. */}
+            {carrying &&
+                createPortal(
+                    <div
+                        style={Object.assign({}, styles.ghost, {
+                            left: carrying.x + 8,
+                            top: carrying.y + 8,
+                        })}
+                    >
+                        {carrying.entry.thumb ? (
+                            <img
+                                src={carrying.entry.thumb}
+                                alt=""
+                                style={styles.thumb}
+                            />
+                        ) : (
+                            <Icon
+                                icon={carrying.entry.icon as IconName}
+                                style={styles.icon}
+                            />
+                        )}
+                        <span style={styles.ghostLabel}>
+                            {carrying.entry.label}
+                        </span>
+                    </div>,
+                    document.body
+                )}
         </Window>
     );
 };
@@ -785,6 +976,29 @@ const styles: StyleSheetCSS = {
         flexShrink: 0,
         textAlign: 'center',
         touchAction: 'manipulation',
+    },
+    draggableItem: {
+        touchAction: 'none',
+    },
+    ghost: {
+        position: 'fixed',
+        zIndex: 200000,
+        pointerEvents: 'none',
+        flexDirection: 'column',
+        alignItems: 'center',
+        gap: 2,
+        width: 92,
+        opacity: 0.75,
+        textAlign: 'center',
+    },
+    ghostLabel: {
+        fontFamily: 'MSSerif',
+        fontSize: 11,
+        color: Colors.white,
+        background: Colors.blue,
+        padding: '1px 3px',
+        lineHeight: '13px',
+        wordBreak: 'break-word',
     },
     iconBox: {
         width: 40,

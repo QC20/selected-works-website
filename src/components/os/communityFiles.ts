@@ -27,8 +27,10 @@
  */
 
 import {
+    DESKTOP_DIR,
     NOTES_DIR,
     PAINTINGS_DIR,
+    RECYCLED_DIR,
     listDocuments,
     writeDocument,
 } from './win98fs';
@@ -134,6 +136,50 @@ export const nextFreeName = async (
     }
 };
 
+// ---- What this visitor has thrown away ---------------------------------------
+
+/**
+ * Emptying the Recycle Bin has to mean something, and on a shared drive that
+ * takes more than an `unlink`: the next sync would pull the file straight back
+ * down from the gallery and put it in the folder again, which from the
+ * visitor's side looks like the delete simply didn't work.
+ *
+ * So a permanent delete leaves a marker behind, and the sync skips anything
+ * marked. It is per-browser, like everything else the machine remembers about
+ * you — the file is still in the gallery for everyone else, it just stops
+ * coming back to the person who threw it out.
+ */
+const DELETED_KEY = 'win98fs.deleted.v1';
+
+const tombstone = (kind: FileKind, name: string) =>
+    `${kind}:${name.trim().toLowerCase()}`;
+
+let deleted: Set<string> = loadDeleted();
+
+function loadDeleted(): Set<string> {
+    try {
+        const raw = localStorage.getItem(DELETED_KEY);
+        const stored = raw ? JSON.parse(raw) : null;
+        return Array.isArray(stored) ? new Set<string>(stored) : new Set();
+    } catch {
+        return new Set();
+    }
+}
+
+export function rememberDeleted(kind: FileKind, name: string): void {
+    deleted.add(tombstone(kind, name));
+    try {
+        // Array.from rather than a spread: this project targets ES5, where
+        // spreading a Set needs downlevelIteration.
+        localStorage.setItem(DELETED_KEY, JSON.stringify(Array.from(deleted)));
+    } catch {
+        /* storage full / disabled — the file may reappear on the next visit */
+    }
+}
+
+export const wasDeleted = (kind: FileKind, name: string): boolean =>
+    deleted.has(tombstone(kind, name));
+
 // ---- Reading ----------------------------------------------------------------
 
 export async function fetchCommunityFiles(
@@ -217,19 +263,33 @@ const encodeText = (text: string): Uint8Array => new TextEncoder().encode(text);
  * is safe to run on every boot and costs one request per folder. A visitor's
  * own unpublished work is never touched: a local file wins over a remote one
  * of the same name.
+ *
+ * "Already there" means anywhere on the drive, not just in the folder. A file
+ * the visitor has dragged out onto the desktop, or dropped in the bin, is still
+ * their copy of it — syncing a second one into the folder behind their back
+ * would be the gallery arguing with them about where their own file goes.
  */
 async function syncKind(kind: FileKind): Promise<number> {
     const remote = await fetchCommunityFiles(kind);
     if (!remote.length) return 0;
 
     const directory = directoryFor(kind);
-    const local = await listDocuments(directory);
-    const have = new Set(local.map((f) => f.name.toLowerCase()));
+    const elsewhere = await Promise.all(
+        [directory, DESKTOP_DIR, RECYCLED_DIR].map((dir) =>
+            listDocuments(dir).catch(() => [])
+        )
+    );
+    const have = new Set(
+        ([] as { name: string }[])
+            .concat(...elsewhere)
+            .map((f) => f.name.toLowerCase())
+    );
 
     let written = 0;
     // Oldest first, so the folder reads in the order things were made.
     for (const file of remote.slice().reverse()) {
         if (have.has(file.name.toLowerCase())) continue;
+        if (wasDeleted(kind, file.name)) continue;
         try {
             const bytes =
                 kind === 'painting'
