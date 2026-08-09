@@ -150,11 +150,14 @@ const SoftwareProjects: React.FC<SoftwareProjectsProps> = (props) => {
         <div className="wrap-block">
           {/* The two gifs sit in one floated figure and overlap by a few
               pixels; the slight collision is deliberate, it reads as a stack
-              of stills rather than a tidy list. */}
-          <div className="wrap-figure wrap-figure--left">
+              of stills rather than a tidy list. Wider than a standard
+              wrap-figure (40%) on purpose — at that size the pair read as a
+              couple of postage stamps rather than the collage they're meant
+              to be. */}
+          <div className="wrap-figure wrap-figure--left" style={{ width: "58%" }}>
             <LazyImage
               src={eyeTracking2}
-              style={{ width: "72%", marginLeft: "auto", marginRight: "auto" }}
+              style={{ width: "90%", marginLeft: "auto", marginRight: "auto" }}
               alt="Heat map of a participant's gaze while reading"
             />
             <LazyImage
