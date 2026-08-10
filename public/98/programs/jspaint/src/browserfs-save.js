@@ -535,6 +535,20 @@
 		});
 	}
 
+	/*
+	 * Paint calls `window.setDocumentEdited` every time its `saved` flag moves
+	 * (see functions.js) — a hook meant for a host application, which is
+	 * exactly what this desktop is. Cheaper and more accurate than polling, so
+	 * it is used here in preference to `gallery.watchSaved`.
+	 */
+	if (window.gallery) {
+		var previousSetDocumentEdited = window.setDocumentEdited;
+		window.setDocumentEdited = function (edited) {
+			window.gallery.reportDirty("painting", edited);
+			if (previousSetDocumentEdited) previousSetDocumentEdited(edited);
+		};
+	}
+
 	window.systemHooks.readBlobFromHandle = function (handle) {
 		if (typeof handle !== "string") return Promise.resolve(undefined);
 		return new Promise(function (resolve) {

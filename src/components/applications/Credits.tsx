@@ -27,7 +27,7 @@ const CREDITS = [
     {
         title: 'Special Thanks',
         rows: [
-            ['Bruno Simon', 'Henry Hefferman'],
+            ['Bruno Simon', 'Henry Heffernan'],
             ['Dikra Ben Allel', 'Yute (Yuteoctober)'],
         ],
     },
@@ -42,7 +42,7 @@ const CREDITS = [
         title: 'Inspiration',
         rows: [
             ['Bruno Simon', 'Jesse Zhou'],
-            ['Pink Yellow', 'Henry Hefferman'],
+            ['Pink Yellow', 'Henry Heffernan'],
             ['Antonin Picard']
         ],
     },

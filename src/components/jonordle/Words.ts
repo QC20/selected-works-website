@@ -2716,6 +2716,7 @@ const WORDS = [
     'pithy',
     'corks',
     'yelps',
+    'jonas',
     'joker',
     'fleck',
     'buffs',

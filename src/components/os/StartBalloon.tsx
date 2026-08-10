@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import Colors from '../../constants/colors';
 import { TASKBAR_HEIGHT } from './metrics';
+import { patiently, useIdleTrigger } from './idle';
 
 /**
  * "Click here to begin."
@@ -12,6 +13,11 @@ import { TASKBAR_HEIGHT } from './metrics';
  *
  * Shown once ever, remembered in localStorage, and gone the moment Start is
  * pressed — which is the only instruction it was ever giving.
+ *
+ * It waits for the visitor to stop moving first (see `idle.ts`). Arriving on a
+ * timer meant it appeared while someone was still taking the desktop in, which
+ * turns an invitation into an instruction; now it only speaks into a pause, and
+ * a long one, because the first pause of a visit comes after a good look round.
  */
 
 const SEEN_KEY = 'startBalloon.seen.v1';
@@ -39,14 +45,15 @@ export interface StartBalloonProps {
 
 const StartBalloon: React.FC<StartBalloonProps> = ({ dismissed }) => {
     const [visible, setVisible] = useState(false);
+    const [seen] = useState(hasSeenStartBalloon);
 
-    // A beat after the desktop settles, so it arrives as an invitation rather
-    // than as part of the furniture.
-    useEffect(() => {
-        if (hasSeenStartBalloon()) return;
-        const id = window.setTimeout(() => setVisible(true), 1400);
-        return () => window.clearTimeout(id);
-    }, []);
+    // 14–20 seconds of stillness, weighted to the long end.
+    const [delay] = useState(() => patiently(14_000, 20_000));
+    useIdleTrigger(
+        visible ? null : delay,
+        () => setVisible(true),
+        !seen && !dismissed
+    );
 
     useEffect(() => {
         if (dismissed) markStartBalloonSeen();

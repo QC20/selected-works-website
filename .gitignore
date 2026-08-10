@@ -2,3 +2,5 @@ node_modules
 
 
 /graveyard
+.DS_Store
+**/.DS_Store

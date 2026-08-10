@@ -39,6 +39,14 @@ const Experience3D: React.FC<Experience3DProps> = ({ open, onExit }) => {
     const [mode, setMode] = useState<CrtMode>('loading');
     // Ambience is part of the room: it comes up with it, not on request.
     const [muted, setMuted] = useState(false);
+    /** Free-look dolly, 0..1. Two-way: the slider drives it, so do wheel/pinch. */
+    const [zoom, setZoom] = useState(0.55);
+    /**
+     * Which radio stays lit during a camera move. `loading` is a real mode but
+     * not a real *view*, and letting the group go blank for a second every time
+     * you change view is exactly the flicker radio buttons exist to prevent.
+     */
+    const lastViewRef = useRef<'monitor' | 'desk' | 'orbit'>('desk');
 
     const flash = useAnimation();
     const reduced = !!useReducedMotion();
@@ -49,6 +57,10 @@ const Experience3D: React.FC<Experience3DProps> = ({ open, onExit }) => {
     // visitor (and the copy of the site inside the CRT) a synchronous stall.
     const snowFrames = useMemo(() => (render ? getSnowFrames() : []), [render]);
     const grainTile = useMemo(() => (render ? getGrainTile() : ''), [render]);
+    const coarseGrainTile = useMemo(
+        () => (render ? getCoarseGrainTile() : ''),
+        [render]
+    );
 
     // Trigger mount when opened.
     useEffect(() => {
@@ -119,6 +131,7 @@ const Experience3D: React.FC<Experience3DProps> = ({ open, onExit }) => {
             reducedMotion: reduced,
             cssContainer,
             onModeChange: (m) => setMode(m),
+            onZoomChange: (t) => setZoom(t),
             onScreenEscape: () => doExitRef.current(),
             onReady: () => {
                 // Room is loaded: dissolve the snow as the camera pulls out.
@@ -178,17 +191,41 @@ const Experience3D: React.FC<Experience3DProps> = ({ open, onExit }) => {
 
     if (!render) return null;
 
-    const hint = touch
-        ? mode === 'monitor'
-            ? "you're using the computer — step back for the room"
+    /**
+     * The status line.
+     *
+     * One sentence, in the imperative, describing what this view is *for* —
+     * plus the keyboard equivalent where there is one. It changes with the
+     * view because the answer to "what can I do here" changes with the view,
+     * which is the entire job of a status bar.
+     */
+    const hint =
+        mode === 'monitor'
+            ? touch
+                ? 'The computer is yours. Choose Desk to step back.'
+                : 'The computer is yours.  Esc leaves the room.'
             : mode === 'orbit'
-            ? 'drag to look around the room'
-            : 'tap the screen to use it · or take a free look around'
-        : mode === 'monitor'
-        ? "you're using the computer — Esc exits · step back for the room"
-        : mode === 'orbit'
-        ? 'drag to look around · Enter re-centres · Esc exits'
-        : 'click the screen to use it · Enter re-centres · Esc exits';
+            ? touch
+                ? 'Drag to walk around it. Pinch, or use Zoom, to get closer.'
+                : 'Drag to walk around it.  Scroll or drag Zoom to get closer.'
+            : mode === 'desk'
+            ? touch
+                ? 'Tap the screen to use the computer.'
+                : 'Click the screen to use the computer.  Enter re-centres.'
+            : 'Please wait…';
+
+    /** Which view the radio group is showing as current. */
+    const view: 'monitor' | 'desk' | 'orbit' =
+        mode === 'loading' ? lastViewRef.current : mode;
+    lastViewRef.current = view;
+
+    const chooseView = (next: 'monitor' | 'desk' | 'orbit') => {
+        const c = controllerRef.current;
+        if (!c || next === view) return;
+        if (next === 'monitor') c.enterMonitor();
+        else if (next === 'desk') c.backToDesk();
+        else c.setFreeLook(true);
+    };
 
     return (
         <div style={styles.overlay}>
@@ -207,6 +244,10 @@ const Experience3D: React.FC<Experience3DProps> = ({ open, onExit }) => {
                 <div
                     className="crt3d-grain__noise"
                     style={{ backgroundImage: `url(${grainTile})` }}
+                />
+                <div
+                    className="crt3d-grain__noise crt3d-grain__noise--coarse"
+                    style={{ backgroundImage: `url(${coarseGrainTile})` }}
                 />
                 <div className="crt3d-grain__vignette" />
             </div>
@@ -230,65 +271,111 @@ const Experience3D: React.FC<Experience3DProps> = ({ open, onExit }) => {
                 transition={{ duration: 0.8 }}
                 style={styles.uiLayer}
             >
-                <div className="crt3d-dock">
-                    <div className="crt3d-hint">{hint}</div>
-
-                    <div className="crt3d-bar">
-                        {/* Always available so no one gets stuck in 3D. */}
+                <div className="crt3d-panel" role="group" aria-label="Room controls">
+                    <div className="crt3d-titlebar">
+                        <span className="crt3d-title">Step Outside</span>
+                        {/* The close box means what it has always meant: this
+                            goes away and you are back where you started. It is
+                            the one control that is never disabled. */}
                         <button
                             type="button"
-                            className="crt3d-btn"
+                            className="crt3d-close"
+                            title="Return to the desktop"
+                            aria-label="Return to the desktop"
                             onClick={(e) => {
                                 dropFocus(e);
                                 doExit();
                             }}
                         >
-                            <span>‹ Return to Desktop</span>
-                        </button>
-
-                        {mode === 'monitor' ? (
-                            <button
-                                type="button"
-                                className="crt3d-btn"
-                                onClick={(e) => {
-                                    dropFocus(e);
-                                    controllerRef.current?.backToDesk();
-                                }}
-                            >
-                                <span>Step Back</span>
-                            </button>
-                        ) : (
-                            <button
-                                type="button"
-                                className="crt3d-btn"
-                                onClick={(e) => {
-                                    dropFocus(e);
-                                    controllerRef.current?.setFreeLook(mode !== 'orbit');
-                                }}
-                            >
-                                <span>
-                                    {mode === 'orbit' ? 'Exit Free Look' : 'Free Look'}
-                                </span>
-                            </button>
-                        )}
-
-                        <button
-                            type="button"
-                            className="crt3d-btn"
-                            onClick={(e) => {
-                                dropFocus(e);
-                                setMuted((m) => !m);
-                            }}
-                            aria-label={muted ? 'Unmute ambience' : 'Mute ambience'}
-                        >
-                            <span>{muted ? '🔇 Sound' : '🔊 Sound'}</span>
+                            ✕
                         </button>
                     </div>
+
+                    <div className="crt3d-body">
+                        <div className="crt3d-row">
+                            <span className="crt3d-row__label" id="crt3d-view-label">
+                                View:
+                            </span>
+                            <div
+                                className="crt3d-row__control"
+                                role="radiogroup"
+                                aria-labelledby="crt3d-view-label"
+                            >
+                                {VIEWS.map((v) => (
+                                    <label className="crt3d-radio" key={v.key}>
+                                        <input
+                                            type="radio"
+                                            name="crt3d-view"
+                                            checked={view === v.key}
+                                            onChange={() => chooseView(v.key)}
+                                        />
+                                        <span className="crt3d-radio__dot" />
+                                        <span>{v.label}</span>
+                                    </label>
+                                ))}
+                            </div>
+                        </div>
+
+                        <div className="crt3d-row">
+                            <span className="crt3d-row__label" id="crt3d-zoom-label">
+                                Zoom:
+                            </span>
+                            <div className="crt3d-row__control">
+                                {/* Only meaningful in Room, so it greys out
+                                    elsewhere rather than disappearing — a
+                                    control that vanishes teaches nothing. */}
+                                <input
+                                    className="crt3d-track"
+                                    type="range"
+                                    min={0}
+                                    max={1000}
+                                    value={Math.round(zoom * 1000)}
+                                    disabled={mode !== 'orbit'}
+                                    aria-labelledby="crt3d-zoom-label"
+                                    onChange={(e) => {
+                                        const t = Number(e.target.value) / 1000;
+                                        setZoom(t);
+                                        controllerRef.current?.setZoom(t);
+                                    }}
+                                />
+                            </div>
+                        </div>
+
+                        <div className="crt3d-row">
+                            <span className="crt3d-row__label" />
+                            <div className="crt3d-row__control">
+                                <label className="crt3d-check">
+                                    <input
+                                        type="checkbox"
+                                        checked={!muted}
+                                        onChange={() => setMuted((m) => !m)}
+                                    />
+                                    <span className="crt3d-check__box" />
+                                    <span>Room sound</span>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="crt3d-status">{hint}</div>
                 </div>
             </motion.div>
         </div>
     );
 };
+
+/**
+ * The three places the camera can be, near to far.
+ *
+ * Ordered as a journey rather than alphabetically: Screen is where you came
+ * from, Room is as far out as it goes, and Desk is the resting point between
+ * them. A radio group read left to right should describe a distance.
+ */
+const VIEWS: { key: 'monitor' | 'desk' | 'orbit'; label: string }[] = [
+    { key: 'monitor', label: 'Screen' },
+    { key: 'desk', label: 'Desk' },
+    { key: 'orbit', label: 'Room' },
+];
 
 /** Coarse-pointer devices get hints that don't mention keys they don't have. */
 function useIsTouch(): boolean {
@@ -413,12 +500,30 @@ let grainTileCache: string | null = null;
  */
 function getGrainTile(): string {
     if (!grainTileCache) {
-        grainTileCache = paintNoise(160, 160, () => {
+        grainTileCache = paintNoise(256, 256, () => {
             const v = Math.random() < 0.5 ? 0 : 255;
             return [v, v, v, (Math.random() * Math.random() * 255) | 0];
         });
     }
     return grainTileCache;
+}
+
+let coarseGrainCache: string | null = null;
+/**
+ * The second grain pass: fewer, larger, softer specks. Drawn at half the
+ * resolution and then scaled up by CSS, which is what gives it a chunkier
+ * particle than the fine layer without a second full-size tile in memory.
+ */
+function getCoarseGrainTile(): string {
+    if (!coarseGrainCache) {
+        coarseGrainCache = paintNoise(232, 232, () => {
+            const v = Math.random() < 0.5 ? 0 : 255;
+            // Sparse: about one speck in six, so it reads as a second, slower
+            // layer of dust rather than doubling the first one's density.
+            return [v, v, v, Math.random() < 0.17 ? (Math.random() * 210) | 0 : 0];
+        });
+    }
+    return coarseGrainCache;
 }
 
 /** Fill a canvas pixel-by-pixel from `sample` and hand back a data URL. */

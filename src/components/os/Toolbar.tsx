@@ -130,16 +130,23 @@ const Toolbar: React.FC<ToolbarProps> = ({
     const muted = useMuted();
     const clippyOn = useClippyEnabled();
 
-    /** How long this session has been "dialled in" — see ConnectionPanel. */
+    /**
+     * How long this session has been "dialled in" — see ConnectionPanel.
+     *
+     * Only ticks while that panel is actually open. It used to run every second
+     * for the whole visit, re-rendering the taskbar and every tray popup with
+     * it, to update a number nobody was looking at.
+     */
     const [connectedFor, setConnectedFor] = useState(0);
+    const connectedSince = useRef(Date.now());
     useEffect(() => {
-        const started = Date.now();
-        const id = window.setInterval(
-            () => setConnectedFor((Date.now() - started) / 1000),
-            1000
-        );
+        if (!connectionOpen) return;
+        const tick = () =>
+            setConnectedFor((Date.now() - connectedSince.current) / 1000);
+        tick();
+        const id = window.setInterval(tick, 1000);
         return () => window.clearInterval(id);
-    }, []);
+    }, [connectionOpen]);
 
     /**
      * Only one tray popup at a time — they all hang off the same corner and
@@ -200,16 +207,24 @@ const Toolbar: React.FC<ToolbarProps> = ({
 
     const [time, setTime] = useState(getTime());
 
-    const updateTime = () => {
-        setTime(getTime());
-        setTimeout(() => {
-            updateTime();
-        }, 5000);
-    };
-
+    /**
+     * One clock, started once.
+     *
+     * This used to be a self-rescheduling `setTimeout` kicked off by an effect
+     * with *no dependency array*, which meant every single render of the
+     * taskbar started another five-second chain that never stopped. The taskbar
+     * re-renders whenever a window opens, closes or is focused — and once per
+     * animation frame for the whole length of an icon drag — so a minute of
+     * ordinary use left dozens of timers running forever, each one re-rendering
+     * the toolbar and its tray panels. That is the single biggest reason the
+     * desktop got heavier the longer you used it, and why the 3D room (which
+     * runs a second copy of the whole OS inside the monitor) ground to a halt.
+     */
     useEffect(() => {
-        updateTime();
-    });
+        const id = window.setInterval(() => setTime(getTime()), 10_000);
+        return () => window.clearInterval(id);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
 
     const onCheckClick = () => {
         if (lastClickInside.current) {

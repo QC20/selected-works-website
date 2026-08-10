@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import Colors from '../../constants/colors';
 import { TASKBAR_HEIGHT } from './metrics';
 import { playChime, playClick } from './sounds';
+import { between, patiently, useIdleTrigger } from './idle';
 import { useSaveablePrograms } from './saveablePrograms';
 
 import clippy1 from '../../assets/clippy/clippy1.gif';
@@ -211,17 +212,32 @@ export function useClippyEnabled(): boolean {
     return !dismissed;
 }
 
-/** First appearance, then the gap between them. Long enough to be a surprise. */
-const FIRST_DELAY = 20000;
-const GAP = 95000;
+/**
+ * When he is allowed to speak.
+ *
+ * All three are *idle* windows, not elapsed time (see `idle.ts`): the clock only
+ * runs while the visitor is still, and any input resets it. Nothing he says is
+ * urgent enough to interrupt someone mid-click.
+ *
+ *   FIRST   the opening tip, drawn from the top of the range — a visitor who
+ *           has just arrived is reading, and reading is not idling.
+ *   LATER   every tip after that.
+ *   COOLDOWN a floor between tips, so a slow reader is not talked at every
+ *           twenty seconds just for sitting still.
+ */
+const FIRST_IDLE = [12_000, 20_000] as const;
+const LATER_IDLE = [10_000, 20_000] as const;
+const COOLDOWN = 70_000;
 const VISIBLE_FOR = 17000;
 
 /**
- * How long Paint or Notepad has to be open before he offers to save what is in
- * it. Short enough to catch someone who has finished, long enough that it does
- * not land the second the window opens.
+ * How long after you stop typing or drawing he offers to save it. The registry
+ * only reports a program once something has actually been put into it (see
+ * `saveablePrograms.ts`), so this is 10–15 seconds after real work exists — the
+ * pause where you sit back and look at what you have made, which is exactly the
+ * moment before people close the window without saving.
  */
-const SAVE_OFFER_AFTER = 45000;
+const SAVE_OFFER_IDLE = [10_000, 15_000] as const;
 
 /** The offer is worth making twice, not five times. */
 const MAX_SAVE_OFFERS = 2;
@@ -293,23 +309,36 @@ const Clippy: React.FC<ClippyProps> = ({ suspended = false, openApp }) => {
         saidCount.current += 1;
     }, [pickNext, show]);
 
+    // The next idle window he is waiting for. Re-drawn after every tip so no two
+    // visits — and no two tips — have the same rhythm.
+    const [waitFor, setWaitFor] = useState<number | null>(() =>
+        patiently(FIRST_IDLE[0], FIRST_IDLE[1])
+    );
+    /** Nothing before this, however long the visitor sits still. */
+    const notBefore = useRef(0);
+
     useEffect(() => {
         if (!enabled || suspended) {
             clearTimers();
             setLine(null);
-            return;
         }
-        const schedule = (delay: number) => {
-            timers.current.push(
-                window.setTimeout(() => {
-                    say();
-                    schedule(GAP);
-                }, delay)
-            );
-        };
-        schedule(FIRST_DELAY);
-        return clearTimers;
-    }, [enabled, suspended, say]);
+    }, [enabled, suspended]);
+
+    useIdleTrigger(
+        waitFor,
+        () => {
+            // Still inside the cooldown from the last tip: go quiet and try
+            // again at the next lull rather than queueing one up.
+            if (Date.now() < notBefore.current) {
+                setWaitFor(between(LATER_IDLE[0], LATER_IDLE[1]));
+                return;
+            }
+            say();
+            notBefore.current = Date.now() + COOLDOWN;
+            setWaitFor(between(LATER_IDLE[0], LATER_IDLE[1]));
+        },
+        enabled && !suspended && !line
+    );
 
     /**
      * The one genuinely Clippy-shaped thing he does: notice you have been
@@ -319,29 +348,32 @@ const Clippy: React.FC<ClippyProps> = ({ suspended = false, openApp }) => {
      * it opens Paint's own Save As box, so you still choose the name, and the
      * box already suggests a free one.
      */
-    useEffect(() => {
-        if (!enabled || suspended || !saveable) return;
-        if (saveOffers.current >= MAX_SAVE_OFFERS) return;
-        const id = window.setTimeout(() => {
+    const [saveWait] = useState(() =>
+        between(SAVE_OFFER_IDLE[0], SAVE_OFFER_IDLE[1])
+    );
+    useIdleTrigger(
+        saveWait,
+        () => {
+            if (!saveable || saveOffers.current >= MAX_SAVE_OFFERS) return;
             saveOffers.current += 1;
             show({
+                // Short on purpose. He is interrupting to prevent a loss, and
+                // an interruption you have to read twice is worse than none.
                 text:
                     saveable.kind === 'painting'
-                        ? 'It looks like you are drawing something. Save it and it goes in My Documents\\Paintings, where every future visitor will see it.'
-                        : 'It looks like you are writing something. Save it and it goes in My Documents\\Notes, where every future visitor will read it.',
+                        ? 'It looks like you are drawing. Save it before Windows does something regrettable.'
+                        : 'It looks like you are writing. Save it before Windows does something regrettable.',
                 animation: saveable.kind === 'painting' ? clippy2 : clippy3,
-                action:
-                    saveable.kind === 'painting'
-                        ? 'Save this drawing'
-                        : 'Save this note',
+                action: 'Save it now',
                 save: true,
             });
-        }, SAVE_OFFER_AFTER);
-        return () => window.clearTimeout(id);
-        // `saveable.id` rather than the object: a re-register with the same
-        // program must not restart the clock.
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [enabled, suspended, saveable?.id, saveable?.kind, show]);
+        },
+        enabled &&
+            !suspended &&
+            !line &&
+            !!saveable &&
+            saveOffers.current < MAX_SAVE_OFFERS
+    );
 
     /**
      * Opens My Showcase on a particular page.

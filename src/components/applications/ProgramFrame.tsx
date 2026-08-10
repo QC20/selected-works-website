@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import Window from '../os/Window';
+import SaveChangesDialog from '../os/SaveChangesDialog';
 import Colors from '../../constants/colors';
 import { Win98Program } from './win98Programs';
 import { FileKind, invalidateSync, publishFile } from '../os/communityFiles';
@@ -62,6 +63,16 @@ const ProgramFrame: React.FC<ProgramFrameProps> = ({
 }) => {
     const frameRef = useRef<HTMLIFrameElement>(null);
     const [loading, setLoading] = useState(true);
+    /**
+     * Unsaved work, as the program itself reports it (`win98:dirty`).
+     *
+     * Only the programs in SAVEABLE write files, so only they can lose any —
+     * Pinball has nothing to be sorry about when you close it.
+     */
+    const [dirty, setDirty] = useState(false);
+    const [askingToSave, setAskingToSave] = useState(false);
+    /** Armed by answering Yes: close as soon as the save lands. */
+    const closeAfterSave = useRef(false);
     // Notepad and Sound Recorder retitle the window as you open and save files.
     const [title, setTitle] = useState(program.name);
 
@@ -72,6 +83,14 @@ const ProgramFrame: React.FC<ProgramFrameProps> = ({
      */
     const closeHandlers = useRef<((e: FramedWindowEvent) => void)[]>([]);
     const requestClose = useCallback(() => {
+        // Ours goes first and wins. Notepad has a save prompt of its own, but
+        // Paint does not, and two programs answering the same question two
+        // different ways is worse than either answer — the desktop asks, in one
+        // voice, for everything that can lose work.
+        if (dirty && SAVEABLE[program.key]) {
+            setAskingToSave(true);
+            return;
+        }
         let prevented = false;
         const event = {
             preventDefault: () => {
@@ -86,7 +105,7 @@ const ProgramFrame: React.FC<ProgramFrameProps> = ({
             }
         });
         if (!prevented) onClose();
-    }, [onClose]);
+    }, [onClose, dirty, program.key]);
 
     // Kept in a ref so the shim handed to the frame never goes stale.
     const closeRef = useRef(onClose);
@@ -175,10 +194,22 @@ const ProgramFrame: React.FC<ProgramFrameProps> = ({
                     );
                 }
                 setSaveableDirty(program.key, false);
+                setDirty(false);
+                // "Yes" was answered; the file is on the drive, so finish the
+                // job the visitor actually asked for.
+                if (closeAfterSave.current) {
+                    closeAfterSave.current = false;
+                    onClose();
+                }
             }
 
             if (e.data?.type === 'win98:dirty') {
-                setSaveableDirty(program.key, !!e.data.dirty);
+                const isDirty = !!e.data.dirty;
+                setSaveableDirty(program.key, isDirty);
+                setDirty(isDirty);
+                // Back to editing: whatever close they asked for is stale, and
+                // the next save must not slam the window shut under them.
+                if (isDirty) closeAfterSave.current = false;
             }
         };
         window.addEventListener('message', onMessage);
@@ -197,11 +228,11 @@ const ProgramFrame: React.FC<ProgramFrameProps> = ({
             id: program.key,
             kind,
             programName: program.name,
-            // Assumed worth saving from the moment it opens: the programs
-            // report their own state, but neither reliably says "still empty",
-            // and an offer to save an empty canvas is a smaller failure than
-            // never offering at all.
-            dirty: true,
+            // Starts clean. Both programs now report their own `saved` flag
+            // (see `gallery-bridge.js`), so Clippy waits for something to
+            // actually be in there rather than offering to save a blank canvas
+            // the moment the window opens.
+            dirty: false,
             requestSave: () =>
                 frameRef.current?.contentWindow?.postMessage(
                     { type: 'win98:request-save' },
@@ -247,6 +278,38 @@ const ProgramFrame: React.FC<ProgramFrameProps> = ({
             minimizeWindow={onMinimize}
             bottomLeftText={loading ? `Starting ${program.name}…` : title}
         >
+            {askingToSave && (
+                <SaveChangesDialog
+                    programName={program.name}
+                    // "Untitled - Notepad" is the *window* title; the box asks
+                    // about the document, so the program's own name comes off.
+                    fileName={
+                        title !== program.name
+                            ? title.replace(
+                                  new RegExp(`\\s*[-–]\\s*${program.name}$`),
+                                  ''
+                              )
+                            : undefined
+                    }
+                    onAnswer={(answer) => {
+                        setAskingToSave(false);
+                        if (answer === 'cancel') return;
+                        if (answer === 'discard') {
+                            onClose();
+                            return;
+                        }
+                        // Yes: open the program's own Save As box, and close
+                        // once it reports the file written. If they back out of
+                        // Save As the window simply stays open, which is what
+                        // backing out of Save As has always meant.
+                        closeAfterSave.current = true;
+                        frameRef.current?.contentWindow?.postMessage(
+                            { type: 'win98:request-save' },
+                            window.location.origin
+                        );
+                    }}
+                />
+            )}
             <div style={styles.container}>
                 <iframe
                     ref={frameRef}

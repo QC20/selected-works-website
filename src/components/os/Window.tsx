@@ -160,9 +160,11 @@ const Window: React.FC<WindowProps> = (props) => {
         return { x, y };
     };
 
+    // Only when the window has actually moved. Without the dependencies this
+    // wrote the same transform on every render of every open window.
     useEffect(() => {
         dragRef.current.style.transform = `translate(${left}px, ${top}px)`;
-    });
+    }, [left, top]);
 
     useEffect(() => {
         props.onWidthChange && props.onWidthChange(contentWidth);

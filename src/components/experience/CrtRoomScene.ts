@@ -7,23 +7,21 @@ import { CSS3DObject, CSS3DRenderer } from 'three/examples/jsm/renderers/CSS3DRe
 /**
  * CrtRoomScene
  * -------------
- * Loads Henry Heffernan's room (baked GLB models) and embeds this site's *live*
- * 2D desktop inside the monitor via the mixed CSS3D + WebGL technique (his assets
- * and technique are MIT-licensed; notice kept in public/henry/). A transparent
+ * The room the monitor is in. Baked GLB models under `public/room/` (third-party,
+ * MIT — see `public/room/ASSET-LICENSE.md`) with this site's *live* 2D desktop
+ * embedded in the monitor through a mixed CSS3D + WebGL setup: a transparent
  * WebGL layer on top punches a hole over the screen so the DOM iframe shows
  * through and stays clickable.
  *
- * Interaction mirrors Henry's, but the intro is reversed — you start *inside* the
- * screen and move out:
+ * The intro runs inside-out — you start *at* the screen and move away from it:
  *   intro:   screen -> desk (pull out, reveal the room)
- *   desk:    resting view; click the screen to zoom in and use the OS
- *   monitor: the OS fills the frame and is interactive; Back/Esc returns to desk
- *   orbit:   "free look" toggle -> OrbitControls around the room
+ *   desk:    resting view, breathing and parallaxing with the pointer
+ *   monitor: the OS fills the frame and is interactive
+ *   orbit:   free look — orbit and dolly anywhere around the desk
  *
- * Performance: render-on-demand. The WebGL/CSS3D frame is only redrawn while the
- * camera is actually moving (a tween or an active orbit). When you're parked at
- * the monitor using the OS, the 3D render loop idles and the live DOM runs at full
- * native smoothness — the main reason this now feels as smooth as Henry's.
+ * Rendering (see `tick`): continuous while the camera is alive (desk drift,
+ * tweens, orbit damping) and fully idle in `monitor` mode, where the camera is
+ * parked and every millisecond belongs to the live OS in the iframe.
  */
 
 export type CrtMode = 'loading' | 'desk' | 'monitor' | 'orbit';
@@ -34,6 +32,8 @@ export interface CrtRoomOptions {
     onReady?: () => void;
     onError?: (err: unknown) => void;
     onModeChange?: (mode: CrtMode) => void;
+    /** Free-look distance as 0..1, so a slider can follow a wheel or a pinch. */
+    onZoomChange?: (t: number) => void;
     /**
      * Escape pressed *inside* the monitor's iframe. Key events don't cross a
      * frame boundary, so without this the overlay's own listener is deaf the
@@ -48,7 +48,11 @@ export interface CrtRoomController {
     backToDesk: () => void;
     /** Swing the camera back to the straight-on view of the monitor, from anywhere. */
     resetView: () => void;
+    /** Go straight to the screen and hand the OS the pointer. */
+    enterMonitor: () => void;
     setFreeLook: (on: boolean) => void;
+    /** Dolly in free look. 0 = as close as the desk allows, 1 = the whole room. */
+    setZoom: (t: number) => void;
     setMuted: (muted: boolean) => void;
     getMode: () => CrtMode;
     resize: () => void;
@@ -56,7 +60,7 @@ export interface CrtRoomController {
 }
 
 const PUBLIC = process.env.PUBLIC_URL || '';
-const BASE = `${PUBLIC}/henry`;
+const BASE = `${PUBLIC}/room`;
 const MODEL_SCALE = 900;
 const DEG = THREE.MathUtils.DEG2RAD;
 
@@ -72,8 +76,73 @@ const POSE = {
     screen: { pos: new THREE.Vector3(0, 950, 700), foc: new THREE.Vector3(0, 950, 0) },
     monitor: { pos: new THREE.Vector3(0, 950, 2000), foc: new THREE.Vector3(0, 950, 0) },
     desk: { pos: new THREE.Vector3(0, 1800, 5500), foc: new THREE.Vector3(0, 500, 0) },
-    orbit: { pos: new THREE.Vector3(-9000, 7000, 12000), foc: new THREE.Vector3(0, 500, 0) },
+    orbit: { pos: new THREE.Vector3(-13000, 9000, 15000), foc: new THREE.Vector3(-100, 350, 0) },
 };
+
+/**
+ * How close and how far free look may get.
+ *
+ * The near end is inside touching distance of the keyboard; the far end holds
+ * the whole room, desk and floor and all, in one shot. Everything between is
+ * reachable by dragging, pinching, or the zoom slider on the control panel.
+ */
+const ZOOM = { min: 2200, max: 34000 };
+
+/**
+ * Framing on a screen that is the wrong shape.
+ *
+ * This is the fix for the one place the site genuinely broke on a phone or an
+ * iPad held upright. A 35° lens framed for a laptop is framed for a *wide*
+ * rectangle: rotate the device and the viewport keeps its diagonal but loses
+ * most of its width, and a shot composed to fill 3:2 now runs off both sides.
+ * On the monitor pose that meant the screen you had just walked up to was
+ * cropped on every edge, which is exactly what it looked like.
+ *
+ * Widening the lens would fix the fit and wreck the room — a 60° field on a
+ * 1990s office reads like a fisheye security camera. So the camera steps *back*
+ * instead, by exactly as much as the projection says it needs, the way a
+ * photographer would solve the same problem. The framing stays the framing;
+ * there is simply more air around it.
+ */
+const FOV = 35;
+
+/**
+ * The distance at which a `w` x `h` subject just fits the viewport, with a
+ * little air around it.
+ *
+ * Straight out of the perspective projection rather than a fudge factor, so it
+ * is right at every shape of window instead of at the two that were measured. A
+ * vertical field of view means the *width* it covers shrinks with the aspect
+ * ratio, which is precisely why turning a tablet upright used to crop the
+ * screen: the height still fitted, and nobody had checked the width.
+ */
+const fitDistance = (w: number, h: number, margin = 1.06): number => {
+    const halfFov = Math.tan((FOV * DEG) / 2);
+    const aspect = window.innerWidth / Math.max(1, window.innerHeight);
+    return Math.max(
+        (h * margin) / (2 * halfFov),
+        (w * margin) / (2 * halfFov * aspect)
+    );
+};
+
+/**
+ * Where a pose's camera goes, given the framing it was composed at.
+ *
+ * `Math.max` is the whole trick: on the wide screens the shots were designed
+ * for, the composed distance already clears the subject and nothing moves. Only
+ * when the viewport is too narrow to hold it does the camera step back, and
+ * only by as much as it has to.
+ */
+const framedZ = (
+    planeZ: number,
+    composed: number,
+    subject: { w: number; h: number },
+    cap = Infinity
+): number =>
+    planeZ + Math.min(cap, Math.max(composed - planeZ, fitDistance(subject.w, subject.h)));
+
+/** How far the pointer moves the desk view, and how quickly it catches up. */
+const PARALLAX = { pos: 340, foc: 130, ease: 0.045 };
 
 const easeInOutCubic = (t: number): number =>
     t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
@@ -287,6 +356,23 @@ export function createCrtRoomScene(
     let onTweenDone: (() => void) | undefined;
     let dirty = true;
 
+    /** Resolved every time it is needed, because it depends on the viewport. */
+    const poseFor = (key: 'screen' | 'monitor' | 'desk' | 'orbit') => {
+        const base = POSE[key];
+        const pos = base.pos.clone();
+        // The monitor pose must hold the whole 1280x1024 screen; the desk pose
+        // must hold the working area of the desk. Neither moves on a laptop.
+        if (key === 'monitor') {
+            pos.z = framedZ(SCREEN.pos.z, base.pos.z, { w: SCREEN.w, h: SCREEN.h });
+        }
+        if (key === 'desk') {
+            // Capped: past about 12000 you are looking at the far wall, and a
+            // phone would otherwise pull back until the desk is a postage stamp.
+            pos.z = framedZ(0, base.pos.z, { w: 4200, h: 3000 }, 12000);
+        }
+        return { pos, foc: base.foc.clone() };
+    };
+
     const startTween = (
         to: { pos: THREE.Vector3; foc: THREE.Vector3 },
         dur: number,
@@ -303,6 +389,45 @@ export function createCrtRoomScene(
         dirty = true;
     };
 
+    // ---- The desk view is never quite still -----------------------------------
+    //
+    // A camera parked on an exact number reads as a screenshot. This gives the
+    // resting view two small, slow motions: it drifts with the pointer (or with
+    // nothing at all, on a touch screen, where there is no pointer to follow),
+    // and it breathes on a pair of sine waves whose periods do not divide into
+    // each other, so the loop never announces itself. Both are eased rather
+    // than applied directly, which is what makes it feel like a held camera
+    // instead of a cursor-follower.
+    const pointer = { x: 0, y: 0 };
+    const onPointerMove = (e: PointerEvent) => {
+        pointer.x = (e.clientX / window.innerWidth) * 2 - 1;
+        pointer.y = (e.clientY / window.innerHeight) * 2 - 1;
+    };
+    window.addEventListener('pointermove', onPointerMove, { passive: true });
+
+    const deskPos = new THREE.Vector3().copy(POSE.desk.pos);
+    const deskFoc = new THREE.Vector3().copy(POSE.desk.foc);
+    const deskTargetPos = new THREE.Vector3();
+    const deskTargetFoc = new THREE.Vector3();
+
+    const updateDeskPose = (t: number) => {
+        const base = poseFor('desk');
+        const sway = reduced ? 0 : 1;
+        deskTargetPos.set(
+            base.pos.x + pointer.x * PARALLAX.pos + Math.sin(t * 0.00021) * 45 * sway,
+            base.pos.y - pointer.y * PARALLAX.pos * 0.45 +
+                Math.sin(t * 0.00035) * 60 * sway,
+            base.pos.z
+        );
+        deskTargetFoc.set(
+            base.foc.x + pointer.x * PARALLAX.foc,
+            base.foc.y - pointer.y * PARALLAX.foc * 0.5,
+            base.foc.z
+        );
+        deskPos.lerp(deskTargetPos, PARALLAX.ease);
+        deskFoc.lerp(deskTargetFoc, PARALLAX.ease);
+    };
+
     // ---- Free-look orbit controls ---------------------------------------------
     let controls: OrbitControls | null = null;
     const ensureControls = () => {
@@ -310,23 +435,67 @@ export function createCrtRoomScene(
         controls = new OrbitControls(camera, canvas);
         controls.enablePan = false;
         controls.enableDamping = true;
-        controls.dampingFactor = 0.06;
-        controls.rotateSpeed = 0.5;
-        controls.minDistance = 2500;
-        controls.maxDistance = 26000;
+        // Low damping plus a slow rotate speed is what separates "swinging a
+        // camera around" from "dragging a 3D model": the view keeps drifting
+        // for a moment after you let go, the way a real head does.
+        controls.dampingFactor = 0.05;
+        controls.rotateSpeed = 0.45;
+        controls.zoomSpeed = 0.8;
+        controls.minDistance = ZOOM.min;
+        controls.maxDistance = ZOOM.max;
+        // Never below the floor — there is nothing down there but the underside
+        // of a rug, and finding it breaks the room instantly.
         controls.maxPolarAngle = Math.PI / 2.05;
         controls.enabled = false;
         controls.addEventListener('change', () => {
             dirty = true;
+            reportZoom();
         });
         return controls;
     };
 
-    // ---- Screen-click to enter the monitor (only from desk) -------------------
+    /** Current dolly distance as 0..1, for the panel's zoom slider. */
+    let lastReportedZoom = -1;
+    const reportZoom = () => {
+        if (!controls || !options.onZoomChange) return;
+        const d = camera.position.distanceTo(controls.target);
+        const t = THREE.MathUtils.clamp(
+            (d - ZOOM.min) / (ZOOM.max - ZOOM.min),
+            0,
+            1
+        );
+        if (Math.abs(t - lastReportedZoom) < 0.005) return;
+        lastReportedZoom = t;
+        options.onZoomChange(t);
+    };
+
+    /** Slider -> dolly. Moves the camera along its current view ray. */
+    const setZoom = (t: number) => {
+        const c = ensureControls();
+        if (mode !== 'orbit') return;
+        const want = ZOOM.min + THREE.MathUtils.clamp(t, 0, 1) * (ZOOM.max - ZOOM.min);
+        const dir = camera.position.clone().sub(c.target).normalize();
+        camera.position.copy(c.target).addScaledVector(dir, want);
+        c.update();
+        dirty = true;
+    };
+
+    // ---- Click the screen to use it -------------------------------------------
+    //
+    // Works from the desk *and* from free look: having found your way round the
+    // back of the room, being told to press a button before you may touch the
+    // computer would be a rule with nothing behind it.
     const raycaster = new THREE.Raycaster();
     const ndc = new THREE.Vector2();
+    const downAt = { x: 0, y: 0 };
     const onCanvasPointerDown = (e: PointerEvent) => {
-        if (mode !== 'desk') return;
+        downAt.x = e.clientX;
+        downAt.y = e.clientY;
+    };
+    const onCanvasPointerUp = (e: PointerEvent) => {
+        if (mode !== 'desk' && mode !== 'orbit') return;
+        // A drag that happens to end on the screen is a look-around, not a click.
+        if (Math.hypot(e.clientX - downAt.x, e.clientY - downAt.y) > 6) return;
         ndc.x = (e.clientX / window.innerWidth) * 2 - 1;
         ndc.y = -(e.clientY / window.innerHeight) * 2 + 1;
         raycaster.setFromCamera(ndc, camera);
@@ -335,6 +504,7 @@ export function createCrtRoomScene(
         }
     };
     canvas.addEventListener('pointerdown', onCanvasPointerDown);
+    canvas.addEventListener('pointerup', onCanvasPointerUp);
 
     // ---- Ambient office audio (on from the moment you arrive) -----------------
     //
@@ -480,16 +650,31 @@ export function createCrtRoomScene(
     let raf = 0;
     let running = true;
 
+    // Which states are alive enough to need a frame. `monitor` deliberately is
+    // not: the camera is parked, the OS in the iframe is the only thing moving,
+    // and every frame we skip here is a frame the browser can spend compositing
+    // a live 1280x1024 DOM layer instead. That is why using the computer inside
+    // the room feels exactly as quick as using it outside.
+    const isAnimating = () => tweening || mode === 'desk' || mode === 'orbit';
+
     const tick = () => {
         if (!running) return;
         raf = requestAnimationFrame(tick);
 
+        const now = performance.now();
+
         if (tweening) {
-            const t = tweenDur > 0 ? Math.min((performance.now() - tweenStart) / tweenDur, 1) : 1;
+            const t = tweenDur > 0 ? Math.min((now - tweenStart) / tweenDur, 1) : 1;
             const e = easeInOutCubic(t);
             camera.position.lerpVectors(fromPos, toPos, e);
             curFoc.lerpVectors(fromFoc, toFoc, e);
             camera.lookAt(curFoc);
+            // Keep the resting pose tracking the camera all the way in, so the
+            // hand-off at the end of the tween has nothing to snap over.
+            if (toPos.equals(poseFor('desk').pos)) {
+                deskPos.copy(camera.position);
+                deskFoc.copy(curFoc);
+            }
             dirty = true;
             if (t >= 1) {
                 tweening = false;
@@ -497,25 +682,33 @@ export function createCrtRoomScene(
                 onTweenDone = undefined;
                 done?.();
             }
+        } else if (mode === 'desk') {
+            updateDeskPose(now);
+            camera.position.copy(deskPos);
+            curFoc.copy(deskFoc);
+            camera.lookAt(curFoc);
+            dirty = true;
         } else if (mode === 'orbit' && controls) {
-            if (controls.update()) dirty = true;
+            controls.update();
+            curFoc.copy(controls.target);
+            dirty = true;
         }
 
         if (dirty) {
             updateDimmer();
             renderer.render(scene, camera);
             cssRenderer.render(cssScene, camera);
-            // Keep drawing while animating; otherwise settle and idle the loop.
-            if (!tweening && mode !== 'orbit') dirty = false;
+            if (!isAnimating()) dirty = false;
         }
     };
 
     // ---- Public API -----------------------------------------------------------
     const enterIntro = (onSettled?: () => void) => {
-        camera.position.copy(POSE.screen.pos);
-        curFoc.copy(POSE.screen.foc);
+        const start = poseFor('screen');
+        camera.position.copy(start.pos);
+        curFoc.copy(start.foc);
         camera.lookAt(curFoc);
-        startTween(POSE.desk, reduced ? 900 : 2200, () => {
+        startTween(poseFor('desk'), reduced ? 900 : 2200, () => {
             setMode('desk');
             onSettled?.();
         });
@@ -523,8 +716,9 @@ export function createCrtRoomScene(
 
     function enterMonitor() {
         if (mode === 'monitor') return;
+        if (controls) controls.enabled = false;
         setMode('loading'); // lock interaction routing during the move
-        startTween(POSE.monitor, reduced ? 500 : 900, () => setMode('monitor'));
+        startTween(poseFor('monitor'), reduced ? 500 : 900, () => setMode('monitor'));
     }
 
     const backToDesk = () => {
@@ -535,12 +729,18 @@ export function createCrtRoomScene(
     /** Unconditional "put me back in front of the monitor" — the Enter/Space key. */
     function resetView() {
         if (controls) controls.enabled = false;
+        const desk = poseFor('desk');
+        // Hand the resting pose the position it is about to be given, so the
+        // parallax picks up from where the tween lands rather than jumping.
+        deskPos.copy(desk.pos);
+        deskFoc.copy(desk.foc);
         setMode('loading');
-        startTween(POSE.desk, reduced ? 500 : 900, () => setMode('desk'));
+        startTween(desk, reduced ? 500 : 900, () => setMode('desk'));
     }
 
     const setFreeLook = (on: boolean) => {
         if (on) {
+            if (mode === 'orbit') return;
             const c = ensureControls();
             c.target.copy(POSE.orbit.foc);
             setMode('loading');
@@ -548,6 +748,7 @@ export function createCrtRoomScene(
                 c.target.copy(POSE.orbit.foc);
                 c.update();
                 setMode('orbit');
+                reportZoom();
             });
         } else {
             backToDesk();
@@ -557,7 +758,7 @@ export function createCrtRoomScene(
     const exit = (onDone?: () => void) => {
         if (controls) controls.enabled = false;
         setMode('loading');
-        startTween(POSE.screen, reduced ? 600 : 1100, onDone);
+        startTween(poseFor('screen'), reduced ? 600 : 1100, onDone);
     };
 
     const resize = () => {
@@ -568,6 +769,14 @@ export function createCrtRoomScene(
         renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
         renderer.setSize(w, h);
         cssRenderer.setSize(w, h);
+        // The framing pull-back is a function of the aspect ratio, so turning a
+        // tablet on its side has to re-frame whichever pose is current.
+        if (mode === 'monitor') {
+            const m = poseFor('monitor');
+            camera.position.copy(m.pos);
+            curFoc.copy(m.foc);
+            camera.lookAt(curFoc);
+        }
         dirty = true;
     };
 
@@ -592,6 +801,8 @@ export function createCrtRoomScene(
         window.removeEventListener('resize', resize);
         document.removeEventListener('visibilitychange', onVisibility);
         canvas.removeEventListener('pointerdown', onCanvasPointerDown);
+        canvas.removeEventListener('pointerup', onCanvasPointerUp);
+        window.removeEventListener('pointermove', onPointerMove);
         framedDoc?.removeEventListener('keydown', onFramedKey);
         clearUnlock();
 
@@ -619,7 +830,9 @@ export function createCrtRoomScene(
         exit,
         backToDesk,
         resetView,
+        enterMonitor,
         setFreeLook,
+        setZoom,
         setMuted,
         getMode: () => mode,
         resize,

@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { motion, useAnimation } from 'framer-motion';
 import WORDS from './Words';
 import { Easing } from '../general/Animation';
+import Window from '../os/Window';
 
 export interface KeyboardLetterProps {
     letter: string;
@@ -205,7 +206,7 @@ const GuessWord: React.FC<GuessWordProps> = ({
     );
 };
 
-export interface WordleProps {}
+export interface JonordleProps extends WindowAppProps {}
 
 const TOP_ROW = ['Q', 'W', 'E', 'R', 'T', 'Y', 'U', 'I', 'O', 'P'];
 const MIDDLE_ROW = ['A', 'S', 'D', 'F', 'G', 'H', 'J', 'K', 'L'];
@@ -213,8 +214,8 @@ const BOTTOM_ROW = ['RET', 'Z', 'X', 'C', 'V', 'B', 'N', 'M', 'DEL'];
 const ROWS = [TOP_ROW, MIDDLE_ROW, BOTTOM_ROW];
 const ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
 
-const Wordle: React.FC<WordleProps> = () => {
-    const word = 'HENRY';
+const Jonordle: React.FC<JonordleProps> = ({ onInteract, onClose, onMinimize }) => {
+    const word = 'JONAS';
     const [guesses, setGuesses] = useState<string[]>([]);
     const [gameOver, setGameOver] = useState(false);
     const [won, setWon] = useState(false);
@@ -271,10 +272,22 @@ const Wordle: React.FC<WordleProps> = () => {
     }, [guesses]);
 
     return (
+        <Window
+            top={48}
+            left={140}
+            width={420}
+            height={620}
+            windowTitle="Jonordle"
+            windowBarIcon="scrabbleIcon"
+            closeWindow={onClose}
+            onInteract={onInteract}
+            minimizeWindow={onMinimize}
+            bottomLeftText="One word. Six tries. It is the same word every day."
+        >
         <div style={styles.container}>
             <div style={styles.header}>
-                <h2>Henordle</h2>
-                <p>Wordle but with a HENRY based twist.</p>
+                <h2>Jonordle</h2>
+                <p>Wordle, but the answer never changes.</p>
             </div>
             <motion.div
                 variants={gameOverAnimations}
@@ -287,7 +300,7 @@ const Wordle: React.FC<WordleProps> = () => {
                 )}
             >
                 <h2>{won ? 'You win!' : 'Game Over'}</h2>
-                <p>Thanks for playing! Remember: the word is always "HENRY"!</p>
+                <p>Thanks for playing! Remember: the word is always "JONAS".</p>
                 <br />
                 <GuessWord
                     key={'winning-guess'}
@@ -338,6 +351,7 @@ const Wordle: React.FC<WordleProps> = () => {
                 </div>
             </motion.div>
         </div>
+        </Window>
     );
 };
 
@@ -380,9 +394,13 @@ const gameOverAnimations = {
 
 const styles: StyleSheetCSS = {
     container: {
+        display: 'flex',
         flex: 1,
+        minWidth: 0,
         flexDirection: 'column',
-        overflowY: 'scroll',
+        overflowY: 'auto',
+        position: 'relative',
+        background: '#fff',
     },
     gameContainer: {
         flex: 1,
@@ -450,4 +468,4 @@ const styles: StyleSheetCSS = {
     },
 };
 
-export default Wordle;
+export default Jonordle;

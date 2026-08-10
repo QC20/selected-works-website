@@ -1,5 +1,5 @@
 {
-  "name": "portfolio-website",
+  "name": "jonas-kjeldmand-portfolio",
   "version": "0.1.0",
   "private": true,
   "dependencies": {
@@ -46,9 +46,9 @@
       "last 1 safari version"
     ]
   },
-  "description": "",
+  "description": "Jonas Kjeldmand Jensen — Selected Works, as a Windows 95 desktop.",
   "main": "index.js",
-  "author": "",
+  "author": "Jonas Kjeldmand Jensen",
   "license": "ISC",
   "keywords": [],
   "devDependencies": {

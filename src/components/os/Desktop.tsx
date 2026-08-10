@@ -11,6 +11,7 @@ import LogonScreen from './LogonScreen';
 import Toolbar from './Toolbar';
 import DesktopShortcut, { DesktopShortcutProps } from './DesktopShortcut';
 import Scrabble from '../applications/Scrabble';
+import Jonordle from '../jonordle/Jonordle';
 import { IconName } from '../../assets/icons';
 import Credits from '../applications/Credits';
 import floatingSphere from '../applications/floatingSphere';
@@ -122,8 +123,15 @@ const EXTERNAL_LINKS: { [key: string]: string } = {
 };
 
 // True when this desktop is the *embedded* copy living inside the 3D monitor's
-// CSS3D iframe. In that case we hide "Step Outside" so you can't recurse into
-// another 3D room from within the room.
+// CSS3D iframe.
+//
+// That copy is a whole second instance of this application, running inside a
+// 1280x1024 layer that the browser then has to rasterise and re-composite under
+// a 3D transform every frame. It therefore runs deliberately lean: no "Step
+// Outside" (you cannot recurse into the room you are already in), no screen
+// saver, and no Clippy — his animated GIF is decoded continuously, and paying
+// for it twice, once inside a texture nobody is reading, is the kind of cost
+// that turns a 60fps room into a 30fps one.
 const IS_EMBEDDED_IN_CRT = (() => {
     try {
         return window.self !== window.top;
@@ -232,6 +240,15 @@ const APPLICATIONS: {
         name: 'Credits',
         shortcutIcon: 'credits',
         component: Credits,
+    },
+
+    // Reached from Start > Games and C:\\Games, like the other games without a
+    // desktop icon. One fixed answer, so it is a joke you can only tell once.
+    jonordle: {
+        key: 'jonordle',
+        name: 'Jonordle',
+        shortcutIcon: 'scrabbleIcon',
+        component: Jonordle,
     },
 
     minesweeper: {
@@ -519,6 +536,24 @@ const Desktop: React.FC<DesktopProps> = (props) => {
 
     // When true, the 2D desktop recedes and the 3D CRT-room experience takes over.
     const [experienceOpen, setExperienceOpen] = useState(false);
+
+    /**
+     * Whether the 2D desktop is dropped out of the render tree altogether.
+     *
+     * Trails `experienceOpen` by one frame on the way in — long enough for the
+     * recede to be handed over to an overlay that is already opaque — and leads
+     * it on the way out, so the desktop is drawn and settled again before the
+     * 3D room's snow clears off it.
+     */
+    const [stageHidden, setStageHidden] = useState(false);
+    useEffect(() => {
+        if (!experienceOpen) {
+            setStageHidden(false);
+            return;
+        }
+        const id = window.setTimeout(() => setStageHidden(true), 120);
+        return () => window.clearTimeout(id);
+    }, [experienceOpen]);
 
     // Which optional apps have an icon right now — the Store writes this, and
     // subscribing here is what makes an install or a removal show up at once.
@@ -1388,6 +1423,17 @@ const Desktop: React.FC<DesktopProps> = (props) => {
                 style={Object.assign({}, styles.desktopStage, {
                     pointerEvents: experienceOpen ? 'none' : 'auto',
                     backgroundColor: theme.background,
+                    // Taken out of the render entirely while the room is up.
+                    //
+                    // The 3D overlay is opaque from its first frame, so none of
+                    // this was ever visible behind it — but the browser was
+                    // still laying out, painting and compositing the whole
+                    // desktop, animating Clippy's GIF and running a `filter`
+                    // over the lot, on the same main thread the room needs. It
+                    // is the single largest thing that was making the 3D room
+                    // stutter. React state survives `display: none`, so every
+                    // open window comes back exactly as it was left.
+                    display: stageHidden ? 'none' : undefined,
                 })}
                 animate={
                     experienceOpen
@@ -1523,10 +1569,15 @@ const Desktop: React.FC<DesktopProps> = (props) => {
                 })}
             </div>
 
-            <StartBalloon dismissed={startMenuUsed} />
+            {!IS_EMBEDDED_IN_CRT && (
+                <StartBalloon dismissed={startMenuUsed} />
+            )}
             <Clippy
                 suspended={
-                    experienceOpen || shutdownDialogOpen || loggedOff
+                    experienceOpen ||
+                    shutdownDialogOpen ||
+                    loggedOff ||
+                    IS_EMBEDDED_IN_CRT
                 }
                 openApp={openApp}
             />

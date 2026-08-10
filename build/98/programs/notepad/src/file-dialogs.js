@@ -355,4 +355,13 @@ if (window.gallery) {
 	window.gallery.onSaveRequest(function () {
 		if (typeof window.file_save_as === "function") window.file_save_as();
 	});
+
+	/*
+	 * Notepad has no host hook, but its `saved` flag is a plain global on this
+	 * window, so the desktop can watch it directly. This is what puts the
+	 * "Do you want to save the changes?" box in front of the close button.
+	 */
+	window.gallery.watchSaved("note", function () {
+		return window.saved !== false;
+	});
 }

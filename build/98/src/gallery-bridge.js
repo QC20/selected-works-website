@@ -137,11 +137,40 @@
 		}
 	}
 
+	/**
+	 * Keeps the desktop's idea of "unsaved work" in step with the program's own.
+	 *
+	 * Both Paint and Notepad already track a `saved` flag; neither exposes an
+	 * event when it changes. Rather than reach into their internals, this reads
+	 * the flag on a slow timer and only posts up when the answer is different
+	 * from last time. A poll every three-quarters of a second is nothing next to
+	 * what either program does per keystroke, and it means the desktop's
+	 * "Do you want to save the changes?" box is driven by the program's real
+	 * state rather than by a guess.
+	 */
+	function watchSaved(kind, isSaved) {
+		var last = null;
+		function check() {
+			var dirty;
+			try {
+				dirty = !isSaved();
+			} catch (e) {
+				return; // program still starting up
+			}
+			if (dirty === last) return;
+			last = dirty;
+			reportDirty(kind, dirty);
+		}
+		check();
+		setInterval(check, 750);
+	}
+
 	window.gallery = {
 		DIRS: DIRS,
 		uniqueName: uniqueName,
 		nextFreeName: nextFreeName,
 		publish: publish,
+		watchSaved: watchSaved,
 		blobToDataUrl: blobToDataUrl,
 		onSaveRequest: onSaveRequest,
 		reportDirty: reportDirty,

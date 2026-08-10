@@ -31,6 +31,13 @@ export const GAMES: Game[] = [
         blurb: "id Software's 1993 shooter, running in the browser.",
     },
     {
+        key: 'jonordle',
+        name: 'Jonordle',
+        icon: 'scrabbleIcon',
+        size: 96,
+        blurb: 'Wordle with one answer, and it is not going to change.',
+    },
+    {
         key: 'minesweeper',
         name: 'Minesweeper',
         icon: 'minesweeperIcon',
