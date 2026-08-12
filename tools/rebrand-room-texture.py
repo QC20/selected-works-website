@@ -31,8 +31,10 @@ BOLD_IT = F + 'Arial Bold Italic.ttf'
 IT = F + 'Arial Italic.ttf'
 REG = F + 'Arial.ttf'
 
-BRAND = 'Kjeldmand'
-SUB = 'jonas k. inc'
+# Two lines, one word each — the shape the original plate had, and the
+# shape a 1990s hardware badge always had.
+BRAND = 'Jonas'
+SUB = 'Corp.'
 
 
 def plate_colour(im, box, inset=3):
@@ -50,8 +52,15 @@ def plate_colour(im, box, inset=3):
 
 
 
-def letter(im, box, lines, mirror=False):
-    """Draw text straight onto the (already cleaned) plate, alpha-composited."""
+def letter(im, box, lines, turn=None):
+    """
+    Draw text straight onto the (already cleaned) plate, alpha-composited.
+
+    `turn` is a PIL transpose applied to the text layer before compositing, for
+    plates whose UVs do not sit the same way up as the atlas. Get it wrong and
+    the plate renders back to front; the only reliable way to check is to render
+    the room and read it.
+    """
     x0, y0, x1, y1 = box
     w, h = x1 - x0, y1 - y0
     scale = 4
@@ -61,8 +70,8 @@ def letter(im, box, lines, mirror=False):
         font = ImageFont.truetype(font_path, int(size * scale))
         d.text((xy[0] * scale, xy[1] * scale), text, font=font, fill=fill + (255,))
     layer = layer.resize((w, h), Image.LANCZOS)
-    if mirror:
-        layer = layer.transpose(Image.FLIP_LEFT_RIGHT)
+    if turn is not None:
+        layer = layer.transpose(turn)
     region = im.crop(box).convert('RGBA')
     region.alpha_composite(layer)
     im.paste(region.convert('RGB'), (x0, y0))
@@ -88,20 +97,20 @@ def main():
     im = Image.open(SRC).convert('RGB')
 
     # ---- 1. Monitor bezel ------------------------------------------------
-    # The wordmark sits mirrored in the atlas, and the bezel's UVs mirror it
-    # back, so the replacement is drawn the same way round the original was —
-    # verified by rendering the room and reading the plate, not by reading the
-    # texture. The globe beside it is generic and stays.
+    # The bezel's island sits *upside down* in the atlas — a 180-degree turn,
+    # not a mirror, which is easy to mistake at this size and was worth two
+    # wrong guesses. So the plate is lettered the right way up and turned over
+    # on the way in. The globe beside it is generic and stays.
     box = (1330, 2640, 1585, 2745)
-    erase_ink(im, box)
+    erase_ink(im, box, thresh=12, pad=3)
     letter(im, box, [
-        (BRAND, BOLD_IT, 44, (74, 74, 74), (6, 34)),
-        (SUB, BOLD_IT, 23, (74, 74, 74), (8, 6)),
-    ], mirror=True)
+        (BRAND, BOLD_IT, 44, (74, 74, 74), (6, 8)),
+        (SUB, BOLD_IT, 23, (74, 74, 74), (8, 62)),
+    ], turn=Image.ROTATE_180)
 
     # ---- 2. Keyboard badge -----------------------------------------------
     box = (2304, 1932, 2410, 1980)
-    erase_ink(im, box)
+    erase_ink(im, box, thresh=10, pad=2)
     letter(im, box, [
         (BRAND, BOLD_IT, 20, (105, 105, 105), (1, 2)),
         (SUB, IT, 11, (118, 118, 118), (3, 26)),
@@ -117,7 +126,7 @@ def main():
     dim = (150, 150, 150)
     tile = render_lines(
         [
-            (f'{BRAND} 2026 Showcase', BOLD_IT, 13, ink, (8, 8)),
+            (f'{BRAND} {SUB} 2026 Showcase', BOLD_IT, 13, ink, (8, 8)),
             (SUB, BOLD_IT, 9, ink, (8, 23)),
             ('Making strangely specific computers', IT, 7, dim, (8, 40)),
             ('since 2026. This one was built to show', IT, 7, dim, (8, 49)),
@@ -141,7 +150,7 @@ def main():
     # Drawn landscape, then turned to sit upright in the atlas.
     tile = render_lines(
         [
-            (f'{BRAND} 2026 Showcase', BOLD_IT, 13, ink, (8, 8)),
+            (f'{BRAND} {SUB} 2026 Showcase', BOLD_IT, 13, ink, (8, 8)),
             (SUB, BOLD_IT, 9, ink, (8, 23)),
             ('Making strangely specific computers', IT, 7, dim, (8, 40)),
             ('since 2026. This one was built to show', IT, 7, dim, (8, 49)),

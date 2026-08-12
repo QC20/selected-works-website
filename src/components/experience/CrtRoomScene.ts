@@ -32,8 +32,6 @@ export interface CrtRoomOptions {
     onReady?: () => void;
     onError?: (err: unknown) => void;
     onModeChange?: (mode: CrtMode) => void;
-    /** Free-look distance as 0..1, so a slider can follow a wheel or a pinch. */
-    onZoomChange?: (t: number) => void;
     /**
      * Escape pressed *inside* the monitor's iframe. Key events don't cross a
      * frame boundary, so without this the overlay's own listener is deaf the
@@ -51,8 +49,6 @@ export interface CrtRoomController {
     /** Go straight to the screen and hand the OS the pointer. */
     enterMonitor: () => void;
     setFreeLook: (on: boolean) => void;
-    /** Dolly in free look. 0 = as close as the desk allows, 1 = the whole room. */
-    setZoom: (t: number) => void;
     setMuted: (muted: boolean) => void;
     getMode: () => CrtMode;
     resize: () => void;
@@ -84,7 +80,7 @@ const POSE = {
  *
  * The near end is inside touching distance of the keyboard; the far end holds
  * the whole room, desk and floor and all, in one shot. Everything between is
- * reachable by dragging, pinching, or the zoom slider on the control panel.
+ * reachable with the wheel, or with a pinch.
  */
 const ZOOM = { min: 2200, max: 34000 };
 
@@ -449,36 +445,10 @@ export function createCrtRoomScene(
         controls.enabled = false;
         controls.addEventListener('change', () => {
             dirty = true;
-            reportZoom();
         });
         return controls;
     };
 
-    /** Current dolly distance as 0..1, for the panel's zoom slider. */
-    let lastReportedZoom = -1;
-    const reportZoom = () => {
-        if (!controls || !options.onZoomChange) return;
-        const d = camera.position.distanceTo(controls.target);
-        const t = THREE.MathUtils.clamp(
-            (d - ZOOM.min) / (ZOOM.max - ZOOM.min),
-            0,
-            1
-        );
-        if (Math.abs(t - lastReportedZoom) < 0.005) return;
-        lastReportedZoom = t;
-        options.onZoomChange(t);
-    };
-
-    /** Slider -> dolly. Moves the camera along its current view ray. */
-    const setZoom = (t: number) => {
-        const c = ensureControls();
-        if (mode !== 'orbit') return;
-        const want = ZOOM.min + THREE.MathUtils.clamp(t, 0, 1) * (ZOOM.max - ZOOM.min);
-        const dir = camera.position.clone().sub(c.target).normalize();
-        camera.position.copy(c.target).addScaledVector(dir, want);
-        c.update();
-        dirty = true;
-    };
 
     // ---- Click the screen to use it -------------------------------------------
     //
@@ -748,7 +718,6 @@ export function createCrtRoomScene(
                 c.target.copy(POSE.orbit.foc);
                 c.update();
                 setMode('orbit');
-                reportZoom();
             });
         } else {
             backToDesk();
@@ -832,7 +801,6 @@ export function createCrtRoomScene(
         resetView,
         enterMonitor,
         setFreeLook,
-        setZoom,
         setMuted,
         getMode: () => mode,
         resize,

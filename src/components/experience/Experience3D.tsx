@@ -39,13 +39,7 @@ const Experience3D: React.FC<Experience3DProps> = ({ open, onExit }) => {
     const [mode, setMode] = useState<CrtMode>('loading');
     // Ambience is part of the room: it comes up with it, not on request.
     const [muted, setMuted] = useState(false);
-    /** Free-look dolly, 0..1. Two-way: the slider drives it, so do wheel/pinch. */
-    const [zoom, setZoom] = useState(0.55);
-    /**
-     * Which radio stays lit during a camera move. `loading` is a real mode but
-     * not a real *view*, and letting the group go blank for a second every time
-     * you change view is exactly the flicker radio buttons exist to prevent.
-     */
+    /** The last real place the camera was — see `view` below. */
     const lastViewRef = useRef<'monitor' | 'desk' | 'orbit'>('desk');
 
     const flash = useAnimation();
@@ -131,7 +125,6 @@ const Experience3D: React.FC<Experience3DProps> = ({ open, onExit }) => {
             reducedMotion: reduced,
             cssContainer,
             onModeChange: (m) => setMode(m),
-            onZoomChange: (t) => setZoom(t),
             onScreenEscape: () => doExitRef.current(),
             onReady: () => {
                 // Room is loaded: dissolve the snow as the camera pulls out.
@@ -192,40 +185,37 @@ const Experience3D: React.FC<Experience3DProps> = ({ open, onExit }) => {
     if (!render) return null;
 
     /**
-     * The status line.
+     * The line above the buttons.
      *
-     * One sentence, in the imperative, describing what this view is *for* —
-     * plus the keyboard equivalent where there is one. It changes with the
-     * view because the answer to "what can I do here" changes with the view,
-     * which is the entire job of a status bar.
+     * One sentence, in the imperative, saying what *this* view is for — plus
+     * the keyboard equivalent where there is one, because the keyboard is the
+     * only thing the buttons cannot advertise for themselves.
      */
     const hint =
         mode === 'monitor'
             ? touch
-                ? 'The computer is yours. Choose Desk to step back.'
+                ? 'The computer is yours. Release Use Computer to step back.'
                 : 'The computer is yours.  Esc leaves the room.'
             : mode === 'orbit'
             ? touch
-                ? 'Drag to walk around it. Pinch, or use Zoom, to get closer.'
-                : 'Drag to walk around it.  Scroll or drag Zoom to get closer.'
+                ? 'Drag to walk around the desk. Pinch to get closer.'
+                : 'Drag to walk around the desk.  Scroll to get closer.  Enter re-centres.'
             : mode === 'desk'
             ? touch
-                ? 'Tap the screen to use the computer.'
+                ? 'Tap the screen to use the computer, or look around the room.'
                 : 'Click the screen to use the computer.  Enter re-centres.'
             : 'Please wait…';
 
-    /** Which view the radio group is showing as current. */
+    /**
+     * Which toggle stays held in during a camera move.
+     *
+     * `loading` is a real mode but not a real *place*, and letting the buttons
+     * pop out for a second in the middle of every transition would make the bar
+     * flicker exactly when the user is watching it to see what they just did.
+     */
     const view: 'monitor' | 'desk' | 'orbit' =
         mode === 'loading' ? lastViewRef.current : mode;
     lastViewRef.current = view;
-
-    const chooseView = (next: 'monitor' | 'desk' | 'orbit') => {
-        const c = controllerRef.current;
-        if (!c || next === view) return;
-        if (next === 'monitor') c.enterMonitor();
-        else if (next === 'desk') c.backToDesk();
-        else c.setFreeLook(true);
-    };
 
     return (
         <div style={styles.overlay}>
@@ -271,93 +261,73 @@ const Experience3D: React.FC<Experience3DProps> = ({ open, onExit }) => {
                 transition={{ duration: 0.8 }}
                 style={styles.uiLayer}
             >
-                <div className="crt3d-panel" role="group" aria-label="Room controls">
-                    <div className="crt3d-titlebar">
-                        <span className="crt3d-title">Step Outside</span>
-                        {/* The close box means what it has always meant: this
-                            goes away and you are back where you started. It is
-                            the one control that is never disabled. */}
+                <div className="crt3d-dock">
+                    <div className="crt3d-hint">{hint}</div>
+
+                    <div className="crt3d-bar">
+                        {/* Always first, always available: nobody gets stuck
+                            in 3D because they cannot find the way out. */}
                         <button
                             type="button"
-                            className="crt3d-close"
-                            title="Return to the desktop"
-                            aria-label="Return to the desktop"
+                            className="crt3d-btn"
                             onClick={(e) => {
                                 dropFocus(e);
                                 doExit();
                             }}
                         >
-                            ✕
+                            <span>&lsaquo; Back to Desktop</span>
+                        </button>
+
+                        {/* The two views, as latching toggles. Neither is held
+                            in at the desk — that is the resting state, and an
+                            empty group is the honest way to show it. */}
+                        <div className="crt3d-group">
+                            {VIEWS.map((v) => {
+                                const on = view === v.key;
+                                return (
+                                    <button
+                                        key={v.key}
+                                        type="button"
+                                        aria-pressed={on}
+                                        className={
+                                            'crt3d-btn' +
+                                            (on ? ' crt3d-btn--on' : '')
+                                        }
+                                        onClick={(e) => {
+                                            dropFocus(e);
+                                            // Pressing the one already held in
+                                            // releases it, back to the desk.
+                                            if (on) {
+                                                controllerRef.current?.backToDesk();
+                                            } else if (v.key === 'monitor') {
+                                                controllerRef.current?.enterMonitor();
+                                            } else {
+                                                controllerRef.current?.setFreeLook(
+                                                    true
+                                                );
+                                            }
+                                        }}
+                                    >
+                                        <span>{v.label}</span>
+                                    </button>
+                                );
+                            })}
+                        </div>
+
+                        <button
+                            type="button"
+                            aria-pressed={!muted}
+                            className={
+                                'crt3d-btn' + (!muted ? ' crt3d-btn--on' : '')
+                            }
+                            onClick={(e) => {
+                                dropFocus(e);
+                                setMuted((m) => !m);
+                            }}
+                        >
+                            <span>Room Sound</span>
                         </button>
                     </div>
-
-                    <div className="crt3d-body">
-                        <div className="crt3d-row">
-                            <span className="crt3d-row__label" id="crt3d-view-label">
-                                View:
-                            </span>
-                            <div
-                                className="crt3d-row__control"
-                                role="radiogroup"
-                                aria-labelledby="crt3d-view-label"
-                            >
-                                {VIEWS.map((v) => (
-                                    <label className="crt3d-radio" key={v.key}>
-                                        <input
-                                            type="radio"
-                                            name="crt3d-view"
-                                            checked={view === v.key}
-                                            onChange={() => chooseView(v.key)}
-                                        />
-                                        <span className="crt3d-radio__dot" />
-                                        <span>{v.label}</span>
-                                    </label>
-                                ))}
-                            </div>
-                        </div>
-
-                        <div className="crt3d-row">
-                            <span className="crt3d-row__label" id="crt3d-zoom-label">
-                                Zoom:
-                            </span>
-                            <div className="crt3d-row__control">
-                                {/* Only meaningful in Room, so it greys out
-                                    elsewhere rather than disappearing — a
-                                    control that vanishes teaches nothing. */}
-                                <input
-                                    className="crt3d-track"
-                                    type="range"
-                                    min={0}
-                                    max={1000}
-                                    value={Math.round(zoom * 1000)}
-                                    disabled={mode !== 'orbit'}
-                                    aria-labelledby="crt3d-zoom-label"
-                                    onChange={(e) => {
-                                        const t = Number(e.target.value) / 1000;
-                                        setZoom(t);
-                                        controllerRef.current?.setZoom(t);
-                                    }}
-                                />
-                            </div>
-                        </div>
-
-                        <div className="crt3d-row">
-                            <span className="crt3d-row__label" />
-                            <div className="crt3d-row__control">
-                                <label className="crt3d-check">
-                                    <input
-                                        type="checkbox"
-                                        checked={!muted}
-                                        onChange={() => setMuted((m) => !m)}
-                                    />
-                                    <span className="crt3d-check__box" />
-                                    <span>Room sound</span>
-                                </label>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div className="crt3d-status">{hint}</div>
                 </div>
             </motion.div>
         </div>
@@ -365,16 +335,16 @@ const Experience3D: React.FC<Experience3DProps> = ({ open, onExit }) => {
 };
 
 /**
- * The three places the camera can be, near to far.
+ * The two places you can send the camera, near and far, either side of the
+ * desk it rests at.
  *
- * Ordered as a journey rather than alphabetically: Screen is where you came
- * from, Room is as far out as it goes, and Desk is the resting point between
- * them. A radio group read left to right should describe a distance.
+ * The desk deliberately has no button. It is where you already are, it is what
+ * you get by releasing whichever toggle is held in, and a button for "stay
+ * here" is a button nobody has ever needed.
  */
-const VIEWS: { key: 'monitor' | 'desk' | 'orbit'; label: string }[] = [
-    { key: 'monitor', label: 'Screen' },
-    { key: 'desk', label: 'Desk' },
-    { key: 'orbit', label: 'Room' },
+const VIEWS: { key: 'monitor' | 'orbit'; label: string }[] = [
+    { key: 'monitor', label: 'Use Computer' },
+    { key: 'orbit', label: 'Look Around' },
 ];
 
 /** Coarse-pointer devices get hints that don't mention keys they don't have. */
