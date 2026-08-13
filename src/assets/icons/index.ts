@@ -99,6 +99,11 @@ import programsFolderIcon from './programsFolderIcon.png';
 // of this desktop follows.
 import msnChatIcon from './msnChatIcon.png';
 import msnNudgeIcon from './msnNudgeIcon.png';
+// My Computer's Favorites and Control Panel folders, converted from the
+// Windows 95/98 icon set in `public/WIN95-OS_-_Style-Logos` like the Utility
+// folder's icons.
+import favoritesFolderIcon from './favoritesFolderIcon.png';
+import controlPanelFolderIcon from './controlPanelFolderIcon.png';
 
 const getIconByName = (
     iconName: IconName
@@ -188,6 +193,8 @@ const icons = {
     programsFolderIcon: programsFolderIcon,
     msnChatIcon: msnChatIcon,
     msnNudgeIcon: msnNudgeIcon,
+    favoritesFolderIcon: favoritesFolderIcon,
+    controlPanelFolderIcon: controlPanelFolderIcon,
 };
 
 

@@ -7,6 +7,7 @@ import { IconName } from '../../assets/icons';
 import pictures from '../os/pictures';
 import { PROGRAMS_CONTENTS } from './ProgramsFolder';
 import { GAMES } from './games';
+import { IE_FAVORITES, FAVORITE_ICONS } from '../os/websites';
 import {
     NOTES_DIR,
     PAINTINGS_DIR,
@@ -39,8 +40,10 @@ import {
  *   │                  → My Documents → Notes     (what Notepad saved)
  *   │                                 → Paintings (what Paint saved)
  *   │                  → Pictures     → 19 photos, shipped with the build
+ *   │                  → Favorites    → the sites Start > Projects/Resume open
  *   ├── Hard Disk (D:) → Utility      → Market Watch, Task Manager,
  *   │                                   Patch Notes, Reset Storage
+ *   │                  → Control Panel → Display, System, Add/Remove Programs, Run
  *   └── CD-ROM (empty)
  *
  * Notes and Paintings are the only folders whose contents aren't known up
@@ -62,7 +65,9 @@ type FolderId =
     | 'myDocuments'
     | 'notes'
     | 'paintings'
-    | 'utility';
+    | 'favorites'
+    | 'utility'
+    | 'controlPanel';
 
 interface FolderDef {
     id: FolderId;
@@ -82,8 +87,10 @@ const FOLDERS: FolderDef[] = [
     { id: 'notes', label: 'Notes', icon: 'folderIcon', parent: 'myDocuments', depth: 3 },
     { id: 'paintings', label: 'Paintings', icon: 'folderIcon', parent: 'myDocuments', depth: 3 },
     { id: 'pictures', label: 'Pictures', icon: 'folderIcon', parent: 'diskC', depth: 2 },
+    { id: 'favorites', label: 'Favorites', icon: 'favoritesFolderIcon', parent: 'diskC', depth: 2 },
     { id: 'diskD', label: 'Hard Disk (D:)', icon: 'hardDriveIcon', parent: 'myComputer', depth: 1 },
     { id: 'utility', label: 'Utility', icon: 'folderIcon', parent: 'diskD', depth: 2 },
+    { id: 'controlPanel', label: 'Control Panel', icon: 'controlPanelFolderIcon', parent: 'diskD', depth: 2 },
     { id: 'cdRom', label: 'CD-ROM', icon: 'cdRomIcon', parent: 'myComputer', depth: 1 },
 ];
 
@@ -124,8 +131,12 @@ const CONTENTS: { [key in FolderId]: Entry[] } = {
         folderEntry('games', 31_000, 'File Folder'),
         folderEntry('myDocuments', 0, 'File Folder'),
         folderEntry('pictures', 4300, 'File Folder'),
+        folderEntry('favorites', 4, 'File Folder'),
     ],
-    diskD: [folderEntry('utility', 40, 'File Folder')],
+    diskD: [
+        folderEntry('utility', 40, 'File Folder'),
+        folderEntry('controlPanel', 60, 'File Folder'),
+    ],
     cdRom: [],
     // My Documents holds the two folders the programs write into; what's
     // inside each is read off the drive at open time (see `documents` below).
@@ -163,6 +174,36 @@ const CONTENTS: { [key in FolderId]: Entry[] } = {
         type: 'JPEG Image',
         picture: { name: p.name, full: p.full, size: p.size },
     })),
+    // The same list the browser's own Favorites drop-down offers (see
+    // WebFrame's address bar), plus the two sites that leave the frame
+    // instead of opening in it. One list in websites.ts, so a site added
+    // there turns up here too rather than needing to be listed twice.
+    favorites: [
+        ...IE_FAVORITES.map((site) => ({
+            key: site.key,
+            label: site.label,
+            icon: FAVORITE_ICONS[site.key] || 'ieIcon',
+            size: 1,
+            type: 'Internet Shortcut',
+            launch: site.key,
+        })),
+        {
+            key: 'github',
+            label: 'GitHub',
+            icon: 'githubIcon',
+            size: 1,
+            type: 'Internet Shortcut',
+            launch: 'github',
+        },
+        {
+            key: 'linkedin',
+            label: 'LinkedIn',
+            icon: 'linkedinIcon',
+            size: 1,
+            type: 'Internet Shortcut',
+            launch: 'linkedin',
+        },
+    ],
     // The four utilities, matching the set in Yute's Utility folder.
     utility: [
         {
@@ -196,6 +237,45 @@ const CONTENTS: { [key in FolderId]: Entry[] } = {
             size: 20,
             type: 'Application',
             launch: 'resetStorage',
+        },
+    ],
+    // The applets a real Windows 95 Control Panel held, as far as this
+    // desktop has equivalents for them — reached today only from the Start
+    // menu or a right-click, which a drive full of nothing but "Utility"
+    // never explained. "Add/Remove Programs" is this machine's Store under
+    // its official Windows name.
+    controlPanel: [
+        {
+            key: 'settings',
+            label: 'Display',
+            icon: 'settingsIcon',
+            size: 8,
+            type: 'Application',
+            launch: 'settings',
+        },
+        {
+            key: 'systemProperties',
+            label: 'System',
+            icon: 'systemIcon',
+            size: 12,
+            type: 'Application',
+            launch: 'systemProperties',
+        },
+        {
+            key: 'store',
+            label: 'Add/Remove Programs',
+            icon: 'storeIcon',
+            size: 40,
+            type: 'Application',
+            launch: 'store',
+        },
+        {
+            key: 'run',
+            label: 'Run',
+            icon: 'runIcon',
+            size: 4,
+            type: 'Application',
+            launch: 'run',
         },
     ],
 };
@@ -903,7 +983,14 @@ const styles: StyleSheetCSS = {
         background: Colors.white,
         border: `1px solid ${Colors.black}`,
         zIndex: 40,
-        maxHeight: 200,
+        // Tall enough to hold every row in FOLDERS without scrolling — it was
+        // capped at 200px, which fit the original 11 rows only by chance and
+        // clipped straight through the middle of the tree the moment a couple
+        // more were added (Favorites, Control Panel), hiding whatever fell
+        // past the fold with no visual sign it was still there to scroll to.
+        // Still capped, not removed: a tree that grows enough to blow through
+        // 340px should scroll rather than run off the bottom of the window.
+        maxHeight: 340,
         overflowY: 'auto',
     },
     dropdownItem: {

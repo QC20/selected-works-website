@@ -3,7 +3,7 @@ import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader';
 import { DRACOLoader } from 'three/examples/jsm/loaders/DRACOLoader';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
 import { CSS3DObject, CSS3DRenderer } from 'three/examples/jsm/renderers/CSS3DRenderer';
-import { addPersonalTouches, PersonalTouches } from './roomProps';
+import { addPersonalTouches } from './roomProps';
 
 /**
  * CrtRoomScene
@@ -629,14 +629,7 @@ export function createCrtRoomScene(
     // The set-dressing that makes this Jonas's room — see roomProps.ts. Not
     // gated on `modelsDone`: it's independent geometry, sitting quietly behind
     // the loading snow like everything else until `onReady` fires.
-    const personalTouches: PersonalTouches = addPersonalTouches(
-        scene,
-        disposables,
-        () => {
-            dirty = true;
-        },
-        BASE
-    );
+    addPersonalTouches(scene, disposables);
 
     // ---- Dimmer (off-axis darkening), allocation-free -------------------------
     const screenNormal = new THREE.Vector3(0, 0, 1).applyEuler(SCREEN.rot);
@@ -688,12 +681,10 @@ export function createCrtRoomScene(
             camera.position.copy(deskPos);
             curFoc.copy(deskFoc);
             camera.lookAt(curFoc);
-            personalTouches.update(now);
             dirty = true;
         } else if (mode === 'orbit' && controls) {
             controls.update();
             curFoc.copy(controls.target);
-            personalTouches.update(now);
             dirty = true;
         }
 
