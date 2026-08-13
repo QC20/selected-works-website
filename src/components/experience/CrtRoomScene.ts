@@ -3,6 +3,7 @@ import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader';
 import { DRACOLoader } from 'three/examples/jsm/loaders/DRACOLoader';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
 import { CSS3DObject, CSS3DRenderer } from 'three/examples/jsm/renderers/CSS3DRenderer';
+import { addPersonalTouches, PersonalTouches } from './roomProps';
 
 /**
  * CrtRoomScene
@@ -245,11 +246,15 @@ export function createCrtRoomScene(
         scene.add(m);
     });
 
+    // Plain alpha, not additive: additive blending of *black* is a no-op (src
+    // is (0,0,0) regardless of alpha, so it never contributed anything and
+    // this dimmer has never actually dimmed anything). Ordinary transparency
+    // is what a darkening overlay needs.
     const dimmerMat = new THREE.MeshBasicMaterial({
         side: THREE.DoubleSide,
         color: 0x000000,
         transparent: true,
-        blending: THREE.AdditiveBlending,
+        depthWrite: false,
         opacity: 0,
     });
     const dimmer = new THREE.Mesh(new THREE.PlaneGeometry(SCREEN.w, SCREEN.h), dimmerMat);
@@ -493,16 +498,30 @@ export function createCrtRoomScene(
     // on. A GainNode sits downstream of that restriction and is honoured
     // everywhere.
     //
-    // The eight files were peak-matched to a common, deliberately quiet
-    // ceiling before they were ever added to the repo (attenuation only —
-    // the quietest of the eight set the ceiling, so nothing was boosted past
-    // its own original level). Everything from here on is fades and muting:
-    // this only ever turns them down further, never back up past that.
-    const TRACK_COUNT = 8;
-    const track = 1 + Math.floor(Math.random() * TRACK_COUNT);
-    const audio = new Audio(
-        `${PUBLIC}/audio/step-outside/Office_Background_Sounds_${track}.mp3`
-    );
+    // The eight office recordings were peak-matched to a common, deliberately
+    // quiet ceiling before they were ever added to the repo (attenuation only
+    // — the quietest of the eight set the ceiling, so nothing was boosted
+    // past its own original level). Everything from here on is fades and
+    // muting: this only ever turns them down further, never back up past that.
+    //
+    // A ninth track joins the rotation: a 100-second excerpt of one of his own
+    // DJ sets (`Ambient_DJ_Excerpt.mp3` — see the showcase's Music project for
+    // the full recordings), picked from deep inside a continuous mix rather
+    // than off the top, so the loop's own crossfade lands on a steady groove
+    // instead of a track change. Cut to the same peak-and-mean range as the
+    // eight it sits alongside — quieter, if anything, since rhythmic music
+    // draws the ear in a way that room tone doesn't at the same loudness — and
+    // it is one pick in nine, so on any given visit the room is still nine
+    // times out of ten just an office.
+    const TRACKS = [
+        ...Array.from(
+            { length: 8 },
+            (_, i) => `Office_Background_Sounds_${i + 1}.mp3`
+        ),
+        'Ambient_DJ_Excerpt.mp3',
+    ];
+    const track = TRACKS[Math.floor(Math.random() * TRACKS.length)];
+    const audio = new Audio(`${PUBLIC}/audio/step-outside/${track}`);
     audio.preload = 'auto';
 
     let audioCtx: AudioContext | null = null;
@@ -607,6 +626,18 @@ export function createCrtRoomScene(
     // recent user gesture we'll ever have, so this is the best shot at playing.
     setMuted(false);
 
+    // The set-dressing that makes this Jonas's room — see roomProps.ts. Not
+    // gated on `modelsDone`: it's independent geometry, sitting quietly behind
+    // the loading snow like everything else until `onReady` fires.
+    const personalTouches: PersonalTouches = addPersonalTouches(
+        scene,
+        disposables,
+        () => {
+            dirty = true;
+        },
+        BASE
+    );
+
     // ---- Dimmer (off-axis darkening), allocation-free -------------------------
     const screenNormal = new THREE.Vector3(0, 0, 1).applyEuler(SCREEN.rot);
     const tmpView = new THREE.Vector3();
@@ -657,10 +688,12 @@ export function createCrtRoomScene(
             camera.position.copy(deskPos);
             curFoc.copy(deskFoc);
             camera.lookAt(curFoc);
+            personalTouches.update(now);
             dirty = true;
         } else if (mode === 'orbit' && controls) {
             controls.update();
             curFoc.copy(controls.target);
+            personalTouches.update(now);
             dirty = true;
         }
 
