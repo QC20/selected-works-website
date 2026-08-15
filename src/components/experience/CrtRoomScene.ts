@@ -400,9 +400,25 @@ export function createCrtRoomScene(
     // than applied directly, which is what makes it feel like a held camera
     // instead of a cursor-follower.
     const pointer = { x: 0, y: 0 };
+    // Whether the pointer is currently over the screen — the cue for the
+    // hover-zoom below. A dedicated raycaster rather than reusing the click
+    // one two blocks down: this fires on every pointermove, the other only on
+    // pointerup, and there's no reason to make one wait for the other's turn.
+    const hoverRaycaster = new THREE.Raycaster();
+    const hoverNdc = new THREE.Vector2();
+    let hoveringScreen = false;
     const onPointerMove = (e: PointerEvent) => {
         pointer.x = (e.clientX / window.innerWidth) * 2 - 1;
         pointer.y = (e.clientY / window.innerHeight) * 2 - 1;
+
+        if (mode !== 'desk') {
+            hoveringScreen = false;
+            return;
+        }
+        hoverNdc.set(pointer.x, -pointer.y);
+        hoverRaycaster.setFromCamera(hoverNdc, camera);
+        hoveringScreen = hoverRaycaster.intersectObject(occluder, false).length > 0;
+        dirty = true;
     };
     window.addEventListener('pointermove', onPointerMove, { passive: true });
 
@@ -411,19 +427,49 @@ export function createCrtRoomScene(
     const deskTargetPos = new THREE.Vector3();
     const deskTargetFoc = new THREE.Vector3();
 
+    /**
+     * How far a hover pulls the resting view toward the monitor's own
+     * framing, and how quickly that pull eases in and back out.
+     *
+     * This is the "leans in when you look at it" feel Henry's original has —
+     * a dolly toward the screen on hover, short of actually committing the
+     * way a click does. 0.4 stops well short of the monitor pose itself,
+     * so there's still real distance left for a click's own tween to cover,
+     * and still unmistakably a *response* rather than a rounding error.
+     */
+    const HOVER = { amount: 0.4, ease: 0.05 };
+    let hoverLevel = 0;
+
     const updateDeskPose = (t: number) => {
         const base = poseFor('desk');
         const sway = reduced ? 0 : 1;
+
+        hoverLevel += ((hoveringScreen ? 1 : 0) - hoverLevel) * HOVER.ease;
+        const zoom = hoverLevel * HOVER.amount;
+        // Blended toward the monitor's own pose rather than just pushed along
+        // desk's own z-axis: the monitor pose already knows how to frame the
+        // screen at any aspect ratio (see `framedZ`), so leaning into it here
+        // means the hover zoom is correctly framed too, on a phone same as a
+        // widescreen monitor, without having to duplicate that math.
+        const monitor = poseFor('monitor');
+        const wantPos = base.pos.clone().lerp(monitor.pos, zoom);
+        const wantFoc = base.foc.clone().lerp(monitor.foc, zoom);
+
+        // Parallax fades out over the same range: once the view is most of
+        // the way to looking straight at the screen, there's nothing left to
+        // parallax toward, and letting it keep tugging at the frame would
+        // fight the hover instead of leading into it.
+        const drift = 1 - zoom;
         deskTargetPos.set(
-            base.pos.x + pointer.x * PARALLAX.pos + Math.sin(t * 0.00021) * 45 * sway,
-            base.pos.y - pointer.y * PARALLAX.pos * 0.45 +
-                Math.sin(t * 0.00035) * 60 * sway,
-            base.pos.z
+            wantPos.x + pointer.x * PARALLAX.pos * drift + Math.sin(t * 0.00021) * 45 * sway * drift,
+            wantPos.y - pointer.y * PARALLAX.pos * 0.45 * drift +
+                Math.sin(t * 0.00035) * 60 * sway * drift,
+            wantPos.z
         );
         deskTargetFoc.set(
-            base.foc.x + pointer.x * PARALLAX.foc,
-            base.foc.y - pointer.y * PARALLAX.foc * 0.5,
-            base.foc.z
+            wantFoc.x + pointer.x * PARALLAX.foc * drift,
+            wantFoc.y - pointer.y * PARALLAX.foc * 0.5 * drift,
+            wantFoc.z
         );
         deskPos.lerp(deskTargetPos, PARALLAX.ease);
         deskFoc.lerp(deskTargetFoc, PARALLAX.ease);

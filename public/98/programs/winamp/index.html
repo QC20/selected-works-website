@@ -116,9 +116,24 @@
 				} catch (e) { /* not framed */ }
 			});
 
+			// The desktop hands down the real DJ sets once this page says it's
+			// ready for them, rather than baking them into `initialTracks`
+			// above: those durations and URLs are webpack-hashed React assets
+			// only the parent page knows how to resolve, and the llama intro
+			// still gets to play the instant Webamp itself is up rather than
+			// waiting on a postMessage round-trip first.
+			window.addEventListener("message", function (e) {
+				if (e.data && e.data.type === "winamp:set-playlist" && Array.isArray(e.data.tracks)) {
+					webamp.setTracksToPlay(e.data.tracks);
+				}
+			});
+
 			webamp.renderWhenReady(container).then(function () {
 				var loading = document.getElementById("loading");
 				if (loading) loading.remove();
+				try {
+					window.parent.postMessage({ type: "winamp:ready" }, "*");
+				} catch (e) { /* not framed */ }
 			});
 		</script>
 	</body>

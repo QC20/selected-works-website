@@ -499,6 +499,12 @@ WIN98_PROGRAMS.forEach((program) => {
  * same window — from the Start menu, from a folder, or by typing its name into
  * Run. Not being on the desktop is a statement about the desktop, not about the
  * program.
+ *
+ * DESKTOP_ORDER itself is longer than these two columns: everything past
+ * Notes is a Store-only extra (`installedApps.ts`, `defaultInstalled: false`)
+ * — listed here so it's *eligible* for an icon, filtered out by
+ * `visibleShortcuts` below until a visitor actually installs it, and then
+ * taking the next open slot in this same column-first order.
  */
 const DESKTOP_ORDER: string[] = [
     'showcase',
@@ -516,6 +522,24 @@ const DESKTOP_ORDER: string[] = [
     'guestbook',
     'paint',
     'notepad',
+    // Everything from here down starts uninstalled (see `installedApps.ts`,
+    // `defaultInstalled: false`) — on the machine and fully working, but with
+    // no desktop icon until the Store adds one. Being listed here is only
+    // what makes a key *eligible* to appear; `visibleShortcuts` in this file
+    // still filters every one of these out by default.
+    'trail',
+    'scrabble',
+    'minesweeper',
+    'snake',
+    'tetris',
+    'solitaire',
+    'jonordle',
+    'winamp',
+    'soundRecorder',
+    'pipes',
+    'flowerBox',
+    'calculator',
+    'msDos',
 ];
 
 /**
@@ -1613,6 +1637,8 @@ const Desktop: React.FC<DesktopProps> = (props) => {
                     IS_EMBEDDED_IN_CRT
                 }
                 openApp={openApp}
+                showcaseOpen={!!windows.showcase && !windows.showcase.minimized}
+                onMinimizeShowcase={() => minimizeWindow('showcase')}
             />
 
             {contextMenu && (

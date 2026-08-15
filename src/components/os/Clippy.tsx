@@ -4,6 +4,7 @@ import { TASKBAR_HEIGHT } from './metrics';
 import { playChime, playClick } from './sounds';
 import { between, patiently, useIdleTrigger } from './idle';
 import { useSaveablePrograms } from './saveablePrograms';
+import { useShowcaseVisited } from './showcaseVisited';
 
 import clippy1 from '../../assets/clippy/clippy1.gif';
 import clippy2 from '../../assets/clippy/clippy2.gif';
@@ -27,6 +28,15 @@ import clippy7 from '../../assets/clippy/clippy7.gif';
  *  - Dismissing him with the X is permanent (it's remembered), and the Start
  *    menu can bring him back. An assistant you cannot get rid of is a bug.
  *
+ * While My Showcase is open and not minimized, he runs on a separate, capped
+ * pool instead of the ordinary one below (see `SHOWCASE_TIER1`/`TIER2_TOPICS`/
+ * `SHOWCASE_TIER3` and `SHOWCASE_EVENT_CAP`): a small nudge about the desktop
+ * underneath, then something personal to whatever hasn't been opened yet, then
+ * the games/explore-the-desktop invitation — three appearances per visit to
+ * that window, not per session. Close it and he's back on the ordinary pool,
+ * which now also carries the same discoverability job (GitHub, the tray, the
+ * Store's installable extras) for whenever My Showcase isn't open at all.
+ *
  * The animations come from Yute's Windows95 Portfolio — see ATTRIBUTIONS.md.
  */
 
@@ -43,6 +53,18 @@ interface Line {
     showcase?: boolean;
     /** The button saves the open program's file rather than navigating. */
     save?: boolean;
+    /**
+     * Opens any app by its APPLICATIONS key — GitHub, the Store, Doom,
+     * Market Watch — rather than a showcase page. Goes through the same
+     * `openApp` the desktop itself uses, so it opens in front of whatever's
+     * already up (My Showcase included) without disturbing it.
+     */
+    openAppKey?: string;
+    /**
+     * The button also minimizes My Showcase, for the one tip whose whole
+     * point is clearing it out of the way to reveal the desktop underneath.
+     */
+    minimizeShowcase?: boolean;
 }
 
 /**
@@ -139,8 +161,10 @@ const LINES: Line[] = [
         animation: clippy4,
     },
     {
-        text: 'Removed an icon by accident? The Store puts every program back.',
+        text: 'Removed an icon by accident? The Store puts every program back — and it has things that have never had a desktop icon at all.',
         animation: clippy5,
+        action: 'Open the Store',
+        openAppKey: 'store',
     },
     {
         text: 'Stop typing for a few minutes and the screen saver starts. Display Properties decides which one.',
@@ -161,10 +185,156 @@ const LINES: Line[] = [
     {
         text: 'The MSN window is a real message board. Say something and it stays there for the next visitor.',
         animation: clippy7,
+        action: 'Open MSN Messenger',
+        openAppKey: 'guestbook',
+    },
+    {
+        text: 'That GitHub icon is not a screenshot. It is pulling his actual repositories, live, right now.',
+        animation: clippy4,
+        action: 'Take a look',
+        openAppKey: 'github',
+    },
+    {
+        text: 'The little icons in the bottom-right corner are not decoration — weather, stocks, even your own IP address, all real.',
+        animation: clippy3,
+        action: 'Try Market Watch',
+        openAppKey: 'stocks',
+    },
+    {
+        text: 'Haven’t tried the games yet? Doom is the actual 1993 release, running in the browser.',
+        animation: clippy5,
+        action: 'Play Doom',
+        openAppKey: 'doom',
+    },
+    {
+        text: 'Hard Disk (C:) has a My Paintings folder — one of his real oil paintings, photographed and kept there.',
+        animation: clippy2,
+        action: 'Open My Computer',
+        openAppKey: 'myComputer',
     },
     {
         text: 'Jonas built all of this. If it made you smile, that was the entire point.',
         animation: clippy2,
+    },
+];
+
+// --- Showcase-open tips --------------------------------------------------
+//
+// A different pool entirely, used only while My Showcase is open and not
+// minimized (see `showcaseOpen` below) — capped at three appearances per
+// visit to that window, one from each of these in order, so a visitor who
+// leaves it open all session is not talked at indefinitely. Closing and
+// reopening My Showcase resets the count.
+
+/**
+ * First: small, low-commitment nudges about the desktop this window is
+ * sitting on top of. Many variants so a visitor who opens and closes My
+ * Showcase a few times in one session does not hear the same one twice in a
+ * row.
+ */
+const SHOWCASE_TIER1: Line[] = [
+    {
+        text: 'Quick thing: this whole page is a real, working Windows 95 desktop underneath My Showcase, not a picture of one. Try double-clicking something back there sometime.',
+        animation: clippy1,
+    },
+    {
+        text: 'The little row of icons in the bottom-right corner is a real system tray — weather, stock prices, even your own IP address, all genuinely live.',
+        animation: clippy3,
+        action: 'Show me one',
+        openAppKey: 'stocks',
+    },
+    {
+        text: 'My Computer, behind this window, has real folders in it — Pictures, My Paintings, a Favorites folder with all his other projects.',
+        animation: clippy2,
+        action: 'Open My Computer',
+        openAppKey: 'myComputer',
+    },
+    {
+        text: 'The GitHub icon on the desktop is not a screenshot — it is live, reading his actual repositories right now.',
+        animation: clippy4,
+        action: 'Open GitHub',
+        openAppKey: 'github',
+    },
+    {
+        text: 'Everything on this desktop drags, resizes and right-clicks like the real thing. My Showcase is just one window among many.',
+        animation: clippy6,
+    },
+];
+
+/**
+ * Second: personalized. `buildTier2Line` below fills this in dynamically
+ * from whichever showcase pages haven't been opened yet, mixing the
+ * personal (About, Art, Music) with the professional (Experience, Software)
+ * rather than only ever pointing at one or the other.
+ */
+interface Tier2Topic {
+    route: string;
+    text: string;
+    action: string;
+    animation: string;
+}
+const TIER2_TOPICS: Tier2Topic[] = [
+    {
+        route: '/about',
+        text: "You haven't opened About yet — it's where he explains why any of this looks like 1995.",
+        action: 'Meet Jonas',
+        animation: clippy1,
+    },
+    {
+        route: '/experience',
+        text: "The Experience page hasn't been opened yet — his research, papers and practitioner workshops live there.",
+        action: 'Show me the research',
+        animation: clippy6,
+    },
+    {
+        route: '/projects/software',
+        text: "Software is still unopened — there's an eye-tracking study on twelve real participants in there.",
+        action: 'Show me Software',
+        animation: clippy3,
+    },
+    {
+        route: '/projects/art',
+        text: "You haven't seen Art yet — a game designed for blind players, and a Tetris that runs on a microwave display.",
+        action: 'Show me Art',
+        animation: clippy4,
+    },
+    {
+        route: '/projects/music',
+        text: "Music is still unopened — his own paintings and five years of DJ sets with a Copenhagen collective.",
+        action: 'Show me Music',
+        animation: clippy7,
+    },
+    {
+        route: '/contact',
+        text: "There's a Contact page, if anything in here makes you want to actually reach him.",
+        action: 'Show me Contact',
+        animation: clippy2,
+    },
+];
+/** Once every page has been seen — the congratulatory fallback. */
+const TIER2_ALL_SEEN: Line = {
+    text: "You've actually opened every page in My Showcase. That is more than most visitors manage — thank you for that.",
+    animation: clippy2,
+};
+
+/**
+ * Third: the games, or an invitation to look past My Showcase entirely. Two
+ * moods rather than one fixed line, and the second carries the "acknowledge
+ * and clear the way" button — it minimizes My Showcase itself, so saying
+ * yes actually reveals the desktop rather than just promising to.
+ */
+const SHOWCASE_TIER3: Line[] = [
+    {
+        text: "If you'd rather play than read: Doom is on the desktop, the real 1993 release. Pinball, Solitaire and a Store full of more are all back there too.",
+        animation: clippy5,
+        action: 'Play Doom',
+        openAppKey: 'doom',
+    },
+    {
+        text: 'My Showcase is the point of this machine, but there is a whole desktop behind it — a 3D room you can step into, a working Winamp, games. Want a look?',
+        animation: clippy6,
+        action: 'Show me the desktop',
+        minimizeShowcase: true,
     },
 ];
 
@@ -219,16 +389,27 @@ export function useClippyEnabled(): boolean {
  * runs while the visitor is still, and any input resets it. Nothing he says is
  * urgent enough to interrupt someone mid-click.
  *
- *   FIRST   the opening tip, drawn from the top of the range — a visitor who
- *           has just arrived is reading, and reading is not idling.
+ *   FIRST   the opening tip: 10–15 seconds, so a visitor who has just
+ *           arrived gets a real look at the site first before he shows up.
  *   LATER   every tip after that.
  *   COOLDOWN a floor between tips, so a slow reader is not talked at every
  *           twenty seconds just for sitting still.
  */
-const FIRST_IDLE = [12_000, 20_000] as const;
+const FIRST_IDLE = [10_000, 15_000] as const;
 const LATER_IDLE = [10_000, 20_000] as const;
 const COOLDOWN = 70_000;
 const VISIBLE_FOR = 17000;
+
+/**
+ * How many times he'll speak up while My Showcase is open and not minimized
+ * before going quiet until it's closed and reopened — see `showcaseOpen`
+ * below. One tier per appearance, in order: a small nudge about the desktop,
+ * then something personalized to what hasn't been opened yet, then the
+ * games/explore-the-desktop invitation. Any more than that while someone is
+ * genuinely reading My Showcase stops being helpful and starts being the
+ * thing everyone hated about the original.
+ */
+const SHOWCASE_EVENT_CAP = 3;
 
 /**
  * How long after you stop typing or drawing he offers to save it. The registry
@@ -247,9 +428,22 @@ export interface ClippyProps {
     suspended?: boolean;
     /** Opens a desktop app by its APPLICATIONS key. */
     openApp?: (key: string) => void;
+    /**
+     * True while My Showcase is open and not minimized — switches him onto
+     * the capped, tiered showcase-open pool below instead of the ordinary
+     * alternating one.
+     */
+    showcaseOpen?: boolean;
+    /** Minimizes My Showcase — the showcase-tier-3 "show me the desktop" button. */
+    onMinimizeShowcase?: () => void;
 }
 
-const Clippy: React.FC<ClippyProps> = ({ suspended = false, openApp }) => {
+const Clippy: React.FC<ClippyProps> = ({
+    suspended = false,
+    openApp,
+    showcaseOpen = false,
+    onMinimizeShowcase,
+}) => {
     const enabled = useClippyEnabled();
     const [line, setLine] = useState<Line | null>(null);
     // Which lines he has already used, so he works through them rather than
@@ -263,6 +457,24 @@ const Clippy: React.FC<ClippyProps> = ({ suspended = false, openApp }) => {
     // The Paint or Notepad window currently holding unsaved work, if any.
     const saveable = useSaveablePrograms();
     const saveOffers = useRef(0);
+
+    // How many showcase-open tiers have fired since My Showcase was last
+    // opened (see SHOWCASE_EVENT_CAP). A ref, not state: it only needs to be
+    // read at the moment he'd otherwise speak, not to trigger a render of
+    // its own — `show()`'s own setLine already causes the re-render that
+    // matters.
+    const showcaseEventCount = useRef(0);
+    const wasShowcaseOpen = useRef(showcaseOpen);
+    const visitedShowcase = useShowcaseVisited();
+
+    useEffect(() => {
+        // Closed (or never opened) -> open is a fresh visit to the window,
+        // so it gets its own three tiers again.
+        if (showcaseOpen && !wasShowcaseOpen.current) {
+            showcaseEventCount.current = 0;
+        }
+        wasShowcaseOpen.current = showcaseOpen;
+    }, [showcaseOpen]);
 
     const clearTimers = () => {
         timers.current.forEach(window.clearTimeout);
@@ -309,6 +521,50 @@ const Clippy: React.FC<ClippyProps> = ({ suspended = false, openApp }) => {
         saidCount.current += 1;
     }, [pickNext, show]);
 
+    /**
+     * One tier per call, in order — tier 1 the first time My Showcase is
+     * open when he speaks, tier 2 the second, tier 3 (and every call after)
+     * the third. `sayNext` below is what actually gates this behind
+     * `SHOWCASE_EVENT_CAP` for *unprompted* appearances; called directly
+     * (from "Tell me more") it always has something to say, since a visitor
+     * asking for more is not the interruption the cap exists to prevent.
+     */
+    const sayShowcaseTier = useCallback(() => {
+        const tier = showcaseEventCount.current;
+        showcaseEventCount.current += 1;
+        if (tier === 0) {
+            const pool = SHOWCASE_TIER1;
+            show(pool[Math.floor(Math.random() * pool.length)]);
+            return;
+        }
+        if (tier === 1) {
+            const unvisited = TIER2_TOPICS.filter(
+                (t) => !visitedShowcase.has(t.route)
+            );
+            if (!unvisited.length) {
+                show(TIER2_ALL_SEEN);
+                return;
+            }
+            const topic =
+                unvisited[Math.floor(Math.random() * unvisited.length)];
+            show({
+                text: topic.text,
+                animation: topic.animation,
+                route: topic.route,
+                action: topic.action,
+            });
+            return;
+        }
+        const pool = SHOWCASE_TIER3;
+        show(pool[Math.floor(Math.random() * pool.length)]);
+    }, [show, visitedShowcase]);
+
+    /** What "Tell me more" (and the idle trigger) actually calls. */
+    const sayNext = useCallback(() => {
+        if (showcaseOpen) sayShowcaseTier();
+        else say();
+    }, [showcaseOpen, sayShowcaseTier, say]);
+
     // The next idle window he is waiting for. Re-drawn after every tip so no two
     // visits — and no two tips — have the same rhythm.
     const [waitFor, setWaitFor] = useState<number | null>(() =>
@@ -324,6 +580,12 @@ const Clippy: React.FC<ClippyProps> = ({ suspended = false, openApp }) => {
         }
     }, [enabled, suspended]);
 
+    // Capped out for this visit to My Showcase: unprompted appearances stop,
+    // but re-opening the window (or just closing it, which switches him back
+    // onto the ordinary pool) starts the count over. See SHOWCASE_EVENT_CAP.
+    const showcaseCapped =
+        showcaseOpen && showcaseEventCount.current >= SHOWCASE_EVENT_CAP;
+
     useIdleTrigger(
         waitFor,
         () => {
@@ -333,11 +595,11 @@ const Clippy: React.FC<ClippyProps> = ({ suspended = false, openApp }) => {
                 setWaitFor(between(LATER_IDLE[0], LATER_IDLE[1]));
                 return;
             }
-            say();
+            sayNext();
             notBefore.current = Date.now() + COOLDOWN;
             setWaitFor(between(LATER_IDLE[0], LATER_IDLE[1]));
         },
-        enabled && !suspended && !line
+        enabled && !suspended && !line && !showcaseCapped
     );
 
     /**
@@ -405,7 +667,13 @@ const Clippy: React.FC<ClippyProps> = ({ suspended = false, openApp }) => {
                             onClick={() => {
                                 playClick();
                                 if (line.save) saveable?.requestSave();
-                                else if (line.route) goToShowcase(line.route);
+                                else if (line.minimizeShowcase) {
+                                    onMinimizeShowcase?.();
+                                } else if (line.openAppKey) {
+                                    openApp?.(line.openAppKey);
+                                } else if (line.route) {
+                                    goToShowcase(line.route);
+                                }
                                 setLine(null);
                             }}
                         >
@@ -416,7 +684,7 @@ const Clippy: React.FC<ClippyProps> = ({ suspended = false, openApp }) => {
                         style={styles.button}
                         onClick={() => {
                             playClick();
-                            say();
+                            sayNext();
                         }}
                     >
                         Tell me more
@@ -442,7 +710,7 @@ const Clippy: React.FC<ClippyProps> = ({ suspended = false, openApp }) => {
                 style={styles.clippy}
                 onClick={() => {
                     playClick();
-                    say();
+                    sayNext();
                 }}
                 title="Clippy"
             />

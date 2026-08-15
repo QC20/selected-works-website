@@ -1,8 +1,27 @@
-import React, { Suspense, lazy } from 'react';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import React, { Suspense, lazy, useEffect } from 'react';
+import {
+    BrowserRouter as Router,
+    Routes,
+    Route,
+    useLocation,
+} from 'react-router-dom';
 import Window from '../os/Window';
 import VerticalNavbar from '../showcase/VerticalNavbar';
 import useInitialWindowSize from '../../hooks/useInitialWindowSize';
+import { markShowcaseVisited } from '../os/showcaseVisited';
+
+/**
+ * Records every page actually visited, for Clippy's showcase-open tips (see
+ * `showcaseVisited.ts`). Rendered inside `<Router>` purely to reach
+ * `useLocation` — it has no UI of its own.
+ */
+const VisitTracker: React.FC = () => {
+    const location = useLocation();
+    useEffect(() => {
+        markShowcaseVisited(location.pathname);
+    }, [location.pathname]);
+    return null;
+};
 
 /**
  * One chunk per page rather than one for the whole showcase.
@@ -51,6 +70,7 @@ const ShowcaseExplorer: React.FC<ShowcaseExplorerProps> = (props) => {
             bottomLeftText={'© Copyright 2026 Jonas Kjeldmand Jensen'}
         >
             <Router>
+                <VisitTracker />
                 <div className="site-page">
                     <VerticalNavbar />
                     {/* Only shows up on the first visit to a given page this

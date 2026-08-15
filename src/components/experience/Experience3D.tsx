@@ -80,6 +80,19 @@ const Experience3D: React.FC<Experience3DProps> = ({ open, onExit }) => {
         return () => window.clearInterval(id);
     }, [render, snowFrames]);
 
+    // The dive-in snow used to hard-cut to full opacity the instant the room
+    // started loading and hold there until the assets happened to finish —
+    // fast on a good connection, but landing as a flash-bang rather than a
+    // transition. This choreographs it instead: a full 4 seconds either way,
+    // fading up and back down, so it reads the same whether the room takes
+    // half a second or three to actually load. `enterStartRef` is when the
+    // fade-in began; `onReady` (below) uses it to work out how much longer
+    // the snow still owes the hold before it's allowed to start fading out.
+    const ENTER_FADE_IN = reduced ? 0.4 : 0.9;
+    const ENTER_FADE_OUT = reduced ? 0.5 : 1.3;
+    const ENTER_TOTAL = reduced ? 1.6 : 4.0;
+    const enterStartRef = useRef(0);
+
     const doExit = useCallback(() => {
         if (closingRef.current || !controllerRef.current) return;
         closingRef.current = true;
@@ -117,9 +130,15 @@ const Experience3D: React.FC<Experience3DProps> = ({ open, onExit }) => {
         const cssContainer = cssRef.current;
         if (!canvas || !cssContainer) return;
 
-        // Snow fully covers from the first frame, hiding the DOM->WebGL swap and
-        // the load hitch behind it.
-        flash.set({ opacity: 1 });
+        // Snow fades up rather than cutting straight to full strength — see
+        // the ENTER_* constants above — hiding the DOM->WebGL swap and the
+        // load hitch behind it exactly as before, just gentler about it.
+        flash.set({ opacity: 0 });
+        flash.start({
+            opacity: 1,
+            transition: { duration: ENTER_FADE_IN, ease: 'easeInOut' },
+        });
+        enterStartRef.current = performance.now();
 
         const controller = createCrtRoomScene(canvas, {
             reducedMotion: reduced,
@@ -128,9 +147,22 @@ const Experience3D: React.FC<Experience3DProps> = ({ open, onExit }) => {
             onScreenEscape: () => doExitRef.current(),
             onReady: () => {
                 // Room is loaded: dissolve the snow as the camera pulls out.
+                // Held at full strength until the choreographed total has
+                // elapsed — on a fast connection that's most of it, so the
+                // transition reads the same length every time rather than
+                // however long the assets happened to take.
+                const elapsed = (performance.now() - enterStartRef.current) / 1000;
+                const holdRemaining = Math.max(
+                    0,
+                    ENTER_TOTAL - ENTER_FADE_OUT - elapsed
+                );
                 flash.start({
                     opacity: 0,
-                    transition: { duration: reduced ? 0.6 : 1.0, ease: 'easeInOut' },
+                    transition: {
+                        duration: ENTER_FADE_OUT,
+                        delay: holdRemaining,
+                        ease: 'easeInOut',
+                    },
                 });
                 controller.enterIntro(() => setArrived(true));
             },

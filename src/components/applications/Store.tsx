@@ -53,7 +53,9 @@ const Store: React.FC<StoreProps> = ({
     const selectedInstalled = selected ? isInstalled(selected.key) : false;
 
     const installedCount = apps.filter((a) => isInstalled(a.key)).length;
-    const anyRemoved = installedCount < apps.length;
+    // Only counts removals from the original, default-on set — an extra a
+    // visitor hasn't installed yet isn't something to "restore".
+    const anyRemoved = apps.some((a) => a.defaultInstalled && !isInstalled(a.key));
 
     const formatSize = (kb: number) =>
         kb >= 1000 ? `${(kb / 1000).toFixed(1)} MB` : `${kb} KB`;
@@ -167,8 +169,10 @@ const Store: React.FC<StoreProps> = ({
                 </div>
 
                 <p style={styles.note}>
-                    Removing a program only takes its icon off the desktop. It
-                    stays on the disk — Start &gt; Run still opens it by name.
+                    Removing a program only takes its icon off the desktop —
+                    it stays on the disk, and Start &gt; Run still opens it by
+                    name. Adding one puts a real icon on the desktop for the
+                    first time, wherever there's room for it next.
                 </p>
             </div>
         </Window>

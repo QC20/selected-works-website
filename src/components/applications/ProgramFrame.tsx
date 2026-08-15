@@ -9,6 +9,7 @@ import {
     setSaveableDirty,
     unregisterSaveable,
 } from '../os/saveablePrograms';
+import { DJ_SETS } from '../os/djSets';
 
 /**
  * The two programs whose files go into the shared gallery, and the folder each
@@ -176,6 +177,17 @@ const ProgramFrame: React.FC<ProgramFrameProps> = ({
             if (e.source !== frameRef.current?.contentWindow) return;
             if (e.data?.type === 'win98:close') onClose();
             if (e.data?.type === 'win98:minimize') onMinimize();
+
+            // Winamp says so once Webamp itself has finished mounting; the
+            // real DJ sets go down as a reply rather than living in its own
+            // static HTML, since only this side of the frame can resolve the
+            // webpack-hashed asset URLs they build to.
+            if (e.data?.type === 'winamp:ready' && program.key === 'winamp') {
+                frameRef.current?.contentWindow?.postMessage(
+                    { type: 'winamp:set-playlist', tracks: DJ_SETS },
+                    window.location.origin
+                );
+            }
 
             // Paint and Notepad announce a save (see gallery-bridge.js). The
             // file is already on the fake C: drive by now; this puts a copy in

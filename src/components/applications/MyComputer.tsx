@@ -5,6 +5,7 @@ import Colors from '../../constants/colors';
 import { Icon } from '../general';
 import { IconName } from '../../assets/icons';
 import pictures from '../os/pictures';
+import myPaintings from '../os/myPaintings';
 import { PROGRAMS_CONTENTS } from './ProgramsFolder';
 import { GAMES } from './games';
 import { IE_FAVORITES, FAVORITE_ICONS } from '../os/websites';
@@ -40,6 +41,7 @@ import {
  *   │                  → My Documents → Notes     (what Notepad saved)
  *   │                                 → Paintings (what Paint saved)
  *   │                  → Pictures     → 19 photos, shipped with the build
+ *   │                  → My Paintings → his own paintings, shipped with the build
  *   │                  → Favorites    → the sites Start > Projects/Resume open
  *   ├── Hard Disk (D:) → Utility      → Market Watch, Task Manager,
  *   │                                   Patch Notes, Reset Storage
@@ -62,6 +64,7 @@ type FolderId =
     | 'programs'
     | 'games'
     | 'pictures'
+    | 'myPaintings'
     | 'myDocuments'
     | 'notes'
     | 'paintings'
@@ -87,6 +90,7 @@ const FOLDERS: FolderDef[] = [
     { id: 'notes', label: 'Notes', icon: 'folderIcon', parent: 'myDocuments', depth: 3 },
     { id: 'paintings', label: 'Paintings', icon: 'folderIcon', parent: 'myDocuments', depth: 3 },
     { id: 'pictures', label: 'Pictures', icon: 'folderIcon', parent: 'diskC', depth: 2 },
+    { id: 'myPaintings', label: 'My Paintings', icon: 'folderIcon', parent: 'diskC', depth: 2 },
     { id: 'favorites', label: 'Favorites', icon: 'favoritesFolderIcon', parent: 'diskC', depth: 2 },
     { id: 'diskD', label: 'Hard Disk (D:)', icon: 'hardDriveIcon', parent: 'myComputer', depth: 1 },
     { id: 'utility', label: 'Utility', icon: 'folderIcon', parent: 'diskD', depth: 2 },
@@ -131,6 +135,7 @@ const CONTENTS: { [key in FolderId]: Entry[] } = {
         folderEntry('games', 31_000, 'File Folder'),
         folderEntry('myDocuments', 0, 'File Folder'),
         folderEntry('pictures', 4300, 'File Folder'),
+        folderEntry('myPaintings', 258, 'File Folder'),
         folderEntry('favorites', 4, 'File Folder'),
     ],
     diskD: [
@@ -167,6 +172,14 @@ const CONTENTS: { [key in FolderId]: Entry[] } = {
         launch: item.key,
     })),
     pictures: pictures.map((p) => ({
+        key: p.id,
+        label: p.name,
+        thumb: p.thumb,
+        size: p.size,
+        type: 'JPEG Image',
+        picture: { name: p.name, full: p.full, size: p.size },
+    })),
+    myPaintings: myPaintings.map((p) => ({
         key: p.id,
         label: p.name,
         thumb: p.thumb,
@@ -1026,8 +1039,8 @@ const styles: StyleSheetCSS = {
         // more were added (Favorites, Control Panel), hiding whatever fell
         // past the fold with no visual sign it was still there to scroll to.
         // Still capped, not removed: a tree that grows enough to blow through
-        // 340px should scroll rather than run off the bottom of the window.
-        maxHeight: 340,
+        // 360px should scroll rather than run off the bottom of the window.
+        maxHeight: 360,
         overflowY: 'auto',
     },
     dropdownItem: {
