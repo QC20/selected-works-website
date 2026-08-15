@@ -104,11 +104,6 @@ li {
     margin-bottom: 16px;
 }
 
-.blend {
-    mix-blend-mode: screen;
-    background-color: red;
-}
-
 :root {
     --button-highlight: #ffffff;
     --button-face: #747474;

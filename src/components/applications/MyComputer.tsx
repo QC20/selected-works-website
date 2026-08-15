@@ -187,6 +187,16 @@ const CONTENTS: { [key in FolderId]: Entry[] } = {
             type: 'Internet Shortcut',
             launch: site.key,
         })),
+        // Not in websites.ts: this one is its own standalone window rather
+        // than a page opened through the shared browser (see floatingSphere.tsx).
+        {
+            key: 'floating',
+            label: 'Interactive Attractor',
+            icon: 'floatingSphere',
+            size: 1,
+            type: 'Internet Shortcut',
+            launch: 'floating',
+        },
         {
             key: 'github',
             label: 'GitHub',
@@ -204,7 +214,8 @@ const CONTENTS: { [key in FolderId]: Entry[] } = {
             launch: 'linkedin',
         },
     ],
-    // The four utilities, matching the set in Yute's Utility folder.
+    // Yute's original four utilities, plus three more full windows onto tray
+    // applets that otherwise only lived as a popup off their tray icon.
     utility: [
         {
             key: 'stocks',
@@ -237,6 +248,32 @@ const CONTENTS: { [key in FolderId]: Entry[] } = {
             size: 20,
             type: 'Application',
             launch: 'resetStorage',
+        },
+        // Full windows for three more tray applets, so they're reachable from
+        // here too rather than only as a popup off the tray icon.
+        {
+            key: 'network',
+            label: 'Dial-Up Networking',
+            icon: 'dialupIcon',
+            size: 14,
+            type: 'Application',
+            launch: 'network',
+        },
+        {
+            key: 'powerMeter',
+            label: 'Power Meter',
+            icon: 'batteryIcon',
+            size: 12,
+            type: 'Application',
+            launch: 'powerMeter',
+        },
+        {
+            key: 'weatherStation',
+            label: 'Weather Station',
+            icon: 'weatherSunIcon',
+            size: 18,
+            type: 'Application',
+            launch: 'weatherStation',
         },
     ],
     // The applets a real Windows 95 Control Panel held, as far as this

@@ -32,6 +32,9 @@ import StockWatch, { StockRequest } from '../applications/StockWatch';
 import TaskManager from '../applications/TaskManager';
 import PatchNotes from '../applications/PatchNotes';
 import ResetStorage from '../applications/ResetStorage';
+import NetworkInfo from '../applications/NetworkInfo';
+import PowerMeter from '../applications/PowerMeter';
+import WeatherStation from '../applications/WeatherStation';
 import ProgramFrame from '../applications/ProgramFrame';
 import { WIN98_PROGRAMS, win98ProgramByKey } from '../applications/win98Programs';
 import { useTheme } from './theme';
@@ -353,14 +356,21 @@ const APPLICATIONS: {
     pinPortrait: {
         key: 'pinPortrait',
         name: 'Pin Portrait',
-        shortcutIcon: 'ieIcon',
+        shortcutIcon: 'cameraIcon',
         component: WebFrame,
     },
 
     emojiHeatmap: {
         key: 'emojiHeatmap',
         name: 'Emoji Heatmap',
-        shortcutIcon: 'ieIcon',
+        shortcutIcon: 'chartIcon',
+        component: WebFrame,
+    },
+
+    cellularAsciimata: {
+        key: 'cellularAsciimata',
+        name: 'Cellular ASCIImata',
+        shortcutIcon: 'consolePromptIcon',
         component: WebFrame,
     },
 
@@ -423,6 +433,29 @@ const APPLICATIONS: {
         name: 'Reset Storage',
         shortcutIcon: 'resetStorageIcon',
         component: ResetStorage,
+    },
+
+    // Full-window versions of three more tray applets — see Toolbar.tsx and
+    // TrayPanels.tsx for the popups they share their reading with.
+    network: {
+        key: 'network',
+        name: 'Dial-Up Networking',
+        shortcutIcon: 'dialupIcon',
+        component: NetworkInfo,
+    },
+
+    powerMeter: {
+        key: 'powerMeter',
+        name: 'Power Meter',
+        shortcutIcon: 'batteryIcon',
+        component: PowerMeter,
+    },
+
+    weatherStation: {
+        key: 'weatherStation',
+        name: 'Weather Station',
+        shortcutIcon: 'weatherSunIcon',
+        component: WeatherStation,
     },
 };
 

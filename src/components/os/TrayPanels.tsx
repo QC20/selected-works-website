@@ -7,6 +7,7 @@ import {
     batteryRemaining,
     useBattery,
 } from './battery';
+import { Connection, useConnection, usePublicIP } from './network';
 
 /**
  * The small panels behind the tray icons: battery, the connection, and the
@@ -89,45 +90,6 @@ export const BatteryPanel: React.FC<{ open: boolean; state: BatteryState }> = ({
  * Connection
  * ---------------------------------------------------------------------- */
 
-interface Connection {
-    online: boolean;
-    effectiveType: string | null;
-    downlink: number | null;
-}
-
-/** Online/offline plus whatever the browser will say about the link. */
-export function useConnection(): Connection {
-    const read = (): Connection => {
-        const nav = navigator as Navigator & {
-            connection?: { effectiveType?: string; downlink?: number };
-        };
-        return {
-            online: navigator.onLine,
-            effectiveType: nav.connection?.effectiveType || null,
-            downlink: nav.connection?.downlink ?? null,
-        };
-    };
-
-    const [connection, setConnection] = useState<Connection>(read);
-
-    useEffect(() => {
-        const update = () => setConnection(read());
-        window.addEventListener('online', update);
-        window.addEventListener('offline', update);
-        const nav = navigator as Navigator & {
-            connection?: EventTarget;
-        };
-        nav.connection?.addEventListener('change', update);
-        return () => {
-            window.removeEventListener('online', update);
-            window.removeEventListener('offline', update);
-            nav.connection?.removeEventListener('change', update);
-        };
-    }, []);
-
-    return connection;
-}
-
 /**
  * Dial-Up Networking's status box, which in 1995 told you your modem had
  * connected at 28,800 bits per second and how long you had been paying for it.
@@ -140,6 +102,9 @@ export const ConnectionPanel: React.FC<{
     /** Seconds since the desktop loaded — the session's "connected time". */
     connectedFor: number;
 }> = ({ open, connection, connectedFor }) => {
+    // Only looked up once the panel is actually opened — a visitor who never
+    // clicks the tray icon never triggers the request.
+    const { address, error: ipError } = usePublicIP(open && connection.online);
     if (!open) return null;
 
     const minutes = Math.floor(connectedFor / 60);
@@ -175,6 +140,10 @@ export const ConnectionPanel: React.FC<{
                         }
                     />
                     <Row label="Duration:" value={duration} />
+                    <Row
+                        label="IP Address:"
+                        value={address || (ipError ? '—' : 'Looking up…')}
+                    />
                     {timesFaster && (
                         <p style={styles.note}>
                             About {timesFaster.toLocaleString()}× a 28.8k modem,

@@ -11,9 +11,9 @@ import {
     BatteryPanel,
     CalendarPanel,
     ConnectionPanel,
-    useConnection,
 } from './TrayPanels';
 import { useBattery, batterySummary } from './battery';
+import { useConnection } from './network';
 import { playClick, playOpen, toggleMuted, useMuted } from './sounds';
 import { isClippyEnabled, toggleClippy, useClippyEnabled } from './Clippy';
 import { openExternal } from './openExternal';

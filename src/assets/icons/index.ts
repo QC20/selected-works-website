@@ -104,6 +104,11 @@ import msnNudgeIcon from './msnNudgeIcon.png';
 // folder's icons.
 import favoritesFolderIcon from './favoritesFolderIcon.png';
 import controlPanelFolderIcon from './controlPanelFolderIcon.png';
+// Favorites entries for the published side projects, so each one reads at a
+// glance instead of sharing the generic IE icon. Same conversion pipeline.
+import cameraIcon from './cameraIcon.png';
+import chartIcon from './chartIcon.png';
+import consolePromptIcon from './consolePromptIcon.png';
 
 const getIconByName = (
     iconName: IconName
@@ -195,6 +200,9 @@ const icons = {
     msnNudgeIcon: msnNudgeIcon,
     favoritesFolderIcon: favoritesFolderIcon,
     controlPanelFolderIcon: controlPanelFolderIcon,
+    cameraIcon: cameraIcon,
+    chartIcon: chartIcon,
+    consolePromptIcon: consolePromptIcon,
 };
 
 

@@ -107,6 +107,16 @@ export const WEB_SITES: WebSite[] = [
         width: 900,
         height: 650,
     },
+
+    // Also embedded inline in the Music showcase project — this is the same
+    // GitHub Pages build, just reachable as its own Favorites entry too.
+    {
+        key: 'cellularAsciimata',
+        label: 'Cellular ASCIImata',
+        url: 'https://qc20.github.io/Cellular-Asciimata/',
+        width: 800,
+        height: 600,
+    },
 ];
 
 export const siteByKey = (key: string): WebSite | undefined =>
@@ -145,8 +155,9 @@ export const resolveTypedAddress = (typed: string): string | null => {
 
 /** Icons used for the Favorites rows, keyed by site. */
 export const FAVORITE_ICONS: { [key: string]: IconName } = {
-    pinPortrait: 'ieIcon',
-    emojiHeatmap: 'ieIcon',
+    pinPortrait: 'cameraIcon',
+    emojiHeatmap: 'chartIcon',
     scroll: 'scrollIcon',
     selectedWebsites: 'selectedWebsitesIcon',
+    cellularAsciimata: 'consolePromptIcon',
 };

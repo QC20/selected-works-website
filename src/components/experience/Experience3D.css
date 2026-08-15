@@ -36,12 +36,11 @@
     transition: opacity 600ms ease;
 }
 
-/* Only slightly dialled back while you're reading the OS through the monitor —
-   the grain belongs to the *film*, and film doesn't stop when the actor sits
-   down at a computer. Enough of it survives to keep the two halves of the shot
-   looking like one image. */
+/* Dialled back further while you're reading the OS through the monitor — the
+   grain belongs to the *film* and shouldn't fight with legibility, but enough
+   of it survives to keep the two halves of the shot looking like one image. */
 .crt3d-grain--monitor {
-    opacity: 0.72;
+    opacity: 0.5;
 }
 
 /*
@@ -65,7 +64,7 @@
     background-repeat: repeat;
     /* Base opacity lives here, not only in the animation: if the animation ever
        fails to apply, the layer must still be faint rather than fully opaque. */
-    opacity: 0.075;
+    opacity: 0.11;
     will-change: transform, opacity;
     /* ~21fps. Real 24fps film grain sits right about here; faster than this and
        it stops reading as grain and starts reading as digital noise. */
@@ -78,7 +77,7 @@
    blizzard over the lens. The two layers differ in density and rhythm, which is
    all the difference the interference needs. */
 .crt3d-grain__noise--coarse {
-    opacity: 0.05;
+    opacity: 0.075;
     animation: crt3d-grain-drift-b 530ms steps(1, end) infinite;
 }
 
@@ -86,58 +85,58 @@
 @keyframes crt3d-grain-drift {
     0% {
         transform: translate3d(0, 0, 0);
-        opacity: 0.075;
+        opacity: 0.11;
     }
     12.5% {
         transform: translate3d(-13%, 9%, 0);
-        opacity: 0.06;
+        opacity: 0.09;
     }
     25% {
         transform: translate3d(11%, -16%, 0);
-        opacity: 0.085;
+        opacity: 0.125;
     }
     37.5% {
         transform: translate3d(-19%, -6%, 0);
-        opacity: 0.065;
+        opacity: 0.095;
     }
     50% {
         transform: translate3d(16%, 18%, 0);
-        opacity: 0.09;
+        opacity: 0.13;
     }
     62.5% {
         transform: translate3d(-8%, -21%, 0);
-        opacity: 0.07;
+        opacity: 0.1;
     }
     75% {
         transform: translate3d(21%, 5%, 0);
-        opacity: 0.08;
+        opacity: 0.115;
     }
     87.5% {
         transform: translate3d(-15%, 13%, 0);
-        opacity: 0.062;
+        opacity: 0.09;
     }
 }
 
 @keyframes crt3d-grain-drift-b {
     0% {
         transform: translate3d(0, 0, 0) scale(1.04);
-        opacity: 0.042;
+        opacity: 0.06;
     }
     20% {
         transform: translate3d(17%, -11%, 0) scale(1.04);
-        opacity: 0.03;
+        opacity: 0.045;
     }
     40% {
         transform: translate3d(-9%, 19%, 0) scale(1.04);
-        opacity: 0.05;
+        opacity: 0.075;
     }
     60% {
         transform: translate3d(14%, 8%, 0) scale(1.04);
-        opacity: 0.036;
+        opacity: 0.055;
     }
     80% {
         transform: translate3d(-18%, -14%, 0) scale(1.04);
-        opacity: 0.046;
+        opacity: 0.07;
     }
 }
 
