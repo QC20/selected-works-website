@@ -48,16 +48,42 @@ const Contact: React.FC<ContactProps> = (props) => {
     }
   }, [email, name, message]);
 
-  const handleSubmit = useCallback(() => {
-    if (isFormValid) {
+  const handleSubmit = useCallback(
+    async (e: React.FormEvent<HTMLFormElement>) => {
+      e.preventDefault();
+      if (isLoading) return;
+      if (!isFormValid) {
+        setFormMessage("Form unable to validate, please try again.");
+        setFormMessageColor(colors.red);
+        return;
+      }
       setIsLoading(true);
-      const form = document.getElementById("contactForm") as HTMLFormElement;
-      form.submit();
-    } else {
-      setFormMessage("Form unable to validate, please try again.");
-      setFormMessageColor(colors.red);
-    }
-  }, [isFormValid]);
+      try {
+        const res = await fetch("https://formspree.io/f/xbjeeeqo", {
+          method: "POST",
+          headers: { Accept: "application/json" },
+          body: new FormData(e.currentTarget),
+        });
+        if (res.ok) {
+          setFormMessage("Message sent — thanks, I'll get back to you soon!");
+          setFormMessageColor(colors.green);
+          setName("");
+          setEmail("");
+          setCompany("");
+          setMessage("");
+        } else {
+          setFormMessage("Something went wrong, please try again.");
+          setFormMessageColor(colors.red);
+        }
+      } catch {
+        setFormMessage("Something went wrong, please try again.");
+        setFormMessageColor(colors.red);
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [isFormValid, isLoading]
+  );
 
   useEffect(() => {
     if (formMessage.length > 0) {
@@ -92,7 +118,7 @@ const Contact: React.FC<ContactProps> = (props) => {
       <br />
       <p>
         Alternatively, feel free to send me an{" "}
-        <a href="mailto:email@example.com">email directly</a>.
+        <a href="mailto:jkj@di.ku.dk">email directly</a>.
       </p>
       <div className="text-block">
         <p>
@@ -101,11 +127,7 @@ const Contact: React.FC<ContactProps> = (props) => {
         </p>
 
         <div style={styles.form}>
-          <form
-            id="contactForm"
-            action="https://formspree.io/f/xbjeeeqo"
-            method="POST"
-          >
+          <form id="contactForm" onSubmit={handleSubmit}>
             <label>
               <p>
                 {!name && <span style={styles.star}>*</span>}
@@ -169,7 +191,6 @@ const Contact: React.FC<ContactProps> = (props) => {
                 style={styles.button}
                 type="submit"
                 disabled={!isFormValid || isLoading}
-                onMouseDown={handleSubmit}
               >
                 {!isLoading ? (
                   "Send Message"

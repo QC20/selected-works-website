@@ -76,7 +76,7 @@ const VerticalNavbar: React.FC<VerticalNavbarProps> = (props) => {
             projectsExpanded && styles.expandedLink
           )}
           to="projects"
-          text="PROJETS & SELECTED WORKS"
+          text="PROJECTS & SELECTED WORKS"
         />
         {projectsExpanded && (
           <div style={styles.insetLinks}>

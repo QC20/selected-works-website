@@ -38,6 +38,9 @@ const PatchNotes: React.FC<PatchNotesProps> = ({
                             <span style={styles.head}>{entry.head}</span>
                             <span style={styles.date}>{entry.date}</span>
                         </div>
+                        {entry.why && (
+                            <p style={styles.why}>{entry.why}</p>
+                        )}
                         <ul style={styles.notes}>
                             {entry.notes.map((note) => (
                                 <li key={note} style={styles.note}>
@@ -102,6 +105,14 @@ const styles: StyleSheetCSS = {
         fontSize: 10,
         color: Colors.darkGray,
         flexShrink: 0,
+    },
+    why: {
+        fontFamily: 'MSSerif',
+        fontSize: 11,
+        fontStyle: 'italic',
+        color: Colors.darkGray,
+        lineHeight: 1.5,
+        margin: 0,
     },
     notes: {
         display: 'block',

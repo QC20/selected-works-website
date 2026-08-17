@@ -7,6 +7,7 @@ const colors = {
     blue: '#0000a3',
     darkBlue: '#0000aa',
     red: '#ff0000',
+    green: '#008000',
 } as const;
 
 export type ColorName = keyof typeof colors;

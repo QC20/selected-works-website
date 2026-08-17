@@ -17,6 +17,19 @@ import ComputerIcons from "./../../assets/pictures/ComputerIcons.gif";
 
 export interface AboutProps {}
 
+/**
+ * Talks, podcasts, press mentions — one entry each. Empty for now; add to it
+ * as things come up. `url` is optional for anything without a public link
+ * (a talk with no recording, say).
+ */
+interface TalkOrPressItem {
+  title: string;
+  venue: string;
+  date: string;
+  url?: string;
+}
+const TALKS_AND_PRESS: TalkOrPressItem[] = [];
+
 const About: React.FC<AboutProps> = (props) => {
   return (
     // add on resize listener
@@ -206,6 +219,29 @@ const About: React.FC<AboutProps> = (props) => {
               the problem can be approached from more than one angle at once.{" "}
             </p>
         </div>
+        <br />
+        <h3>Talks & Press</h3>
+        <br />
+        {TALKS_AND_PRESS.length > 0 ? (
+          <ul>
+            {TALKS_AND_PRESS.map((item) => (
+              <li key={item.title}>
+                <p>
+                  <b>{item.title}</b> — {item.venue} ({item.date}).{" "}
+                  {item.url && (
+                    <a rel="noreferrer" target="_blank" href={item.url}>
+                      Link
+                    </a>
+                  )}
+                </p>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p>
+            <i>Nothing listed here yet — check back soon.</i>
+          </p>
+        )}
         <br />
         <h3>About this site</h3>
         <br />

@@ -77,7 +77,7 @@ const Projects: React.FC<ProjectsProps> = (props) => {
           icon={software}
           iconStyle={styles.computerIcon}
           title="Coding & Programming"
-          subtitle="PROJETS"
+          subtitle="PROJECTS"
           route="software"
         />
 

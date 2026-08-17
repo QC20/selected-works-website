@@ -3,6 +3,8 @@ import { useLazyMount } from './useLazyMount';
 
 export interface VideoAssetProps {
     src: string;
+    /** Forwarded to the wrapper, same as `LazyImage`'s `style` prop. */
+    style?: React.CSSProperties;
 }
 
 /**
@@ -29,7 +31,7 @@ const DEFAULT_RATIO = 16 / 9;
  *    where it sits — on a page meant to read as embedded media, that's a
  *    second bug wearing the first one's clothes.
  */
-const VideoAsset: React.FC<VideoAssetProps> = ({ src }) => {
+const VideoAsset: React.FC<VideoAssetProps> = ({ src, style }) => {
     const wrapRef = useRef<HTMLDivElement>(null);
     const inView = useLazyMount(wrapRef);
     const [ratio, setRatio] = useState(() => aspectCache.get(src) ?? DEFAULT_RATIO);
@@ -37,7 +39,12 @@ const VideoAsset: React.FC<VideoAssetProps> = ({ src }) => {
     return (
         <div
             ref={wrapRef}
-            style={Object.assign({}, styles.wrap, { aspectRatio: String(ratio) })}
+            style={Object.assign(
+                {},
+                styles.wrap,
+                { aspectRatio: String(ratio) },
+                style
+            )}
         >
             {inView && (
                 <video

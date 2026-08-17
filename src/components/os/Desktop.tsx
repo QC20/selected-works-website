@@ -31,6 +31,8 @@ import MyComputer from '../applications/MyComputer';
 import StockWatch, { StockRequest } from '../applications/StockWatch';
 import TaskManager from '../applications/TaskManager';
 import PatchNotes from '../applications/PatchNotes';
+import Now from '../applications/Now';
+import HowItsBuilt from '../applications/HowItsBuilt';
 import ResetStorage from '../applications/ResetStorage';
 import NetworkInfo from '../applications/NetworkInfo';
 import PowerMeter from '../applications/PowerMeter';
@@ -90,6 +92,7 @@ import Snake from '../applications/Snake';
 import Tetris from '../applications/Tetris';
 import Clippy from './Clippy';
 import StartBalloon from './StartBalloon';
+import { trackEvent } from './analyticsApi';
 
 // Apps whose icon launches a full-screen takeover (the 3D experience) rather
 // than opening a draggable window. Keyed by their APPLICATIONS key.
@@ -426,6 +429,20 @@ const APPLICATIONS: {
         name: 'Patch Notes',
         shortcutIcon: 'patchNotesIcon',
         component: PatchNotes,
+    },
+
+    now: {
+        key: 'now',
+        name: 'Now.txt',
+        shortcutIcon: 'notepadIcon',
+        component: Now,
+    },
+
+    howItsBuilt: {
+        key: 'howItsBuilt',
+        name: "How It's Built",
+        shortcutIcon: 'notepadIcon',
+        component: HowItsBuilt,
     },
 
     resetStorage: {
@@ -1051,6 +1068,8 @@ const Desktop: React.FC<DesktopProps> = (props) => {
         (key: string, options?: LaunchOptions) => {
             const app = APPLICATIONS[key];
             if (!app) return;
+
+            trackEvent('app_open', app.key);
 
             if (FULLSCREEN_EXPERIENCES.includes(app.key)) {
                 setExperienceOpen(true);

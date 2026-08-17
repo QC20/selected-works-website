@@ -1,6 +1,7 @@
 import React from "react";
 import { Link } from "../general";
 import { useNavigate } from "react-router";
+import GuestbookTicker from "./GuestbookTicker";
 
 export interface HomeProps {}
 
@@ -20,9 +21,10 @@ const Home: React.FC<HomeProps> = (props) => {
       <div style={styles.buttons}>
         <Link containerStyle={styles.link} to="about" text="ABOUT ME" />
         <Link containerStyle={styles.link} to="experience" text="EXPERIENCE" />
-        <Link containerStyle={styles.link} to="projects" text="PROJETS" />
+        <Link containerStyle={styles.link} to="projects" text="PROJECTS" />
         <Link containerStyle={styles.link} to="contact" text="CONTACT" />
       </div>
+      <GuestbookTicker />
       <div style={styles.forHireContainer} onMouseDown={goToContact}></div>
     </div>
   );

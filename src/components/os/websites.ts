@@ -42,17 +42,23 @@ export interface WebSite {
 }
 
 /**
- * Internet Explorer's home page. `igu=1` is the parameter that makes Google
- * serve a frameable copy of itself — it's what Yute's portfolio points its IE
- * at, and it means the browser opens somewhere you can actually type a search
- * rather than at a dead page.
+ * Internet Explorer's home page: a real Wayback Machine capture of Yahoo!
+ * from 23 October 1996 — the earliest the Internet Archive's crawl actually
+ * reaches (it started in 1996, so nothing genuinely from 1995 survives to
+ * embed) and about as period-correct as Internet Explorer's own launch year.
+ * The `if_` in the timestamp is Wayback's iframe-friendly playback mode: it
+ * strips the archive.org toolbar so what loads is just the old page, the way
+ * it would have looked in a browser chrome of its own back then. Confirmed
+ * this doesn't send an `X-Frame-Options` or `frame-ancestors` header (unlike
+ * a live modern Yahoo, or spacejam.com, both of which refuse to be framed).
  */
-export const IE_HOME = 'https://www.google.com/search?igu=1';
+export const IE_HOME =
+    'https://web.archive.org/web/19961023235123if_/http://www10.yahoo.com/';
 
 export const WEB_SITES: WebSite[] = [
     {
         key: 'internet',
-        label: 'Google',
+        label: 'Yahoo! (1996)',
         url: IE_HOME,
         width: 900,
         height: 620,

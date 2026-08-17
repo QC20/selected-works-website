@@ -19,9 +19,9 @@ import eyeTrackingStudy from "../../../assets/pictures/eyeTrackingSetup.jpeg";
 import { Link } from "react-router-dom";
 import EffectsOfMusicOnReading from "../../../assets/documents/EffectsOfMusicOnReading.pdf";
 
-import eyeTracking2 from "../../../assets/pictures/projects/software/eyetracking2.gif";
+// @ts-ignore
+import eyeTracking2 from "../../../assets/pictures/projects/software/eyetracking2.mp4";
 import eyeTracking1 from "../../../assets/pictures/projects/software/eyetracking3.gif";
-import eyeTracking3 from "../../../assets/pictures/projects/software/eyetracking4.gif";
 
 import blimp from "../../../assets/pictures/projects/software/Blimps.jpg";
 
@@ -148,17 +148,17 @@ const SoftwareProjects: React.FC<SoftwareProjectsProps> = (props) => {
         <br />
 
         <div className="wrap-block">
-          {/* The two gifs sit in one floated figure and overlap by a few
+          {/* The two stack in one floated figure and overlap by a few
               pixels; the slight collision is deliberate, it reads as a stack
               of stills rather than a tidy list. Wider than a standard
               wrap-figure (40%) on purpose — at that size the pair read as a
               couple of postage stamps rather than the collage they're meant
-              to be. */}
+              to be. The heat map used to be a 5.3MB gif; it's a muted,
+              looping mp4 via VideoAsset now (1.5MB). */}
           <div className="wrap-figure wrap-figure--left" style={{ width: "58%" }}>
-            <LazyImage
+            <VideoAsset
               src={eyeTracking2}
               style={{ width: "90%", marginLeft: "auto", marginRight: "auto" }}
-              alt="Heat map of a participant's gaze while reading"
             />
             <LazyImage
               className="stacked"

@@ -22,7 +22,8 @@ import asciiMe from "../../../assets/audio/1-5mb.mp4";
 // @ts-ignore
 import PaintingPallets from "../../../assets/pictures/projects/art/PaintingPallets.mp4";
 
-import SummerhousePainting from "../../../assets/pictures/projects/art/2x2m Summer 2026 Summerhouse Painting.gif";
+// @ts-ignore
+import SummerhousePainting from "../../../assets/pictures/projects/art/2x2m-summerhouse-painting.mp4";
 
 import meDJing2 from "../../../../src/assets/pictures/meDJing2.jpg";
 // @ts-ignore
@@ -37,7 +38,6 @@ import { styles } from "../../os/DragIndicator";
 import LineSplit from "../LineSplit";
 import ResumeDownload from "../ResumeDownload";
 import VideoAsset from "../../general/VideoAsset";
-import LazyImage from "../../general/LazyImage";
 
 import Window from "../../os/Window";
 import shortcut from "../../../../src/assets/pictures/projects/audio/shortcut.gif";
@@ -858,15 +858,13 @@ const MusicProjects: React.FC<MusicProjectsProps> = () => {
           </p>
 
           <div className="full-figure">
-            {/* LazyImage, not loading="lazy": the showcase scrolls inside a
-                nested, transformed window, and native lazy-loading's
-                heuristic never fires in there — see useLazyMount.ts. This is
-                the biggest single file on the site (a 10MB gif), so it's the
-                one image on the page worth being deliberate about. */}
-            <LazyImage
-              src={SummerhousePainting}
-              alt="Pouring paint across a two-by-two-metre canvas outdoors"
-            />
+            {/* Used to be a 10MB gif — the biggest single file on the site.
+                Converted to a muted, looping mp4 via VideoAsset (see
+                useLazyMount.ts for why it's lazy rather than
+                loading="lazy": the showcase scrolls inside a nested,
+                transformed window, and native lazy-loading's heuristic never
+                fires in there), which cut it to under 800KB. */}
+            <VideoAsset src={SummerhousePainting} />
             <p>
               <sub>
                 <b>Image 6:</b> My largest canvas to date, 2×2 metres (4 m²),

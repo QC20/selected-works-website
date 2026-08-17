@@ -9,16 +9,19 @@ import Window from '../os/Window';
 import VerticalNavbar from '../showcase/VerticalNavbar';
 import useInitialWindowSize from '../../hooks/useInitialWindowSize';
 import { markShowcaseVisited } from '../os/showcaseVisited';
+import { trackEvent } from '../os/analyticsApi';
 
 /**
  * Records every page actually visited, for Clippy's showcase-open tips (see
- * `showcaseVisited.ts`). Rendered inside `<Router>` purely to reach
+ * `showcaseVisited.ts`) and for the `pageview` analytics event (see
+ * `analyticsApi.ts`). Rendered inside `<Router>` purely to reach
  * `useLocation` — it has no UI of its own.
  */
 const VisitTracker: React.FC = () => {
     const location = useLocation();
     useEffect(() => {
         markShowcaseVisited(location.pathname);
+        trackEvent('pageview', location.pathname);
     }, [location.pathname]);
     return null;
 };

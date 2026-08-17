@@ -255,6 +255,22 @@ const CONTENTS: { [key in FolderId]: Entry[] } = {
             launch: 'patchNotes',
         },
         {
+            key: 'now',
+            label: 'Now.txt',
+            icon: 'notepadIcon',
+            size: 2,
+            type: 'Text Document',
+            launch: 'now',
+        },
+        {
+            key: 'howItsBuilt',
+            label: "How It's Built",
+            icon: 'notepadIcon',
+            size: 4,
+            type: 'Text Document',
+            launch: 'howItsBuilt',
+        },
+        {
             key: 'resetStorage',
             label: 'Reset Storage',
             icon: 'resetStorageIcon',

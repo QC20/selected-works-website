@@ -7,7 +7,8 @@ import githubWindows from "../../../assets/pictures/projects/art/githubWindows.p
 import ResumeDownload from "../ResumeDownload";
 import LineSplit from "../LineSplit";
 
-import HapNavDemo from "../../../../src/assets/pictures/projects/software/HavNapDemo.gif";
+// @ts-ignore
+import HapNavDemo from "../../../../src/assets/pictures/projects/software/HavNapDemo.mp4";
 // @ts-ignore
 import screenDemo from "../../../assets/pictures/projects/art/Screen_Demo-(v.3).mp4";
 // @ts-ignore
@@ -152,7 +153,7 @@ const ArtProjects: React.FC<ArtProjectsProps> = (props) => {
           virtual landscape.
         </p>
         <div className="captioned-image">
-          <LazyImage src={HapNavDemo} style={{ width: "90%" }} alt="" />
+          <VideoAsset src={HapNavDemo} style={{ width: "90%" }} />
           <p>
             <sub>
               <b>Image 3:</b> Go ahead and check out a{" "}

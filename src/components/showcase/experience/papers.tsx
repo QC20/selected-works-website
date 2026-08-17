@@ -56,6 +56,9 @@ const PapersProjects: React.FC<paperProps> = (props) => {
                 </div>
             </div>
             <div className="text-block">
+                <p style={styles.tldr}>
+                    <b>TL;DR:</b> a simple 2×2 way to sort any workplace AI tool by how much decision-making it takes off a manager's plate versus how much of the thinking itself it does for them — meant as a quick way to compare AI systems before adopting or building one.
+                </p>
                 <ul>
                         <p><b>Abstract</b></p>
                         <p>
@@ -89,6 +92,9 @@ const PapersProjects: React.FC<paperProps> = (props) => {
                                 </h5>
                     </div>
             <div className="text-block">
+                <p style={styles.tldr}>
+                    <b>TL;DR:</b> short sound cues — a dog bark, a doorbell — dropped into a voice-controlled how-to video helped people finish a hands-on task faster, with fewer spoken commands, than voice control alone.
+                </p>
                 <ul>
                 <div className="captioned-image">
                     <img src={audioIcons} style={{ width: '80%'}} alt="" />
@@ -174,6 +180,9 @@ const PapersProjects: React.FC<paperProps> = (props) => {
                 </div>
             
             <div className="text-block">
+                <p style={styles.tldr}>
+                    <b>TL;DR:</b> watched 15 total beginners try to design an object that has to physically fit an existing real-world object — a phone mount, say — and mapped exactly where today's 3D-modeling tools lose them.
+                </p>
                 <ul>
 
                         <p><b>Abstract</b></p>
@@ -210,6 +219,9 @@ const PapersProjects: React.FC<paperProps> = (props) => {
                         </h5>
             </div>
             <div className="text-block">
+                <p style={styles.tldr}>
+                    <b>TL;DR:</b> Denmark's generous, gender-neutral parental-leave laws visibly change how Danish fathers talk about parenting on Facebook — more legal and political framing, less of the individual-struggle framing seen in similar US studies.
+                </p>
                 <ul>
                         <p><b>Abstract</b></p>
 
@@ -232,6 +244,10 @@ const PapersProjects: React.FC<paperProps> = (props) => {
 };
 
 const styles: { [key: string]: React.CSSProperties } = {
+    tldr: {
+        fontStyle: 'italic',
+        marginBottom: 12,
+    },
     header: {
         flexDirection: 'column',
         justifyContent: 'space-between',
