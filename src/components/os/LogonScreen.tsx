@@ -7,10 +7,11 @@
  * real thing let you dismiss the network log-on.
  */
 
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import Colors from '../../constants/colors';
 import { Icon } from '../general';
 import { useTheme } from './theme';
+import { playDialUp } from './sounds';
 
 export interface LogonScreenProps {
     onLogon: (userName: string) => void;
@@ -20,8 +21,47 @@ const LogonScreen: React.FC<LogonScreenProps> = ({ onLogon }) => {
     const theme = useTheme();
     const [name, setName] = useState('Jonas');
     const [password, setPassword] = useState('');
+    // Set the instant OK/Cancel is pressed, so the form is replaced by the
+    // dial-up progress rather than staying interactable underneath it.
+    const [connecting, setConnecting] = useState(false);
+    const submitted = useRef(false);
 
-    const submit = () => onLogon(name.trim() || 'User');
+    const submit = () => {
+        // Double submit guard: password's onKeyDown and the OK button can
+        // both fire from the same Enter press.
+        if (submitted.current) return;
+        submitted.current = true;
+        setConnecting(true);
+        const ms = playDialUp();
+        window.setTimeout(() => onLogon(name.trim() || 'User'), ms);
+    };
+
+    if (connecting) {
+        return (
+            <div
+                style={Object.assign({}, styles.screen, {
+                    background: theme.background,
+                })}
+            >
+                <div style={styles.dialog}>
+                    <div
+                        style={Object.assign({}, styles.titleBar, {
+                            background: theme.titleBar,
+                        })}
+                    >
+                        <p style={styles.title}>Dial-Up Networking</p>
+                    </div>
+                    <div style={styles.connectingBody}>
+                        <Icon icon="dialupIcon" style={styles.dialupIcon} />
+                        <p style={styles.blurb}>Connecting to OS95…</p>
+                        <p style={styles.connectingNote}>
+                            Dialling, then negotiating a connection.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div
@@ -144,6 +184,21 @@ const styles: StyleSheetCSS = {
         color: Colors.black,
         marginBottom: 4,
         lineHeight: 1.4,
+    },
+    connectingBody: {
+        flexDirection: 'column',
+        alignItems: 'center',
+        gap: 10,
+        padding: '22px 20px',
+    },
+    dialupIcon: {
+        width: 32,
+        height: 32,
+    },
+    connectingNote: {
+        fontFamily: 'MSSerif',
+        fontSize: 11,
+        color: Colors.darkGray,
     },
     field: {
         alignItems: 'center',

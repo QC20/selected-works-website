@@ -1,13 +1,20 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
+import Bsod from './Bsod';
+import Starfield from './screensavers/Starfield';
+import Mystify from './screensavers/Mystify';
+import FlyingIcons from './screensavers/FlyingIcons';
 
 /**
  * The screen saver.
  *
- * 3D Pipes and the Flower Box are already on this machine as programs (see
- * `win98Programs.ts`), which is exactly where Windows 95 got its screen savers
- * from too — they were ordinary executables the system ran when you stopped
- * typing. So this doesn't reimplement anything: it waits for the desktop to go
- * quiet, then puts one of those pages full-screen over the top.
+ * 3D Pipes and the Flower Box run as the two programs this machine already
+ * has (see `win98Programs.ts`) full-screen with no chrome — which is exactly
+ * where Windows 95 got its screen savers from too, ordinary executables the
+ * system ran when you stopped typing. Starfield, Mystify and Flying Windows
+ * are the other three that actually shipped on a stock Windows 95 install
+ * (Plus! added more, but those needed the Plus! pack); this machine doesn't
+ * have those as standalone programs, so they're small canvas/DOM
+ * recreations under `screensavers/` instead — same look, no iframe.
  *
  * Two details that matter more than they look:
  *
@@ -19,11 +26,40 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
  *  - Dismissing has to survive the saver's own iframe swallowing the click, so
  *    a transparent sheet sits over it and takes the first press itself. That is
  *    also what the real thing did: the first movement only wakes the screen.
+ *
+ * A third thing lives here too: the Blue Screen of Death. Real Windows 9x
+ * machines didn't crash on a schedule — they crashed rarely, at the worst
+ * possible moment, which for an idle machine means "instead of the screen
+ * saver". `BSOD_CHANCE` is how often that coin flip goes the wrong way. It's
+ * deliberately small: most visitors idle out at least once in a longer visit,
+ * and this should stay a rare thing a handful of them see, not something
+ * everyone runs into by the second time they look away.
  */
 
-export type ScreensaverKind = 'pipes' | 'flower' | 'off';
+/** One idle timeout in twenty lands on the BSOD instead of the normal saver. */
+const BSOD_CHANCE = 0.05;
 
-const SAVERS: { [key in Exclude<ScreensaverKind, 'off'>]: { src: string; name: string } } = {
+export type ScreensaverKind =
+    | 'pipes'
+    | 'flower'
+    | 'starfield'
+    | 'mystify'
+    | 'flying'
+    | 'random'
+    | 'off';
+
+/** Every concrete saver — everything `'random'` picks between. */
+const CONCRETE_KINDS: Exclude<ScreensaverKind, 'off' | 'random'>[] = [
+    'pipes',
+    'flower',
+    'starfield',
+    'mystify',
+    'flying',
+];
+
+type ConcreteKind = (typeof CONCRETE_KINDS)[number];
+
+const IFRAME_SAVERS: { [key in 'pipes' | 'flower']: { src: string; name: string } } = {
     pipes: {
         // Same options 98.js passes when it runs this as a screen saver: no
         // overlaid controls, just the pipes.
@@ -38,20 +74,32 @@ const SAVERS: { [key in Exclude<ScreensaverKind, 'off'>]: { src: string; name: s
     },
 };
 
+const isIframeSaver = (k: ConcreteKind): k is 'pipes' | 'flower' =>
+    k === 'pipes' || k === 'flower';
+
 const KIND_KEY = 'screensaver.kind.v1';
 const DELAY_KEY = 'screensaver.delay.v1';
+const BAG_KEY = 'screensaver.bag.v1';
 
 /** Wait options, in minutes, as the Screen Saver tab offered them. */
 export const SCREENSAVER_DELAYS = [1, 3, 5, 10, 15];
 
+const VALID_KINDS: ScreensaverKind[] = [
+    'off',
+    'random',
+    ...CONCRETE_KINDS,
+];
+
 export function loadScreensaverKind(): ScreensaverKind {
     try {
         const stored = localStorage.getItem(KIND_KEY);
-        return stored === 'flower' || stored === 'off' || stored === 'pipes'
-            ? stored
-            : 'pipes';
+        return stored && (VALID_KINDS as string[]).includes(stored)
+            ? (stored as ScreensaverKind)
+            : // Nobody has ever visited Display Properties to say otherwise —
+              // default to seeing a different one each time, not always Pipes.
+              'random';
     } catch {
-        return 'pipes';
+        return 'random';
     }
 }
 
@@ -112,9 +160,73 @@ export function saveScreensaverDelay(minutes: number): void {
 /** Human labels for the savers, for the Display Properties list. */
 export const SCREENSAVER_OPTIONS: { value: ScreensaverKind; label: string }[] = [
     { value: 'off', label: '(None)' },
+    { value: 'random', label: 'Random (a different one each time)' },
     { value: 'pipes', label: '3D Pipes' },
     { value: 'flower', label: '3D Flower Box' },
+    { value: 'starfield', label: 'Starfield Simulation' },
+    { value: 'mystify', label: 'Mystify Your Mind' },
+    { value: 'flying', label: 'Flying Windows' },
 ];
+
+// ---- The "random" bag ------------------------------------------------------
+// A shuffled queue rather than a fresh dice roll each time: a plain random
+// pick repeats itself constantly over a long enough visit (birthday-paradox
+// odds with only five savers), which reads as broken variety, not real
+// variety. Dealing from a shuffled bag and reshuffling once it's empty means
+// every saver is guaranteed to come up once before any of them repeats, and
+// persisting the bag means that guarantee survives a reload and carries over
+// to the next visit too.
+
+function shuffled<T>(arr: T[]): T[] {
+    const a = arr.slice();
+    for (let i = a.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        const tmp = a[i];
+        a[i] = a[j];
+        a[j] = tmp;
+    }
+    return a;
+}
+
+function loadBag(): ConcreteKind[] {
+    try {
+        const raw = localStorage.getItem(BAG_KEY);
+        const parsed = raw ? JSON.parse(raw) : null;
+        if (
+            Array.isArray(parsed) &&
+            parsed.every((k) => (CONCRETE_KINDS as string[]).includes(k))
+        ) {
+            return parsed as ConcreteKind[];
+        }
+    } catch {
+        /* fall through to an empty bag, which just reshuffles immediately */
+    }
+    return [];
+}
+
+let bag: ConcreteKind[] = loadBag();
+let lastShown: ConcreteKind | null = null;
+
+/** Pulls the next kind out of the bag, reshuffling once it runs out — never
+ * letting the fresh shuffle's first card repeat whatever was just shown. */
+function nextFromBag(): ConcreteKind {
+    if (bag.length === 0) {
+        bag = shuffled(CONCRETE_KINDS);
+        if (bag.length > 1 && bag[0] === lastShown) {
+            const tmp = bag[0];
+            bag[0] = bag[1];
+            bag[1] = tmp;
+        }
+    }
+    const next = bag.shift() as ConcreteKind;
+    try {
+        localStorage.setItem(BAG_KEY, JSON.stringify(bag));
+    } catch {
+        /* the guarantee just won't survive a reload */
+    }
+    lastShown = next;
+    return next;
+}
 
 export interface ScreensaverProps {
     kind: ScreensaverKind;
@@ -127,33 +239,40 @@ export interface ScreensaverProps {
     suspended?: boolean;
 }
 
+type Mode = 'off' | 'saver' | 'bsod';
+
 const Screensaver: React.FC<ScreensaverProps> = ({
     kind,
     delayMinutes,
     suspended = false,
 }) => {
-    const [running, setRunning] = useState(false);
+    const [mode, setMode] = useState<Mode>('off');
+    const [activeKind, setActiveKind] = useState<ConcreteKind>('pipes');
     const timer = useRef<number>();
 
-    const stop = useCallback(() => setRunning(false), []);
+    const stop = useCallback(() => setMode('off'), []);
 
     useEffect(() => {
         if (kind === 'off' || suspended) {
-            setRunning(false);
+            setMode('off');
             return;
         }
 
         const arm = () => {
             window.clearTimeout(timer.current);
-            timer.current = window.setTimeout(
-                () => setRunning(true),
-                delayMinutes * 60 * 1000
-            );
+            timer.current = window.setTimeout(() => {
+                if (Math.random() < BSOD_CHANCE) {
+                    setMode('bsod');
+                    return;
+                }
+                setActiveKind(kind === 'random' ? nextFromBag() : kind);
+                setMode('saver');
+            }, delayMinutes * 60 * 1000);
         };
 
         // Any of these means someone is still here.
         const activity = () => {
-            if (!running) arm();
+            if (mode === 'off') arm();
         };
 
         // Focus leaving the page usually means focus went *into* one of the
@@ -161,7 +280,7 @@ const Screensaver: React.FC<ScreensaverProps> = ({
         // and stop counting until focus comes back.
         const onBlur = () => window.clearTimeout(timer.current);
         const onFocus = () => {
-            if (!running) arm();
+            if (mode === 'off') arm();
         };
 
         const events: (keyof WindowEventMap)[] = [
@@ -186,22 +305,44 @@ const Screensaver: React.FC<ScreensaverProps> = ({
             window.removeEventListener('blur', onBlur);
             window.removeEventListener('focus', onFocus);
         };
-    }, [kind, delayMinutes, suspended, running]);
+    }, [kind, delayMinutes, suspended, mode]);
 
     // While it's up, a key or a wheel dismisses it as well as the sheet's own
     // press — the iframe has focus, so these only arrive when it doesn't.
     useEffect(() => {
-        if (!running) return;
+        if (mode === 'off') return;
         window.addEventListener('keydown', stop);
         window.addEventListener('wheel', stop);
         return () => {
             window.removeEventListener('keydown', stop);
             window.removeEventListener('wheel', stop);
         };
-    }, [running, stop]);
+    }, [mode, stop]);
 
-    if (!running || kind === 'off') return null;
-    const saver = SAVERS[kind];
+    if (mode === 'off') return null;
+    if (mode === 'bsod') return <Bsod onDismiss={stop} />;
+
+    if (!isIframeSaver(activeKind)) {
+        const Canvas =
+            activeKind === 'starfield'
+                ? Starfield
+                : activeKind === 'mystify'
+                ? Mystify
+                : FlyingIcons;
+        return (
+            <div style={styles.overlay}>
+                <Canvas />
+                <div
+                    style={styles.sheet}
+                    onPointerDown={stop}
+                    onPointerMove={stop}
+                    title="Click to return to the desktop"
+                />
+            </div>
+        );
+    }
+
+    const saver = IFRAME_SAVERS[activeKind];
 
     return (
         <div style={styles.overlay}>

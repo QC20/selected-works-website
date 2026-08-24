@@ -182,3 +182,62 @@ export function playShutdown(): void {
         gain: 0.07,
     });
 }
+
+/**
+ * The dial tone, the touch-tones of a number being dialled, and the
+ * handshake screech of two modems agreeing on a connection — synthesised in
+ * the same square-and-sine-wave spirit as everything else here rather than
+ * shipped as a sampled .wav of the real thing. It's a caricature of the
+ * sound, the way the BSOD's text is a caricature of a crash: recognisable in
+ * under three seconds, not a faithful recording.
+ *
+ * Exports its own total length so the log-on screen can hold "Connecting…"
+ * up for exactly as long as there's still something to hear, instead of the
+ * two durations quietly drifting apart the next time either one is tuned.
+ */
+export function playDialUp(): number {
+    let t = 0;
+    tone({ frequency: 350, duration: 0.35, type: 'sine', gain: 0.025 });
+    tone({ frequency: 440, duration: 0.35, type: 'sine', gain: 0.025 });
+    t = 0.45;
+
+    // A handful of touch-tone digits being dialled.
+    const digits = [697, 852, 770, 941, 852];
+    digits.forEach((f, i) => {
+        tone({
+            frequency: f,
+            duration: 0.09,
+            type: 'sine',
+            gain: 0.035,
+            delay: t + i * 0.13,
+        });
+    });
+    t += digits.length * 0.13 + 0.2;
+
+    // The handshake: a burst of short, randomised, harsh tones — modems
+    // negotiating a line rather than anything melodic.
+    const bursts = 11;
+    for (let i = 0; i < bursts; i++) {
+        tone({
+            frequency: 900 + Math.random() * 2000,
+            duration: 0.045 + Math.random() * 0.05,
+            type: i % 2 === 0 ? 'square' : 'sawtooth',
+            gain: 0.02,
+            delay: t + i * 0.085,
+        });
+    }
+    t += bursts * 0.085 + 0.1;
+
+    // "Connected" — the same two-tone chime the rest of the desktop uses.
+    tone({ frequency: 1046, duration: 0.12, type: 'sine', gain: 0.05, delay: t });
+    tone({
+        frequency: 1568,
+        duration: 0.22,
+        type: 'sine',
+        gain: 0.05,
+        delay: t + 0.11,
+    });
+    t += 0.11 + 0.22;
+
+    return Math.ceil(t * 1000);
+}

@@ -11,6 +11,7 @@ import {
     BatteryPanel,
     CalendarPanel,
     ConnectionPanel,
+    VisitorCounterPanel,
 } from './TrayPanels';
 import { useBattery, batterySummary } from './battery';
 import { useConnection } from './network';
@@ -19,6 +20,7 @@ import { isClippyEnabled, toggleClippy, useClippyEnabled } from './Clippy';
 import { openExternal } from './openExternal';
 import { PROGRAMS_CONTENTS } from '../applications/ProgramsFolder';
 import { GAMES } from '../applications/games';
+import { getVisitCount } from './visitorCountApi';
 
 /**
  * The folders at the top of the Start menu. Each opens a fly-out on hover
@@ -124,11 +126,25 @@ const Toolbar: React.FC<ToolbarProps> = ({
     const [batteryOpen, setBatteryOpen] = useState(false);
     const [connectionOpen, setConnectionOpen] = useState(false);
     const [calendarOpen, setCalendarOpen] = useState(false);
+    const [visitsOpen, setVisitsOpen] = useState(false);
 
     const battery = useBattery();
     const connection = useConnection();
     const muted = useMuted();
     const clippyOn = useClippyEnabled();
+
+    // Fetched once per tab (see `visitorCountApi.ts`) — not tied to opening
+    // the panel, so the tray icon's tooltip can show it immediately too.
+    const [visitCount, setVisitCount] = useState<number | null>(null);
+    useEffect(() => {
+        let cancelled = false;
+        getVisitCount().then((count) => {
+            if (!cancelled) setVisitCount(count);
+        });
+        return () => {
+            cancelled = true;
+        };
+    }, []);
 
     /**
      * How long this session has been "dialled in" — see ConnectionPanel.
@@ -160,6 +176,7 @@ const Toolbar: React.FC<ToolbarProps> = ({
         setBatteryOpen(false);
         setConnectionOpen(false);
         setCalendarOpen(false);
+        setVisitsOpen(false);
     }, []);
 
     /** Every tray icon: click, close whatever else was open, toggle itself. */
@@ -616,6 +633,7 @@ const Toolbar: React.FC<ToolbarProps> = ({
                         connectedFor={connectedFor}
                     />
                     <CalendarPanel open={calendarOpen} />
+                    <VisitorCounterPanel open={visitsOpen} count={visitCount} />
 
                     {/* Clippy's paperclip: summons him, or sends him away. */}
                     <div
@@ -654,6 +672,19 @@ const Toolbar: React.FC<ToolbarProps> = ({
                         onPointerDown={trayToggle(setTickerOpen)}
                     >
                         <Icon icon="stocksIcon" size={18} />
+                    </div>
+
+                    <div
+                        style={styles.trayIconWrap}
+                        title={
+                            visitCount === null
+                                ? 'Visitor counter'
+                                : `Visitor #${visitCount.toLocaleString()}`
+                        }
+                        data-open={visitsOpen}
+                        onPointerDown={trayToggle(setVisitsOpen)}
+                    >
+                        <Icon icon="chartIcon" size={18} />
                     </div>
 
                     {/* Dial-Up Networking's connection status. */}

@@ -8,6 +8,31 @@
     overflow-x: hidden;
 }
 
+/*
+ * Off-screen until it has focus, same as any standard "skip to content"
+ * link — invisible to a sighted mouse user who will never tab to it, the
+ * first thing announced to a screen reader, and the first thing a keyboard
+ * user lands on. Leads to /accessible (see App.tsx / AccessiblePage.tsx).
+ */
+.skip-link {
+    position: absolute;
+    top: -80px;
+    left: 8px;
+    z-index: 1000002;
+    padding: 10px 16px;
+    background: #000;
+    color: #fff;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    font-size: 14px;
+    text-decoration: none;
+    border-radius: 0 0 4px 4px;
+    transition: top 0.15s ease;
+}
+
+.skip-link:focus {
+    top: 0;
+}
+
 html,
 body {
     height: 100%;
@@ -132,6 +157,25 @@ body {
     80%  { margin-left: 4px; }
     90%  { margin-left: -2px; }
     100% { margin-left: 0; }
+}
+
+/*
+ * The Konami code's reveal — a handful of desktop icons tumbling down the
+ * screen once, in `KonamiBurst.tsx`. Rotation keeps it from reading as a
+ * broken layout rather than a deliberate flourish.
+ */
+@keyframes konamiFall {
+    0% {
+        transform: translateY(-40px) rotate(0deg);
+        opacity: 0;
+    }
+    8% {
+        opacity: 1;
+    }
+    100% {
+        transform: translateY(105vh) rotate(360deg);
+        opacity: 1;
+    }
 }
 
 /* The "Click here to begin" balloon breathes rather than flashes — it is an

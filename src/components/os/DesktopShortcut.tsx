@@ -29,6 +29,13 @@ export interface DesktopShortcutProps {
      * Recycle Bin, say — has to measure this element instead.
      */
     innerRef?: React.Ref<HTMLDivElement>;
+    /**
+     * Arrow-key desktop navigation's cursor is on this icon (see Desktop.tsx).
+     * Drawn identically to a mouse click's `isSelected` — a keyboard user
+     * needs the same "this is the one Enter will open" feedback a mouse user
+     * gets from clicking once, not a second, different-looking focus style.
+     */
+    keyboardFocused?: boolean;
 }
 
 const DesktopShortcut: React.FC<DesktopShortcutProps> = ({
@@ -39,8 +46,12 @@ const DesktopShortcut: React.FC<DesktopShortcutProps> = ({
     onMoved,
     onContextMenu,
     innerRef,
+    keyboardFocused,
 }) => {
     const [isSelected, setIsSelected] = useState(false);
+    // Keyboard focus reads exactly like a mouse selection — same border, same
+    // checkerboard mask — rather than a second, unfamiliar highlight style.
+    const showSelected = isSelected || !!keyboardFocused;
     const [shortcutId, setShortcutId] = useState('');
     const [lastSelected, setLastSelected] = useState(false);
     const containerRef = useRef<any>();
@@ -212,8 +223,8 @@ const DesktopShortcut: React.FC<DesktopShortcutProps> = ({
                     style={Object.assign(
                         {},
                         styles.iconOverlay,
-                        isSelected && styles.checkerboard,
-                        isSelected && {
+                        showSelected && styles.checkerboard,
+                        showSelected && {
                             WebkitMask: `url(${requiredIcon})`,
                         }
                     )}
@@ -222,21 +233,21 @@ const DesktopShortcut: React.FC<DesktopShortcutProps> = ({
             </div>
             <div
                 className={
-                    isSelected
+                    showSelected
                         ? 'selected-shortcut-border'
                         : lastSelected
                         ? 'shortcut-border'
                         : ''
                 }
                 id={`${shortcutId}`}
-                style={isSelected ? { backgroundColor: colors.blue } : {}}
+                style={showSelected ? { backgroundColor: colors.blue } : {}}
             >
                 <p
                     id={`${shortcutId}`}
                     style={Object.assign(
                         {},
                         styles.shortcutText,
-                        invertText && !isSelected && { color: 'black' }
+                        invertText && !showSelected && { color: 'black' }
                     )}
                 >
                     {shortcutName}

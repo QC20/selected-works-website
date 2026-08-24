@@ -29,11 +29,22 @@ const MusicPlayer: React.FC<MusicPlayerProps> = (props) => {
     const [currentTime, setCurrentTime] = useState(0);
     const [duration, setDuration] = useState(1);
 
+    // The visualizer's Web Audio graph. One AudioContext + AnalyserNode per
+    // mounted player, reused across however many times this one track is
+    // played — not one per play, which on a page with several of these would
+    // otherwise stack up toward the handful of contexts a browser allows.
+    // The MediaElementSourceNode is the one piece that's tied to a specific
+    // <audio> element, so that's the only part rebuilt in `getAudio`.
+    const audioCtxRef = useRef<AudioContext | null>(null);
+    const analyserRef = useRef<AnalyserNode | null>(null);
+    const canvasRef = useRef<HTMLCanvasElement | null>(null);
+
     /** Builds the element on first use and wires up the one listener it needs. */
     const getAudio = () => {
         if (audioRef.current) return audioRef.current;
         const audio = new Audio(props.src);
         audio.preload = 'none';
+        audio.crossOrigin = 'anonymous';
         audio.addEventListener('timeupdate', () => {
             setCurrentTime(audio.currentTime);
             setDuration(audio.duration);
@@ -42,6 +53,32 @@ const MusicPlayer: React.FC<MusicPlayerProps> = (props) => {
             }
         });
         audioRef.current = audio;
+
+        // Web Audio needs a user gesture to start, which this always has —
+        // `getAudio` is only ever called from a click. Wrapped in a try/catch
+        // rather than feature-detected: the player has to work identically
+        // without a visualizer on the odd browser that refuses this.
+        try {
+            const Ctor =
+                window.AudioContext ||
+                (window as unknown as { webkitAudioContext?: typeof AudioContext })
+                    .webkitAudioContext;
+            if (Ctor) {
+                if (!audioCtxRef.current) audioCtxRef.current = new Ctor();
+                if (!analyserRef.current) {
+                    analyserRef.current = audioCtxRef.current.createAnalyser();
+                    analyserRef.current.fftSize = 64;
+                    analyserRef.current.smoothingTimeConstant = 0.75;
+                }
+                const source =
+                    audioCtxRef.current.createMediaElementSource(audio);
+                source.connect(analyserRef.current);
+                analyserRef.current.connect(audioCtxRef.current.destination);
+            }
+        } catch {
+            /* no visualizer this time — playback itself is unaffected */
+        }
+
         return audio;
     };
 
@@ -109,6 +146,74 @@ const MusicPlayer: React.FC<MusicPlayerProps> = (props) => {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
+    // Closes out the AudioContext this instance opened, if any — the one
+    // piece `releaseAudio` doesn't already handle, since the context outlives
+    // any single track.
+    useEffect(() => {
+        return () => {
+            audioCtxRef.current?.close().catch(() => {});
+        };
+    }, []);
+
+    // The bars themselves: read the analyser's frequency data onto the
+    // canvas every frame while playing, and settle to a flat, still baseline
+    // rather than unmounting when paused — a gap where the bars had been
+    // would be a more distracting idle state than a quiet flat line.
+    useEffect(() => {
+        const canvas = canvasRef.current;
+        const ctx = canvas?.getContext('2d');
+        if (!canvas || !ctx) return;
+
+        const dpr = Math.min(window.devicePixelRatio || 1, 2);
+        const cssWidth = canvas.clientWidth || 200;
+        const cssHeight = canvas.clientHeight || 22;
+        canvas.width = cssWidth * dpr;
+        canvas.height = cssHeight * dpr;
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+        const bars = 24;
+        const gap = 2;
+        const barWidth = (cssWidth - gap * (bars - 1)) / bars;
+
+        const drawFlat = () => {
+            ctx.clearRect(0, 0, cssWidth, cssHeight);
+            ctx.fillStyle = colors.darkGray;
+            for (let i = 0; i < bars; i++) {
+                ctx.fillRect(i * (barWidth + gap), cssHeight - 2, barWidth, 2);
+            }
+        };
+
+        if (!isPlaying || !analyserRef.current) {
+            drawFlat();
+            return;
+        }
+
+        const analyser = analyserRef.current;
+        const data = new Uint8Array(analyser.frequencyBinCount);
+        let raf = 0;
+
+        const draw = () => {
+            analyser.getByteFrequencyData(data);
+            ctx.clearRect(0, 0, cssWidth, cssHeight);
+            ctx.fillStyle = colors.black;
+            const step = Math.max(1, Math.floor(data.length / bars));
+            for (let i = 0; i < bars; i++) {
+                const v = data[i * step] / 255;
+                const h = Math.max(2, v * cssHeight);
+                ctx.fillRect(
+                    i * (barWidth + gap),
+                    cssHeight - h,
+                    barWidth,
+                    h
+                );
+            }
+            raf = window.requestAnimationFrame(draw);
+        };
+        raf = window.requestAnimationFrame(draw);
+
+        return () => window.cancelAnimationFrame(raf);
+    }, [isPlaying]);
+
     return (
         <div
             style={styles.musicPlayerContainer}
@@ -144,6 +249,7 @@ const MusicPlayer: React.FC<MusicPlayerProps> = (props) => {
                         <b>{duration === 1 ? '..:..' : formatTime(duration)}</b>
                     </p>
                 </div>
+                <canvas ref={canvasRef} style={styles.visualizer} />
                 <div style={styles.playerBottom}>
                     <div style={styles.info}>
                         <h3>{props.title}</h3>
@@ -214,6 +320,15 @@ const styles: StyleSheetCSS = {
         justifyContent: 'center',
         alignItems: 'center',
         background: 'red',
+    },
+    visualizer: {
+        width: '100%',
+        // Fixed height whether it's playing, paused or hasn't started yet —
+        // reserving the space up front is what keeps the rest of the player
+        // from shifting when playback starts or stops.
+        height: 22,
+        marginTop: 4,
+        display: 'block',
     },
     progress: {
         width: '100%',

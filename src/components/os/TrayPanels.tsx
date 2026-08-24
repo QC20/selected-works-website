@@ -261,6 +261,71 @@ export const CalendarPanel: React.FC<{ open: boolean }> = ({ open }) => {
     );
 };
 
+/* -------------------------------------------------------------------------
+ * Visitor counter
+ * ---------------------------------------------------------------------- */
+
+/**
+ * The odometer GIF every personal site had bolted to the bottom of its
+ * homepage in 1998, moved into the tray instead. Six digits, zero-padded,
+ * the way those counters always ran regardless of how far from six digits
+ * the real total was.
+ */
+export const VisitorCounterPanel: React.FC<{
+    open: boolean;
+    count: number | null;
+}> = ({ open, count }) => {
+    if (!open) return null;
+    const digits =
+        count === null ? null : String(count).padStart(6, '0').split('');
+
+    return (
+        <div style={styles.panel}>
+            <div style={styles.header}>
+                <Icon icon="chartIcon" size={16} />
+                <span style={styles.title}>Visitor Counter</span>
+            </div>
+
+            <div style={counterStyles.odometer}>
+                {(digits ?? Array(6).fill('-')).map((d, i) => (
+                    <span key={i} style={counterStyles.digit}>
+                        {d}
+                    </span>
+                ))}
+            </div>
+
+            <p style={styles.note}>
+                {count === null
+                    ? "Couldn't reach the counter this time."
+                    : `You're visit number ${count.toLocaleString()} on this desktop.`}
+            </p>
+        </div>
+    );
+};
+
+const counterStyles: StyleSheetCSS = {
+    odometer: {
+        alignSelf: 'stretch',
+        justifyContent: 'center',
+        gap: 2,
+        padding: '6px 8px',
+        background: '#111',
+        border: `1px solid ${Colors.darkGray}`,
+        borderRightColor: Colors.white,
+        borderBottomColor: Colors.white,
+    },
+    digit: {
+        fontFamily: 'monospace',
+        fontWeight: 'bold',
+        fontSize: 18,
+        lineHeight: '18px',
+        color: '#39ff6a',
+        background: '#000',
+        width: 15,
+        textAlign: 'center',
+    },
+};
+
 const Row: React.FC<{ label: string; value: string }> = ({ label, value }) => (
     <div style={styles.row}>
         <span style={styles.rowLabel}>{label}</span>

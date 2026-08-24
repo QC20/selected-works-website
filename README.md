@@ -1,47 +1,79 @@
-# Selected Works Website
-I've made this personal website with inspiration from Henry Heffernan's original work, which I've taken and tailored to reflect my vision and needs for a personal website. As is hopefully already pretty clear, I've aimed for a Windows 95/98 OS vibe desktop atmosphere. I hope you enjoy exploring it. If you're interested in my work, have constructive criticism to share, or simply want to connect, feel free to reach out!
-I'd love to partner up and collaborate on anything from physical computing projects, to creative/aestetic programming projects — or if you sense we share academic interests, don't hesitate to reach out and shoot me a message :-)
+# Jonas Kjeldmand Jensen — Selected Works
 
 <p align="center">
-  <img src="src\assets\pictures\landingPage.png" alt="Image of website's landing page">
+  <img src="src/assets/pictures/landingPage.png" alt="Landing page of the site: a Windows 95 desktop">
 </p>
 
+This is my personal website — and I built it as a full Windows 95/98 desktop rather than a
+scrolling page, because I'd rather you *explore* who I am than skim me. Open a few icons,
+snoop through the folders, read the guestbook. That's the point.
 
-## How to setup this website locally
-In case you like this setup, go right ahead and fork it and make your own personal version to fitted to your liking. But if you do, please give me (and the ones before me) a shout. 
+I'm a PhD researcher at Copenhagen Business School studying how AI is reshaping managerial
+work and well-being, with a background in Human-Computer Interaction (HCI) from the University
+of Copenhagen. Outside of research I write software, tinker with physical computing, paint, DJ,
+and make music — and this site is where all of that actually lives, not just the résumé version
+of it.
 
-### To setup a dev environment
+**Start here:**
+
+- **About Me** — the real story: how I went from an HCI degree to a PhD on AI and management, and what drives me outside of it
+- **Experience** — peer-reviewed papers (ACM CHI, GROUP, CUI) and practitioner writing, translating research into things people can use
+- **Projects → Software / Art / Music** — physical computing builds, paintings, DJ sets and production, and the code behind all of it
+- **Guestbook** — sign it. I read every entry.
+
+If you're curious about a possible collaboration — research, physical computing, creative/
+aesthetic programming, or anything in between — or just want to say hi, reach out through the
+**Contact** page or [LinkedIn](https://www.linkedin.com/in/jonas-kjeldmand/). I'd love to hear
+from you.
+
+## Poke around the desktop
+
+Every icon does something. A few favourites, in no particular order:
+
+- **Step Outside** — the desktop recedes into a 3D room with a real CRT monitor, built with three.js
+- **My Computer** — a small real filesystem: save a file in Notepad and it's still there next time
+- **Games** — Doom, Snake, Tetris, Minesweeper, Scrabble, Oregon Trail, and Jonordle (my Wordle clone)
+- **Winamp, Paint, Sound Recorder, Pinball, Solitaire** — the classics, vendored from [98.js](https://98.js.org)
+- **GitHub Viewer** — browses this repo's commits and files as a Windows 95 file list
+- **Weather Station / Market Watch** — small live widgets, because why not
+- **Credits** — full attribution for everything borrowed or adapted
+
+For how it's all actually wired together — routing, the guestbook and analytics backend, the
+fake filesystem, the 3D scene — open **My Computer → Hard Disk (D:) → Utility → How It's Built**
+on the site itself. That's the technical write-up; this README stays about the "what" and "why."
+
+## Running it locally
+
+Fork it, adapt it, make it yours — just give me (and Henry Heffernan, whose original build this
+grew out of) a shout if you do.
 
 ```bash
 # Clone the repository
 git clone https://github.com/QC20/selected-works-website.git
 
-# Install dependencies 
+# Install dependencies
 npm i
 
 # Run the local dev server
 npm run dev
 ```
 
-### To serve a production build
+To serve a production build instead:
 
 ```bash
-# Install dependencies if not already done
 npm i
-
-# Build for production
 npm run build
-
-# Serve the build using express
 npm start
 ```
 
+## Built with
 
-## To-Do's
-- Make reasearch paper images smaller in size so they'll be quicker to load in.
-  - same goes for all the stuff used in the projects.
-  - Make a GIF of the landing page instead of a still image. 
-  - The carthesian thingy will not erase. Please fix. 
-- Make a new favicon for the website
+React + TypeScript, three.js for the 3D room, Supabase for the guestbook and analytics, and
+Vercel for hosting. Games and classic Windows programs are vendored from [98.js](https://98.js.org)
+by Isaiah Odhner and run in-browser via [js-dos](https://js-dos.com).
 
+## Credits
 
+- **Henry Heffernan** — the original room, 3D models, and desktop concept this site grew from (MIT License)
+- **Isaiah Odhner** — [98.js](https://98.js.org), the Windows 98 programs (Paint, Winamp, Pinball, and more)
+- Full list in the **Credits** app on the site itself

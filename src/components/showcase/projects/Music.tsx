@@ -44,6 +44,83 @@ import shortcut from "../../../../src/assets/pictures/projects/audio/shortcut.gi
 
 interface MusicProjectsProps {}
 
+/**
+ * Every track on this page, for the "More to hear" strip below — a way to
+ * jump straight to any of the other three without scrolling to find them.
+ * `title` has to match each <MusicPlayer>'s `title` prop exactly: that's the
+ * string MusicPlayer itself compares `currentSong` against to decide whether
+ * it's the one that should be playing (see MusicPlayer.tsx), so setting it
+ * here is what makes clicking a chip actually start that player.
+ *
+ * Deliberately an in-page element rather than a `position: fixed` panel that
+ * follows you down the page — this renders inside the showcase's own
+ * transformed window (see `useLazyMount.ts`), where `fixed` positions
+ * relative to that transform rather than the real viewport and lands in the
+ * wrong place.
+ */
+const TRACKS: { title: string; label: string }[] = [
+  { title: "Tell Them - N-Chainz (formerly Proaktive Selektor)", label: "Tell Them" },
+  { title: "N-Chainz Live DJ Set @ Quantum II", label: "Live @ Quantum II" },
+  { title: "N-Chainz Live Vinyl DJ Set @ Soundtrack Cafe", label: "Live @ Soundtrack Cafe" },
+  { title: "Byens Radio Pirate Radio Rip - Proaktiv Selektor (ca. 2013)", label: "Byens Radio Rip" },
+];
+
+const TrackJumpList: React.FC<{
+  currentSong: string;
+  setCurrentSong: React.Dispatch<React.SetStateAction<string>>;
+}> = ({ currentSong, setCurrentSong }) => (
+  <div style={trackListStyles.container}>
+    <span style={trackListStyles.label}>More to hear:</span>
+    {TRACKS.map((track) => {
+      const active = currentSong === track.title;
+      return (
+        <button
+          key={track.title}
+          type="button"
+          onClick={() => setCurrentSong(track.title)}
+          style={Object.assign(
+            {},
+            trackListStyles.chip,
+            active && trackListStyles.chipActive
+          )}
+        >
+          {active ? "▶ " : ""}
+          {track.label}
+        </button>
+      );
+    })}
+  </div>
+);
+
+const trackListStyles: { [key: string]: React.CSSProperties } = {
+  container: {
+    display: "flex",
+    flexWrap: "wrap",
+    alignItems: "center",
+    gap: "8px",
+    margin: "10px 0",
+  },
+  label: {
+    fontSize: "0.8em",
+    opacity: 0.65,
+    marginRight: "2px",
+  },
+  chip: {
+    fontSize: "0.8em",
+    padding: "4px 10px",
+    borderRadius: "999px",
+    border: "1px solid rgba(128,128,128,0.4)",
+    background: "transparent",
+    cursor: "pointer",
+    color: "inherit",
+    fontFamily: "inherit",
+  },
+  chipActive: {
+    borderColor: "currentColor",
+    fontWeight: 600,
+  },
+};
+
 // Detect platform for interaction hints
 const getIsMac = (): boolean => {
   if (typeof navigator === "undefined") return false;
@@ -308,6 +385,10 @@ const MusicProjects: React.FC<MusicProjectsProps> = () => {
         currentSong={currentSong}
         setCurrentSong={setCurrentSong}
       />
+      <TrackJumpList
+        currentSong={currentSong}
+        setCurrentSong={setCurrentSong}
+      />
 
       <br />
 
@@ -343,6 +424,10 @@ const MusicProjects: React.FC<MusicProjectsProps> = () => {
         src={ByensRadioMix}
         title="Byens Radio Pirate Radio Rip - Proaktiv Selektor (ca. 2013)"
         subtitle="From back when pirate radio was still on the FM band - [140 Bass Music]"
+        currentSong={currentSong}
+        setCurrentSong={setCurrentSong}
+      />
+      <TrackJumpList
         currentSong={currentSong}
         setCurrentSong={setCurrentSong}
       />

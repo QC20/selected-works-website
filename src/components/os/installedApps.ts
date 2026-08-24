@@ -233,6 +233,17 @@ export const STORE_APPS: StoreApp[] = [
         blurb: 'A real command line, emulated. Type HELP if you mean it.',
         size: 12,
         category: 'Accessories',
+        defaultInstalled: true,
+    },
+    {
+        key: 'secret',
+        name: 'Secret.txt',
+        // Never actually shown — Store hides this key (see Desktop.tsx) so
+        // the only way to `install` it is `konami.ts`. The blurb exists
+        // purely because StoreApp requires one.
+        blurb: 'You should not be reading this in the Store.',
+        size: 1,
+        category: 'Accessories',
         defaultInstalled: false,
     },
 ];

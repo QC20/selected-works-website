@@ -86,13 +86,17 @@ import {
     recycleBinMenu,
     shortcutMenu,
 } from './desktopMenus';
-import { isOptional, uninstall, useInstalledApps } from './installedApps';
+import { install, isOptional, uninstall, useInstalledApps } from './installedApps';
 import Screensaver, { useScreensaverSettings } from './Screensaver';
 import Snake from '../applications/Snake';
 import Tetris from '../applications/Tetris';
 import Clippy from './Clippy';
 import StartBalloon from './StartBalloon';
 import { trackEvent } from './analyticsApi';
+import Secret from '../applications/Secret';
+import { useKonamiCode } from './konami';
+import KonamiBurst from './KonamiBurst';
+import { playChime } from './sounds';
 
 // Apps whose icon launches a full-screen takeover (the 3D experience) rather
 // than opening a draggable window. Keyed by their APPLICATIONS key.
@@ -438,6 +442,16 @@ const APPLICATIONS: {
         component: Now,
     },
 
+    // Never in DESKTOP_ORDER's default-visible range and hidden from the
+    // Store (see the `hiddenKeys` passed to <Store> below) — this only ever
+    // gets an icon via `install('secret')` in the Konami code handler.
+    secret: {
+        key: 'secret',
+        name: 'Secret.txt',
+        shortcutIcon: 'notepadIcon',
+        component: Secret,
+    },
+
     howItsBuilt: {
         key: 'howItsBuilt',
         name: "How It's Built",
@@ -523,6 +537,14 @@ WIN98_PROGRAMS.forEach((program) => {
  * `visibleShortcuts` below until a visitor actually installs it, and then
  * taking the next open slot in this same column-first order.
  */
+/** Arrow-key desktop navigation's four directions, as unit vectors. */
+const ARROW_DIRECTIONS: { [key: string]: { dx: number; dy: number } } = {
+    ArrowUp: { dx: 0, dy: -1 },
+    ArrowDown: { dx: 0, dy: 1 },
+    ArrowLeft: { dx: -1, dy: 0 },
+    ArrowRight: { dx: 1, dy: 0 },
+};
+
 const DESKTOP_ORDER: string[] = [
     'showcase',
     'myComputer',
@@ -557,6 +579,7 @@ const DESKTOP_ORDER: string[] = [
     'flowerBox',
     'calculator',
     'msDos',
+    'secret',
 ];
 
 /**
@@ -647,6 +670,21 @@ const Desktop: React.FC<DesktopProps> = (props) => {
     // Screen saver settings, written by Display Properties. Subscribed rather
     // than read once, so choosing a different saver takes effect immediately.
     const screensaver = useScreensaverSettings();
+
+    // Arrow-key desktop navigation's cursor — which icon Enter would open.
+    // Not persisted: it's a keyboard session's cursor, not a setting.
+    const [focusedIconKey, setFocusedIconKey] = useState<string | null>(null);
+
+    // The Konami code's one-off reveal (see `konami.ts` / `Secret.tsx`).
+    const [konamiBurst, setKonamiBurst] = useState(false);
+    useKonamiCode(
+        useCallback(() => {
+            install('secret');
+            playChime();
+            setKonamiBurst(true);
+            openAppRef.current('secret');
+        }, [])
+    );
 
     // Whether Start has ever been opened this session. The only thing that
     // reads it is the "Click here to begin" balloon, which has then done its job.
@@ -1155,9 +1193,14 @@ const Desktop: React.FC<DesktopProps> = (props) => {
                             APPLICATIONS[target]?.shortcutIcon || 'folderIcon'
                         }
                         // Nothing should offer to install the 3D room from
-                        // inside the 3D room.
+                        // inside the 3D room. `secret` is hidden always — it
+                        // only ever gets installed from the Konami code, never
+                        // chosen here (see `konami.ts`).
                         hiddenKeys={
-                            IS_EMBEDDED_IN_CRT ? FULLSCREEN_EXPERIENCES : []
+                            (IS_EMBEDDED_IN_CRT
+                                ? FULLSCREEN_EXPERIENCES
+                                : []
+                            ).concat('secret')
                         }
                     />
                 );
@@ -1490,6 +1533,87 @@ const Desktop: React.FC<DesktopProps> = (props) => {
 
     const layout = resolveLayout(placed, bounds, pinnedIcon);
 
+    // --- Keyboard-only navigation --------------------------------------
+    //
+    // Every one of these is purely additive on top of the mouse behaviour
+    // above, not a replacement for it: nothing here changes what a click or a
+    // drag does, this only gives a keyboard the same reach.
+    const keyboardIcons = visibleShortcuts.map(({ shortcut }) => ({
+        id: shortcutId(shortcut),
+        pos: layout[shortcutId(shortcut)],
+        onOpen: shortcut.onOpen,
+    }));
+
+    useEffect(() => {
+        const onKeyDown = (e: KeyboardEvent) => {
+            // Never hijack typing — Notepad's textarea, the guestbook's
+            // input, every form on the showcase — this only acts on the
+            // desktop itself.
+            const target = e.target as HTMLElement | null;
+            const typing =
+                !!target &&
+                (target.tagName === 'INPUT' ||
+                    target.tagName === 'TEXTAREA' ||
+                    target.isContentEditable);
+
+            // Alt+Tab: always bring the window that's been out of focus the
+            // longest to the front. Repeating this steps through every open
+            // window exactly once before any of them repeat — focusing the
+            // current back of the stack pushes it to the front, which makes
+            // the *next* window back the new back of the stack, and so on.
+            if (e.altKey && e.key === 'Tab') {
+                e.preventDefault();
+                const openKeys = Object.keys(windows).sort(
+                    (a, b) => windows[a].zIndex - windows[b].zIndex
+                );
+                if (openKeys.length > 1) focusWindow(openKeys[0]);
+                return;
+            }
+
+            if (typing) return;
+
+            if (e.key === 'Enter' && focusedIconKey) {
+                keyboardIcons.find((s) => s.id === focusedIconKey)?.onOpen();
+                return;
+            }
+
+            const dir = ARROW_DIRECTIONS[e.key];
+            if (!dir || keyboardIcons.length === 0) return;
+            e.preventDefault();
+
+            setFocusedIconKey((prev) => {
+                const current =
+                    keyboardIcons.find((s) => s.id === prev) ||
+                    keyboardIcons[0];
+                if (!prev) return current.id;
+
+                // The nearest icon that's actually in the pressed direction —
+                // "along" the axis has to be positive, and among those,
+                // straight ahead beats diagonal.
+                let best: typeof keyboardIcons[number] | null = null;
+                let bestScore = Infinity;
+                for (const candidate of keyboardIcons) {
+                    if (candidate.id === current.id) continue;
+                    const dx = candidate.pos.x - current.pos.x;
+                    const dy = candidate.pos.y - current.pos.y;
+                    const along = dx * dir.dx + dy * dir.dy;
+                    if (along <= 0) continue;
+                    const across = Math.abs(dx * dir.dy - dy * dir.dx);
+                    const score = along + across * 3;
+                    if (score < bestScore) {
+                        bestScore = score;
+                        best = candidate;
+                    }
+                }
+                return best ? best.id : current.id;
+            });
+        };
+
+        window.addEventListener('keydown', onKeyDown);
+        return () => window.removeEventListener('keydown', onKeyDown);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [windows, focusWindow, keyboardIcons, focusedIconKey]);
+
     return !shutdown ? (
         <div style={styles.desktop}>
             {/* The whole 2D desktop lives on a "stage" that physically recedes
@@ -1615,6 +1739,9 @@ const Desktop: React.FC<DesktopProps> = (props) => {
                                 onContextMenu={(x, y) =>
                                     onShortcutContextMenu(shortcut, x, y)
                                 }
+                                keyboardFocused={
+                                    focusedIconKey === shortcutId(shortcut)
+                                }
                             />
                         </div>
                     );
@@ -1699,6 +1826,10 @@ const Desktop: React.FC<DesktopProps> = (props) => {
                     experienceOpen || shutdownDialogOpen || loggedOff ||
                     IS_EMBEDDED_IN_CRT
                 }
+            />
+            <KonamiBurst
+                play={konamiBurst}
+                onDone={() => setKonamiBurst(false)}
             />
             {shutdownDialogOpen && (
                 <ShutdownDialog

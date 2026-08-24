@@ -31,6 +31,17 @@ const PatchNotes: React.FC<PatchNotesProps> = ({
         bottomLeftText={`${patchNotes.length} entries — newest first`}
     >
         <div style={styles.container}>
+            <div style={styles.subscribeRow}>
+                <span>Ships here first.</span>
+                <a
+                    href="/api/feed"
+                    target="_blank"
+                    rel="noreferrer"
+                    style={styles.subscribeLink}
+                >
+                    Subscribe (RSS) →
+                </a>
+            </div>
             <div style={styles.scroll}>
                 {patchNotes.map((entry) => (
                     <div key={`${entry.head}-${entry.date}`} style={styles.entry}>
@@ -66,6 +77,20 @@ const styles: StyleSheetCSS = {
         boxSizing: 'border-box',
         padding: 8,
         background: Colors.lightGray,
+    },
+    subscribeRow: {
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        flexShrink: 0,
+        paddingBottom: 6,
+        fontFamily: 'MSSerif',
+        fontSize: 10,
+        color: Colors.darkGray,
+    },
+    subscribeLink: {
+        fontFamily: 'MSSerif',
+        fontSize: 10,
+        color: Colors.blue,
     },
     scroll: {
         display: 'flex',
