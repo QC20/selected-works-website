@@ -96,6 +96,58 @@ const START_FOLDERS: StartFolder[] = [
     },
 ];
 
+/**
+ * Start > Surprise Me.
+ *
+ * The problem this solves is real and specific: there is far more on this
+ * machine than anyone finds by clicking around, and the back half of it —
+ * the paintings, the DJ sets, the odder projects — is where most of the
+ * personality lives. One button that opens exactly one random thing is a
+ * better answer than another folder nobody opens.
+ *
+ * Deliberately weighted away from the obvious: the showcase and My Computer
+ * are not here, because those are the two things every visitor already finds.
+ */
+const SURPRISES: string[] = [
+    'television',
+    'stepOutside',
+    'jonordle',
+    'trail',
+    'doom',
+    'pinball',
+    'minesweeper',
+    'scrabble',
+    'snake',
+    'tetris',
+    'solitaire',
+    'guestbook',
+    'floating',
+    'pinPortrait',
+    'emojiHeatmap',
+    'cellularAsciimata',
+    'scroll',
+    'now',
+    'patchNotes',
+    'howItsBuilt',
+    'weatherStation',
+    'stocks',
+    'credits',
+    'winamp',
+    'paint',
+];
+
+/**
+ * One at random, never the same one twice running — a "surprise" that repeats
+ * immediately reads as broken rather than random.
+ */
+let lastSurprise = '';
+const pickSurprise = (): string => {
+    const pool = SURPRISES.filter((k) => k !== lastSurprise);
+    const key = pool[Math.floor(Math.random() * pool.length)];
+    lastSurprise = key;
+    return key;
+};
+
 export interface ToolbarProps {
     windows: DesktopWindows;
     toggleMinimize: (key: string) => void;
@@ -442,6 +494,24 @@ const Toolbar: React.FC<ToolbarProps> = ({
                                 />
                                 <p style={styles.startMenuText}>
                                     <u>G</u>ithub
+                                </p>
+                            </div>
+                            <div style={styles.startMenuLine} />
+                            <div
+                                className="start-menu-option"
+                                style={styles.startMenuOption}
+                                onMouseEnter={closeFolders}
+                                onPointerDown={chooseStartMenuItem(() =>
+                                    openApp(pickSurprise())
+                                )}
+                                title="Open something at random"
+                            >
+                                <Icon
+                                    style={styles.startMenuIcon}
+                                    icon="floatingSphere"
+                                />
+                                <p style={styles.startMenuText}>
+                                    S<u>u</u>rprise Me
                                 </p>
                             </div>
                             <div style={styles.startMenuLine} />

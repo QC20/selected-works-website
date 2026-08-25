@@ -109,6 +109,7 @@ import controlPanelFolderIcon from './controlPanelFolderIcon.png';
 import cameraIcon from './cameraIcon.png';
 import chartIcon from './chartIcon.png';
 import consolePromptIcon from './consolePromptIcon.png';
+import televisionIcon from './televisionIcon.png';
 
 const getIconByName = (
     iconName: IconName
@@ -203,6 +204,7 @@ const icons = {
     cameraIcon: cameraIcon,
     chartIcon: chartIcon,
     consolePromptIcon: consolePromptIcon,
+    televisionIcon: televisionIcon,
 };
 
 

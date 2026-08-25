@@ -37,6 +37,7 @@ import ResetStorage from '../applications/ResetStorage';
 import NetworkInfo from '../applications/NetworkInfo';
 import PowerMeter from '../applications/PowerMeter';
 import WeatherStation from '../applications/WeatherStation';
+import Television from '../applications/Television';
 import ProgramFrame from '../applications/ProgramFrame';
 import { WIN98_PROGRAMS, win98ProgramByKey } from '../applications/win98Programs';
 import { useTheme } from './theme';
@@ -88,6 +89,7 @@ import {
 } from './desktopMenus';
 import { install, isOptional, uninstall, useInstalledApps } from './installedApps';
 import Screensaver, { useScreensaverSettings } from './Screensaver';
+import { useTvPlaying } from './tvState';
 import Snake from '../applications/Snake';
 import Tetris from '../applications/Tetris';
 import Clippy from './Clippy';
@@ -488,6 +490,15 @@ const APPLICATIONS: {
         shortcutIcon: 'weatherSunIcon',
         component: WeatherStation,
     },
+
+    // The set. Deliberately an ordinary window rather than anything the
+    // desktop drops into — see the note at the top of Television.tsx.
+    television: {
+        key: 'television',
+        name: 'Television',
+        shortcutIcon: 'televisionIcon',
+        component: Television,
+    },
 };
 
 /**
@@ -561,6 +572,7 @@ const DESKTOP_ORDER: string[] = [
     'guestbook',
     'paint',
     'notepad',
+    'television',
     // Everything from here down starts uninstalled (see `installedApps.ts`,
     // `defaultInstalled: false`) — on the machine and fully working, but with
     // no desktop icon until the Store adds one. Being listed here is only
@@ -670,6 +682,12 @@ const Desktop: React.FC<DesktopProps> = (props) => {
     // Screen saver settings, written by Display Properties. Subscribed rather
     // than read once, so choosing a different saver takes effect immediately.
     const screensaver = useScreensaverSettings();
+    /**
+     * Playback is not idleness. A `<video>` running fires none of the input
+     * events `idle.ts` watches, so without this the saver cuts in over
+     * whatever the visitor is actually watching.
+     */
+    const tvPlaying = useTvPlaying();
 
     // Arrow-key desktop navigation's cursor — which icon Enter would open.
     // Not persisted: it's a keyboard session's cursor, not a setting.
@@ -1824,7 +1842,7 @@ const Desktop: React.FC<DesktopProps> = (props) => {
                 delayMinutes={screensaver.delayMinutes}
                 suspended={
                     experienceOpen || shutdownDialogOpen || loggedOff ||
-                    IS_EMBEDDED_IN_CRT
+                    IS_EMBEDDED_IN_CRT || tvPlaying
                 }
             />
             <KonamiBurst

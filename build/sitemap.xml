@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Replace https://REPLACE-WITH-YOUR-DOMAIN.com with the site's real production
+  domain before this goes live — it wasn't findable anywhere in the repo
+  (no `homepage` in package.json, no CNAME file), so this is a placeholder
+  rather than a guess. Every path below was verified to deep-link correctly:
+  a hard, fresh load of e.g. /about renders the About page inside the already
+  -open desktop window, because the showcase's <Router> reads the real
+  browser URL on mount regardless of how the page was reached.
+-->
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url>
+    <loc>https://REPLACE-WITH-YOUR-DOMAIN.com/</loc>
+    <priority>1.0</priority>
+  </url>
+  <url>
+    <loc>https://REPLACE-WITH-YOUR-DOMAIN.com/about</loc>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://REPLACE-WITH-YOUR-DOMAIN.com/experience</loc>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://REPLACE-WITH-YOUR-DOMAIN.com/experience/papers</loc>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://REPLACE-WITH-YOUR-DOMAIN.com/experience/practitioner-articles</loc>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://REPLACE-WITH-YOUR-DOMAIN.com/projects</loc>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://REPLACE-WITH-YOUR-DOMAIN.com/projects/software</loc>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://REPLACE-WITH-YOUR-DOMAIN.com/projects/music</loc>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://REPLACE-WITH-YOUR-DOMAIN.com/projects/art</loc>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://REPLACE-WITH-YOUR-DOMAIN.com/contact</loc>
+    <priority>0.6</priority>
+  </url>
+</urlset>
