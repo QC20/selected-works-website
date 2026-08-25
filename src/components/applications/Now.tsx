@@ -13,11 +13,22 @@ import Colors from '../../constants/colors';
  * page at all.
  */
 
-const LAST_UPDATED = '2026-08-16';
+const LAST_UPDATED = '2026-08-25';
 
+/**
+ * Everything here is deliberately checkable against something else on this
+ * machine — a paper on the Experience page, a project in Projects, an entry in
+ * Patch Notes. A now page that drifts from the rest of the site is worse than
+ * none, so when one of these stops being true, change it here and check the
+ * page it points at still agrees.
+ */
 const NOW_TEXT = [
-    "Mid-PhD at Copenhagen Business School, looking at how AI reshapes managerial work and well-being — see the Papers app, or the manuscript on the Experience page, for where that's currently at.",
-    "Still adding to this desktop between other things — Patch Notes (also in this folder) has the real, dated list of what's shipped recently.",
+    "Mid-PhD at the Technical University of Denmark (DTU), looking at how AI reshapes managerial work and well-being \u2014 who absorbs the disruption, what it does to decision-making, and how organisations might handle it more thoughtfully. The Experience page has the published work; the manuscript in progress is listed there too.",
+    "Before DTU: an HCI degree at the University of Copenhagen, plus PhD and elective coursework at Copenhagen Business School in 2021 and 2022. The Experience page lists which courses, if you are the sort of person who checks.",
+    "Published work so far has landed at ACM CHI, GROUP and CUI, alongside practitioner writing aimed at people who have to actually use this stuff rather than cite it.",
+    "Still building things that are not papers: an eye-tracking study run on twelve real participants, a game designed to be played by blind players, and a Tetris that runs on a microwave display. Those live under Projects \u2014 Software and Art.",
+    "Outside the research: oil on canvas, self-taught, the newest one about two metres square; and five years of DJ sets with a Copenhagen collective. Both are in Projects rather than hidden away, because they are not a footnote to the rest of it.",
+    "This desktop is the ongoing side project. Patch Notes, also in this folder, is the real dated list of what has shipped \u2014 most recently a working television with fifteen channels of archive footage.",
 ];
 
 export interface NowProps extends WindowAppProps {}

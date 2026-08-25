@@ -49,6 +49,14 @@ export interface StoreApp {
 
 export const STORE_APPS: StoreApp[] = [
     {
+        key: 'statistics',
+        name: 'Statistics',
+        blurb: 'What this desktop has seen. Mostly your own doing.',
+        size: 64,
+        category: 'Accessories',
+        defaultInstalled: false,
+    },
+    {
         key: 'television',
         name: 'Television',
         blurb: 'Fifteen channels of it, streamed from the Internet Archive.',

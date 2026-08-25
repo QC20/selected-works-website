@@ -38,6 +38,7 @@ import NetworkInfo from '../applications/NetworkInfo';
 import PowerMeter from '../applications/PowerMeter';
 import WeatherStation from '../applications/WeatherStation';
 import Television from '../applications/Television';
+import Statistics from '../applications/Statistics';
 import ProgramFrame from '../applications/ProgramFrame';
 import { WIN98_PROGRAMS, win98ProgramByKey } from '../applications/win98Programs';
 import { useTheme } from './theme';
@@ -95,6 +96,7 @@ import Tetris from '../applications/Tetris';
 import Clippy from './Clippy';
 import StartBalloon from './StartBalloon';
 import { trackEvent } from './analyticsApi';
+import { noteApp, noteSession } from './usageStats';
 import Secret from '../applications/Secret';
 import { useKonamiCode } from './konami';
 import KonamiBurst from './KonamiBurst';
@@ -499,6 +501,15 @@ const APPLICATIONS: {
         shortcutIcon: 'televisionIcon',
         component: Television,
     },
+
+    // The window behind the tray's hit counter. Utility and Control Panel
+    // both list it; it has no desktop icon by default.
+    statistics: {
+        key: 'statistics',
+        name: 'Statistics',
+        shortcutIcon: 'visitorCounterIcon',
+        component: Statistics,
+    },
 };
 
 /**
@@ -563,6 +574,9 @@ const DESKTOP_ORDER: string[] = [
     'doom',
     'pinball',
     'store',
+    // MS-DOS sits here rather than down with the other Accessories so the
+    // first column runs one row longer, which is where it reads best.
+    'msDos',
     'about',
     'recycleBin',
     'floating',
@@ -590,8 +604,8 @@ const DESKTOP_ORDER: string[] = [
     'pipes',
     'flowerBox',
     'calculator',
-    'msDos',
     'secret',
+    'statistics',
 ];
 
 /**
@@ -681,6 +695,11 @@ const Desktop: React.FC<DesktopProps> = (props) => {
 
     // Screen saver settings, written by Display Properties. Subscribed rather
     // than read once, so choosing a different saver takes effect immediately.
+    // One per tab, same rule the hit counter uses — see usageStats.ts.
+    useEffect(() => {
+        noteSession();
+    }, []);
+
     const screensaver = useScreensaverSettings();
     /**
      * Playback is not idleness. A `<video>` running fires none of the input
@@ -1126,6 +1145,8 @@ const Desktop: React.FC<DesktopProps> = (props) => {
             if (!app) return;
 
             trackEvent('app_open', app.key);
+            // Local tally for the Statistics window; never leaves the browser.
+            noteApp(app.key);
 
             if (FULLSCREEN_EXPERIENCES.includes(app.key)) {
                 setExperienceOpen(true);
@@ -1262,6 +1283,42 @@ const Desktop: React.FC<DesktopProps> = (props) => {
 
             // Every web address on this desktop lands in the same browser
             // window (see IE_WINDOW_KEY). If it's already open we navigate it;
+            // An address that isn't a `websites.ts` entry — see LaunchOptions.
+            // Handled before the site lookup so it can reuse the same single
+            // browser window rather than opening a second one.
+            if (app.key === IE_WINDOW_KEY && options?.url) {
+                const adHoc = options.url;
+                if (windowsRef.current[IE_WINDOW_KEY]) {
+                    setIeNav((prev) => ({
+                        url: adHoc,
+                        seq: (prev?.seq ?? 0) + 1,
+                    }));
+                    focusWindow(IE_WINDOW_KEY);
+                    return;
+                }
+                const adHocOpening: NavRequest = { url: adHoc, seq: 0 };
+                setIeNav(adHocOpening);
+                addWindow(
+                    IE_WINDOW_KEY,
+                    <WebFrame
+                        {...shared}
+                        key={IE_WINDOW_KEY}
+                        url={adHoc}
+                        width={860}
+                        height={620}
+                        top={44}
+                        left={80}
+                        windowBarIcon="internetExplorerIcon"
+                        navRequest={adHocOpening}
+                    />,
+                    {
+                        name: options.label ?? 'Internet Explorer',
+                        icon: 'internetExplorerIcon',
+                    }
+                );
+                return;
+            }
+
             // only the first site of the session actually opens a window.
             const site = siteByKey(app.key);
             if (site) {

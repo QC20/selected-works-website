@@ -50,11 +50,25 @@ function bumpLocal(): number {
 }
 
 /**
+ * Whether the number last handed out was the shared total or this browser's
+ * own tally. The Statistics window says which, because claiming a local count
+ * is a site-wide total would be a lie, and showing nothing at all reads as
+ * broken.
+ */
+let shared = false;
+export const countIsShared = (): boolean => shared;
+
+/**
  * Returns this visit's number, incrementing the shared total the first time
  * it's called in a given tab and reusing that same number for the rest of the
- * session after that. Returns `null` only if a remote call was attempted and
- * failed outright (no Supabase configured still resolves, from the local
- * fallback).
+ * session after that.
+ *
+ * A configured-but-unreachable counter falls back to the local tally rather
+ * than returning null. That case is not hypothetical: if `site_visits.sql` has
+ * never been run against the project, the RPC 404s (`PGRST202`) on every
+ * single call, and the old behaviour was a permanently blank odometer with no
+ * hint as to why. A number that is honestly labelled "this browser" is better
+ * than six dashes.
  */
 export async function getVisitCount(): Promise<number | null> {
     const cached = readSessionCache();
@@ -62,6 +76,7 @@ export async function getVisitCount(): Promise<number | null> {
 
     if (!isRemote) {
         const count = bumpLocal();
+        shared = false;
         writeSessionCache(count);
         return count;
     }
@@ -78,9 +93,15 @@ export async function getVisitCount(): Promise<number | null> {
         });
         if (!res.ok) throw new Error(`Count failed (${res.status})`);
         const count = (await res.json()) as number;
+        shared = true;
         writeSessionCache(count);
         return count;
     } catch {
-        return null;
+        // Reachable project, missing function, offline visitor — all the same
+        // from here. Fall back rather than show a dead counter.
+        const count = bumpLocal();
+        shared = false;
+        writeSessionCache(count);
+        return count;
     }
 }

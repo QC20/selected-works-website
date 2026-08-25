@@ -5,6 +5,7 @@ import { IconName } from '../../assets/icons';
 import { Resolution, RESOLUTIONS, scaleFor } from './resolution';
 import { TASKBAR_HEIGHT } from './metrics';
 import StockTicker from './StockTicker';
+import { randomProject } from './githubProjects';
 import WeatherPanel from './WeatherPanel';
 import {
     BatteryGauge,
@@ -514,6 +515,31 @@ const Toolbar: React.FC<ToolbarProps> = ({
                                     S<u>u</u>rprise Me
                                 </p>
                             </div>
+                            <div
+                                className="start-menu-option"
+                                style={styles.startMenuOption}
+                                onMouseEnter={closeFolders}
+                                // Opens inside the browser window rather than a
+                                // real tab: these are all GitHub Pages, they
+                                // frame cleanly, and the point is to show the
+                                // work off without ejecting anyone from the site.
+                                onPointerDown={chooseStartMenuItem(() => {
+                                    const project = randomProject();
+                                    openApp('internet', {
+                                        url: project.url,
+                                        label: project.name,
+                                    });
+                                })}
+                                title="Open one of Jonas' project pages at random"
+                            >
+                                <Icon
+                                    style={styles.startMenuIcon}
+                                    icon="githubIcon"
+                                />
+                                <p style={styles.startMenuText}>
+                                    Surprise Me — <u>G</u>itHub
+                                </p>
+                            </div>
                             <div style={styles.startMenuLine} />
                             <div
                                 className="start-menu-option"
@@ -703,7 +729,14 @@ const Toolbar: React.FC<ToolbarProps> = ({
                         connectedFor={connectedFor}
                     />
                     <CalendarPanel open={calendarOpen} />
-                    <VisitorCounterPanel open={visitsOpen} count={visitCount} />
+                    <VisitorCounterPanel
+                        open={visitsOpen}
+                        count={visitCount}
+                        onOpenApp={() => {
+                            setVisitsOpen(false);
+                            openApp('statistics');
+                        }}
+                    />
 
                     {/* Clippy's paperclip: summons him, or sends him away. */}
                     <div
@@ -746,15 +779,11 @@ const Toolbar: React.FC<ToolbarProps> = ({
 
                     <div
                         style={styles.trayIconWrap}
-                        title={
-                            visitCount === null
-                                ? 'Visitor counter'
-                                : `Visitor #${visitCount.toLocaleString()}`
-                        }
+                        title="Statistics — click for visitor figures"
                         data-open={visitsOpen}
                         onPointerDown={trayToggle(setVisitsOpen)}
                     >
-                        <Icon icon="chartIcon" size={18} />
+                        <Icon icon="visitorCounterIcon" size={18} />
                     </div>
 
                     {/* Dial-Up Networking's connection status. */}

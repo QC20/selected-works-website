@@ -271,6 +271,14 @@ const CONTENTS: { [key in FolderId]: Entry[] } = {
             launch: 'howItsBuilt',
         },
         {
+            key: 'statistics',
+            label: 'Statistics',
+            icon: 'visitorCounterIcon',
+            size: 64,
+            type: 'Application',
+            launch: 'statistics',
+        },
+        {
             key: 'resetStorage',
             label: 'Reset Storage',
             icon: 'resetStorageIcon',
@@ -311,6 +319,25 @@ const CONTENTS: { [key in FolderId]: Entry[] } = {
     // never explained. "Add/Remove Programs" is this machine's Store under
     // its official Windows name.
     controlPanel: [
+        {
+            key: 'statistics',
+            label: 'Statistics',
+            icon: 'visitorCounterIcon',
+            size: 64,
+            type: 'Application',
+            launch: 'statistics',
+        },
+        {
+            // Also lives in Utility. A real Control Panel is exactly where you
+            // would look for the thing that wipes the machine, so it is in
+            // both places rather than only the tidier one.
+            key: 'resetStorage',
+            label: 'Reset Storage',
+            icon: 'resetStorageIcon',
+            size: 20,
+            type: 'Application',
+            launch: 'resetStorage',
+        },
         {
             key: 'settings',
             label: 'Display',

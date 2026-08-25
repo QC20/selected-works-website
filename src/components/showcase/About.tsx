@@ -206,8 +206,8 @@ const About: React.FC<AboutProps> = (props) => {
               them in practice, the most pressing place to apply that is where
               these systems are landing with the most force: in organisations,
               and particularly in the daily work of managers. My PhD at the{" "}
-              <Link to="https://www.cbs.dk/" target="_blank">
-                Copenhagen Business School
+              <Link to="https://www.dtu.dk/" target="_blank">
+                Technical University of Denmark (DTU)
               </Link>{" "}
               follows that thread directly, investigating how AI is
               restructuring managerial work, what it does to well-being and

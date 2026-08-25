@@ -110,6 +110,7 @@ import cameraIcon from './cameraIcon.png';
 import chartIcon from './chartIcon.png';
 import consolePromptIcon from './consolePromptIcon.png';
 import televisionIcon from './televisionIcon.png';
+import visitorCounterIcon from './visitorCounterIcon.png';
 
 const getIconByName = (
     iconName: IconName
@@ -205,6 +206,7 @@ const icons = {
     chartIcon: chartIcon,
     consolePromptIcon: consolePromptIcon,
     televisionIcon: televisionIcon,
+    visitorCounterIcon: visitorCounterIcon,
 };
 
 

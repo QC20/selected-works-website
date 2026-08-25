@@ -90,6 +90,22 @@ export const TEST_CARD_CHANNEL: Channel = {
     kind: 'testCard',
 };
 
+/**
+ * The five channels below are a deliberate exception to the "curated
+ * collections only" rule at the top of this file, and it is worth being
+ * explicit about why.
+ *
+ * Tom and Jerry, Cartoon Network and the Disney shorts do not exist in any
+ * curated collection on the Archive — they are all uploads to the open pool.
+ * The mitigation is that these queries are pinned to a *subject*, not to a
+ * popularity sort over an open collection, which is what made VHS Vault
+ * unusable: asking for "tom and jerry" returns Tom and Jerry. `DENIED` still
+ * runs over every title, and the 1999 ceiling still applies.
+ *
+ * The honest summary: channels 3-16 are curated and safe by construction;
+ * 17-21 are filtered rather than curated. If anything ever does slip through,
+ * this is the block it came from.
+ */
 export const CHANNELS: Channel[] = [
     TEST_CARD_CHANNEL,
     {
@@ -210,6 +226,53 @@ export const CHANNELS: Channel[] = [
         tagline: 'Wash your hands. There is a film about it.',
         query: 'collection:"educationalfilms" AND (subject:health OR subject:hygiene OR subject:medicine)',
         fallback: [{ id: 'Sleepfor1950', title: 'Sleep for Health', year: 1950 }],
+    },
+
+    {
+        number: 17,
+        name: 'Tom & Jerry',
+        tagline: 'The cat has never once won and keeps trying.',
+        query: 'mediatype:movies AND (title:"tom and jerry" OR subject:"tom and jerry") AND NOT title:"magic ring"',
+        fallback: [
+            { id: 'TomAndJerry-TheMidnightSnack', title: 'The Midnight Snack', year: 1941 },
+        ],
+    },
+    {
+        number: 18,
+        name: 'Cartoon Network',
+        tagline: 'Bumpers, promos and whatever was on between them.',
+        query: 'mediatype:movies AND (title:"cartoon network" OR subject:"cartoon network") AND year:[1992 TO 1999]',
+        fallback: [
+            { id: 'cartoon-network-1997-promos', title: 'Cartoon Network Promo Break', year: 1997 },
+        ],
+    },
+    {
+        number: 19,
+        name: 'Disney Classics',
+        tagline: 'Silly Symphonies and the early shorts.',
+        query: 'mediatype:movies AND (subject:"walt disney" OR title:"silly symphon") AND year:[1920 TO 1960]',
+        fallback: [
+            { id: 'the_big_bad_wolf', title: 'The Big Bad Wolf' },
+            { id: 'SteamboatWillie', title: 'Steamboat Willie', year: 1928 },
+        ],
+    },
+    {
+        number: 20,
+        name: 'Evening News',
+        tagline: 'Nightly bulletins, from wherever the tape came from.',
+        query: 'mediatype:movies AND (title:"evening news" OR title:"nightly news" OR title:"news at") AND year:[1985 TO 1999]',
+        fallback: [
+            { id: 'wews-abc-news-brief-04-07-1991', title: 'WEWS ABC News Brief', year: 1991 },
+        ],
+    },
+    {
+        number: 21,
+        name: 'Newsreel',
+        tagline: 'Before television did the news, this did.',
+        query: 'collection:"universal_newsreels" AND mediatype:movies',
+        fallback: [
+            { id: 'universal_newsreels_1945', title: 'Universal Newsreel', year: 1945 },
+        ],
     },
 ];
 

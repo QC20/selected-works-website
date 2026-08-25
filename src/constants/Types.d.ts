@@ -18,6 +18,14 @@ declare interface LaunchOptions {
     symbol?: string;
     /** Market Watch: a company name to look up on open. */
     query?: string;
+    /**
+     * Internet Explorer: an address that isn't in `websites.ts`. Start >
+     * Surprise Me (GitHub) uses this to send the browser to one of Jonas'
+     * project pages without every one of them needing a Favorites entry.
+     */
+    url?: string;
+    /** The name the taskbar button shows for that address. */
+    label?: string;
 }
 
 declare type DesktopWindows = {

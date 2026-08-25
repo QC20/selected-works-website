@@ -63,7 +63,9 @@ const GuestbookTicker: React.FC = () => {
 
 const styles: StyleSheetCSS = {
   ticker: {
-    marginTop: 24,
+    // A full line clear of the nav above it. At 24 the descenders of a
+    // long entry could ride up into the display face of the name.
+    marginTop: 48,
     fontSize: 13,
     textAlign: "center",
     maxWidth: 520,

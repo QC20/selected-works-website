@@ -274,7 +274,9 @@ export const CalendarPanel: React.FC<{ open: boolean }> = ({ open }) => {
 export const VisitorCounterPanel: React.FC<{
     open: boolean;
     count: number | null;
-}> = ({ open, count }) => {
+    /** Opens the full Statistics window, the way the ticker opens Market Watch. */
+    onOpenApp?: () => void;
+}> = ({ open, count, onOpenApp }) => {
     if (!open) return null;
     const digits =
         count === null ? null : String(count).padStart(6, '0').split('');
@@ -282,7 +284,7 @@ export const VisitorCounterPanel: React.FC<{
     return (
         <div style={styles.panel}>
             <div style={styles.header}>
-                <Icon icon="chartIcon" size={16} />
+                <Icon icon="visitorCounterIcon" size={16} />
                 <span style={styles.title}>Visitor Counter</span>
             </div>
 
@@ -299,11 +301,38 @@ export const VisitorCounterPanel: React.FC<{
                     ? "Couldn't reach the counter this time."
                     : `You're visit number ${count.toLocaleString()} on this desktop.`}
             </p>
+
+            {onOpenApp && (
+                <button
+                    type="button"
+                    style={counterStyles.more}
+                    onPointerDown={(e) => {
+                        e.stopPropagation();
+                        onOpenApp();
+                    }}
+                >
+                    Statistics...
+                </button>
+            )}
         </div>
     );
 };
 
 const counterStyles: StyleSheetCSS = {
+    more: {
+        display: 'flex',
+        justifyContent: 'center',
+        alignSelf: 'stretch',
+        padding: '3px 8px',
+        cursor: 'pointer',
+        fontFamily: 'MSSerif',
+        fontSize: 11,
+        color: Colors.black,
+        background: Colors.lightGray,
+        border: `2px solid ${Colors.white}`,
+        borderRightColor: Colors.darkGray,
+        borderBottomColor: Colors.darkGray,
+    },
     odometer: {
         alignSelf: 'stretch',
         justifyContent: 'center',

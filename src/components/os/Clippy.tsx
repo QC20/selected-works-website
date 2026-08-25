@@ -115,7 +115,7 @@ const LINES: Line[] = [
         showcase: true,
     },
     {
-        text: 'His PhD at Copenhagen Business School is about what AI is doing to managers — the people expected to absorb it on everyone else\'s behalf.',
+        text: 'His PhD at the Technical University of Denmark is about what AI is doing to managers — the people expected to absorb it on everyone else\'s behalf.',
         animation: clippy1,
         route: '/about',
         action: 'Tell me about Jonas',
@@ -338,14 +338,37 @@ const SHOWCASE_TIER3: Line[] = [
     },
 ];
 
-const DISMISSED_KEY = 'clippy.dismissed.v1';
+/**
+ * Sending him away used to be permanent, which turned out to be a bug wearing
+ * a feature's clothes: one idle click on "Go away", months ago, and Clippy was
+ * gone for good on that browser with nothing to suggest he had ever existed.
+ * Since he is the main thing pointing visitors at the parts of this site they
+ * would otherwise never find, permanent is the wrong default.
+ *
+ * So the dismissal now expires. "Go away" means *today*, not forever, and the
+ * tray paperclip still brings him back instantly. The key is versioned to v2
+ * precisely so every already-stored permanent dismissal is ignored — anyone
+ * who lost him under the old rule gets him back on their next visit.
+ */
+const DISMISSED_KEY = 'clippy.dismissed.v2';
+
+/** How long "Go away" lasts before he is allowed to speak again. */
+const DISMISS_MS = 24 * 60 * 60 * 1000;
 
 let dismissed: boolean = loadDismissed();
 const listeners = new Set<() => void>();
 
 function loadDismissed(): boolean {
     try {
-        return localStorage.getItem(DISMISSED_KEY) === '1';
+        const raw = localStorage.getItem(DISMISSED_KEY);
+        if (!raw) return false;
+        const until = Number(raw);
+        if (!Number.isFinite(until)) return false;
+        if (Date.now() >= until) {
+            localStorage.removeItem(DISMISSED_KEY);
+            return false;
+        }
+        return true;
     } catch {
         return false;
     }
@@ -354,7 +377,11 @@ function loadDismissed(): boolean {
 function setDismissed(next: boolean): void {
     dismissed = next;
     try {
-        localStorage.setItem(DISMISSED_KEY, next ? '1' : '0');
+        if (next) {
+            localStorage.setItem(DISMISSED_KEY, String(Date.now() + DISMISS_MS));
+        } else {
+            localStorage.removeItem(DISMISSED_KEY);
+        }
     } catch {
         /* storage disabled — the choice just won't survive a reload */
     }
