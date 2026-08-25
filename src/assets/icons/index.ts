@@ -111,6 +111,10 @@ import chartIcon from './chartIcon.png';
 import consolePromptIcon from './consolePromptIcon.png';
 import televisionIcon from './televisionIcon.png';
 import visitorCounterIcon from './visitorCounterIcon.png';
+import petModemIcon from './petModemIcon.png';
+import petGlitchIcon from './petGlitchIcon.png';
+import petStaticIcon from './petStaticIcon.png';
+import petPixelIcon from './petPixelIcon.png';
 
 const getIconByName = (
     iconName: IconName
@@ -207,6 +211,10 @@ const icons = {
     consolePromptIcon: consolePromptIcon,
     televisionIcon: televisionIcon,
     visitorCounterIcon: visitorCounterIcon,
+    petModemIcon: petModemIcon,
+    petGlitchIcon: petGlitchIcon,
+    petStaticIcon: petStaticIcon,
+    petPixelIcon: petPixelIcon,
 };
 
 

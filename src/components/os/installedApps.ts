@@ -49,6 +49,14 @@ export interface StoreApp {
 
 export const STORE_APPS: StoreApp[] = [
     {
+        key: 'pet',
+        name: 'Pet',
+        blurb: 'Something is living on this machine. Feed it.',
+        size: 340,
+        category: 'Accessories',
+        defaultInstalled: true,
+    },
+    {
         key: 'statistics',
         name: 'Statistics',
         blurb: 'What this desktop has seen. Mostly your own doing.',

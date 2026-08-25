@@ -8,6 +8,7 @@ import {
     useBattery,
 } from './battery';
 import { Connection, useConnection, usePublicIP } from './network';
+import { PetDef, PetMood, computeMood, contentment, feedPet, pettPet } from './pets';
 
 /**
  * The small panels behind the tray icons: battery, the connection, and the
@@ -352,6 +353,147 @@ const counterStyles: StyleSheetCSS = {
         background: '#000',
         width: 15,
         textAlign: 'center',
+    },
+};
+
+
+/* -------------------------------------------------------------------------
+ * Pet
+ * ---------------------------------------------------------------------- */
+
+const MOOD_DOT: Record<PetMood, string> = {
+    excited: '#39d15a',
+    content: '#2e7d32',
+    hungry: '#e0a800',
+    starving: '#c0392b',
+};
+
+const MOOD_WORD: Record<PetMood, string> = {
+    excited: 'excited',
+    content: 'content',
+    hungry: 'getting hungry',
+    starving: 'very hungry',
+};
+
+/** The tray icon: the pet's own icon plus a small mood dot, the same idea as
+ *  the battery's charging bolt. */
+export const PetGauge: React.FC<{ pet: PetDef; mood: PetMood }> = ({
+    pet,
+    mood,
+}) => (
+    <div style={petStyles.gaugeWrap}>
+        <Icon icon={pet.icon} size={18} />
+        <span
+            style={{ ...petStyles.dot, background: MOOD_DOT[mood] }}
+            aria-hidden="true"
+        />
+    </div>
+);
+
+export const PetPanel: React.FC<{
+    open: boolean;
+    pet: PetDef;
+    mood: PetMood;
+    level: number;
+    onOpenApp?: () => void;
+}> = ({ open, pet, mood, level, onOpenApp }) => {
+    if (!open) return null;
+    return (
+        <div style={styles.panel}>
+            <div style={styles.header}>
+                <Icon icon={pet.icon} size={16} />
+                <span style={styles.title}>{pet.name}</span>
+            </div>
+
+            <div style={petStyles.meter}>
+                {Array.from({ length: 20 }, (_, i) => (
+                    <span
+                        key={i}
+                        style={{
+                            ...petStyles.meterCell,
+                            ...(i < Math.round((level / 100) * 20)
+                                ? { background: MOOD_DOT[mood] }
+                                : null),
+                        }}
+                    />
+                ))}
+            </div>
+
+            <p style={styles.note}>
+                {pet.name} is {MOOD_WORD[mood]}.
+            </p>
+
+            <div style={petStyles.actions}>
+                <button
+                    type="button"
+                    style={petStyles.actionButton}
+                    onPointerDown={(e) => {
+                        e.stopPropagation();
+                        feedPet();
+                    }}
+                >
+                    Feed
+                </button>
+                <button
+                    type="button"
+                    style={petStyles.actionButton}
+                    onPointerDown={(e) => {
+                        e.stopPropagation();
+                        pettPet();
+                    }}
+                >
+                    Pat
+                </button>
+            </div>
+
+            {onOpenApp && (
+                <button
+                    type="button"
+                    style={counterStyles.more}
+                    onPointerDown={(e) => {
+                        e.stopPropagation();
+                        onOpenApp();
+                    }}
+                >
+                    Open {pet.name}...
+                </button>
+            )}
+        </div>
+    );
+};
+
+const petStyles: StyleSheetCSS = {
+    gaugeWrap: { position: 'relative' },
+    dot: {
+        position: 'absolute',
+        right: -1,
+        bottom: -1,
+        width: 6,
+        height: 6,
+        borderRadius: '50%',
+        border: '1px solid #000',
+    },
+    meter: {
+        alignSelf: 'stretch',
+        flexDirection: 'row',
+        gap: 1,
+        padding: 2,
+        background: Colors.white,
+        border: `1px solid ${Colors.darkGray}`,
+    },
+    meterCell: { flex: 1, height: 12, background: Colors.lightGray },
+    actions: { flexDirection: 'row', gap: 6, alignSelf: 'stretch' },
+    actionButton: {
+        flex: 1,
+        padding: '3px 6px',
+        cursor: 'pointer',
+        fontFamily: 'MSSerif',
+        fontSize: 11,
+        color: Colors.black,
+        background: Colors.lightGray,
+        border: `2px solid ${Colors.white}`,
+        borderRightColor: Colors.darkGray,
+        borderBottomColor: Colors.darkGray,
     },
 };
 

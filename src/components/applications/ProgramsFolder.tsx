@@ -35,6 +35,13 @@ export interface FolderItem {
  */
 const NATIVE_PROGRAMS: FolderItem[] = [
     {
+        key: 'pet',
+        name: 'Pet',
+        icon: 'petModemIcon',
+        size: 340,
+        type: 'Application',
+    },
+    {
         key: 'television',
         name: 'Television',
         icon: 'televisionIcon',

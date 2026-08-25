@@ -6,6 +6,8 @@ import { Resolution, RESOLUTIONS, scaleFor } from './resolution';
 import { TASKBAR_HEIGHT } from './metrics';
 import StockTicker from './StockTicker';
 import { randomProject } from './githubProjects';
+import { PetGauge, PetPanel } from './TrayPanels';
+import { PET_LIST, computeMood, contentment, usePetState } from './pets';
 import WeatherPanel from './WeatherPanel';
 import {
     BatteryGauge,
@@ -180,7 +182,9 @@ const Toolbar: React.FC<ToolbarProps> = ({
     const [connectionOpen, setConnectionOpen] = useState(false);
     const [calendarOpen, setCalendarOpen] = useState(false);
     const [visitsOpen, setVisitsOpen] = useState(false);
+    const [petOpen, setPetOpen] = useState(false);
 
+    const petState = usePetState();
     const battery = useBattery();
     const connection = useConnection();
     const muted = useMuted();
@@ -723,6 +727,18 @@ const Toolbar: React.FC<ToolbarProps> = ({
                         }}
                     />
                     <BatteryPanel open={batteryOpen} state={battery} />
+                    {petState.species && (
+                        <PetPanel
+                            open={petOpen}
+                            pet={PET_LIST.find((p) => p.id === petState.species)!}
+                            mood={computeMood(petState)}
+                            level={contentment(petState)}
+                            onOpenApp={() => {
+                                setPetOpen(false);
+                                openApp('pet');
+                            }}
+                        />
+                    )}
                     <ConnectionPanel
                         open={connectionOpen}
                         connection={connection}
@@ -814,6 +830,27 @@ const Toolbar: React.FC<ToolbarProps> = ({
                             onPointerDown={trayToggle(setBatteryOpen)}
                         >
                             <BatteryGauge state={battery} />
+                        </div>
+                    )}
+
+                    {/* Only once a pet has actually been adopted — see Pet.tsx. */}
+                    {petState.species && (
+                        <div
+                            style={styles.trayIconWrap}
+                            title={`${
+                                PET_LIST.find((p) => p.id === petState.species)!.name
+                            } is ${
+                                { excited: 'excited', content: 'content', hungry: 'getting hungry', starving: 'very hungry' }[
+                                    computeMood(petState)
+                                ]
+                            } — click to feed or pat`}
+                            data-open={petOpen}
+                            onPointerDown={trayToggle(setPetOpen)}
+                        >
+                            <PetGauge
+                                pet={PET_LIST.find((p) => p.id === petState.species)!}
+                                mood={computeMood(petState)}
+                            />
                         </div>
                     )}
 

@@ -39,6 +39,7 @@ import PowerMeter from '../applications/PowerMeter';
 import WeatherStation from '../applications/WeatherStation';
 import Television from '../applications/Television';
 import Statistics from '../applications/Statistics';
+import Pet from '../applications/Pet';
 import ProgramFrame from '../applications/ProgramFrame';
 import { WIN98_PROGRAMS, win98ProgramByKey } from '../applications/win98Programs';
 import { useTheme } from './theme';
@@ -97,6 +98,9 @@ import Clippy from './Clippy';
 import StartBalloon from './StartBalloon';
 import { trackEvent } from './analyticsApi';
 import { noteApp, noteSession } from './usageStats';
+import { feedPet, noteSessionForPet, noticeAppOpenedForPet, PETS } from './pets';
+import { registerOpenApp } from './appBridge';
+import { clippySay, randomClippy } from './Clippy';
 import Secret from '../applications/Secret';
 import { useKonamiCode } from './konami';
 import KonamiBurst from './KonamiBurst';
@@ -510,6 +514,16 @@ const APPLICATIONS: {
         shortcutIcon: 'visitorCounterIcon',
         component: Statistics,
     },
+
+    // Chooser + dashboard for whichever animal has been adopted, if any.
+    // Its tray presence (PetGauge/PetPanel in Toolbar.tsx) only appears once
+    // a pet exists — see pets.ts.
+    pet: {
+        key: 'pet',
+        name: 'Pet',
+        shortcutIcon: 'petModemIcon',
+        component: Pet,
+    },
 };
 
 /**
@@ -587,6 +601,7 @@ const DESKTOP_ORDER: string[] = [
     'paint',
     'notepad',
     'television',
+    'pet',
     // Everything from here down starts uninstalled (see `installedApps.ts`,
     // `defaultInstalled: false`) — on the machine and fully working, but with
     // no desktop icon until the Store adds one. Being listed here is only
@@ -693,13 +708,46 @@ const Desktop: React.FC<DesktopProps> = (props) => {
         items: ContextMenuItem[];
     } | null>(null);
 
-    // Screen saver settings, written by Display Properties. Subscribed rather
-    // than read once, so choosing a different saver takes effect immediately.
     // One per tab, same rule the hit counter uses — see usageStats.ts.
     useEffect(() => {
         noteSession();
     }, []);
 
+    // If a pet exists and it's been a long while, greet it through Clippy
+    // rather than inventing a second floating-bubble component for one
+    // message — see the long comment on noteSessionForPet in pets.ts. A short
+    // delay so this isn't the very first thing slamming into the screen
+    // before a visitor has even seen the desktop.
+    useEffect(() => {
+        const { returned, pet } = noteSessionForPet();
+        if (!returned || !pet) return;
+        const line = pet.welcomeBackLines[
+            Math.floor(Math.random() * pet.welcomeBackLines.length)
+        ];
+        const timer = window.setTimeout(() => {
+            clippySay({
+                text: line,
+                animation: randomClippy(),
+                // A direct feed rather than a trip through the Pet window —
+                // the point of this message is a one-click "there, done",
+                // not making someone open another app just to press the same
+                // button again.
+                buttons: [
+                    {
+                        label: `Feed ${pet.name}`,
+                        primary: true,
+                        onClick: () => feedPet(),
+                    },
+                    { label: 'Not now', onClick: () => {} },
+                ],
+            });
+        }, 4000);
+        return () => window.clearTimeout(timer);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
+
+    // Screen saver settings, written by Display Properties. Subscribed rather
+    // than read once, so choosing a different saver takes effect immediately.
     const screensaver = useScreensaverSettings();
     /**
      * Playback is not idleness. A `<video>` running fires none of the input
@@ -1147,6 +1195,8 @@ const Desktop: React.FC<DesktopProps> = (props) => {
             trackEvent('app_open', app.key);
             // Local tally for the Statistics window; never leaves the browser.
             noteApp(app.key);
+            // A pet, if one has been adopted, perks up whenever anything opens.
+            noticeAppOpenedForPet();
 
             if (FULLSCREEN_EXPERIENCES.includes(app.key)) {
                 setExperienceOpen(true);
@@ -1379,6 +1429,14 @@ const Desktop: React.FC<DesktopProps> = (props) => {
     );
 
     openAppRef.current = openApp;
+
+    // Lets modules outside this tree (the pet store, Clippy's check-in
+    // buttons) open an app without a prop threaded all the way down — see
+    // appBridge.ts.
+    useEffect(() => {
+        registerOpenApp(openApp);
+        return () => registerOpenApp(null);
+    }, [openApp]);
 
     /**
      * Opens any image in the picture viewer — used both by desktop file icons

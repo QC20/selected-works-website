@@ -42,7 +42,7 @@ import clippy7 from '../../assets/clippy/clippy7.gif';
 
 const ANIMATIONS = [clippy1, clippy2, clippy3, clippy4, clippy5, clippy6, clippy7];
 
-interface Line {
+export interface Line {
     text: string;
     animation: string;
     /** A page inside My Showcase this line is about. */
@@ -65,6 +65,14 @@ interface Line {
      * point is clearing it out of the way to reveal the desktop underneath.
      */
     minimizeShowcase?: boolean;
+    /**
+     * Replaces the usual action/"Tell me more"/"Go away" trio with these,
+     * when present. The one thing on this desktop that needs more than a
+     * single yes/no is the pet check-in — "keep them", "try another", "no
+     * pets, thanks" — and forcing that into the ordinary one-action shape
+     * would have meant three near-identical Line variants instead of one.
+     */
+    buttons?: { label: string; primary?: boolean; onClick: () => void }[];
 }
 
 /**
@@ -199,6 +207,12 @@ const LINES: Line[] = [
         animation: clippy3,
         action: 'Try Market Watch',
         openAppKey: 'stocks',
+    },
+    {
+        text: "There's a pet living on this machine, if you go looking. Four to choose from, and they remember you.",
+        animation: clippy1,
+        action: 'Go looking',
+        openAppKey: 'pet',
     },
     {
         text: 'Haven’t tried the games yet? Doom is the actual 1993 release, running in the browser.',
@@ -397,6 +411,31 @@ export function toggleClippy(): void {
     setDismissed(!dismissed);
 }
 
+/**
+ * Letting something outside this component make him speak.
+ * ----------------------------------------------------------
+ * Everything above is his own rotation, picked on his own idle timer. The pet
+ * check-in is different: it's a direct response to something the visitor just
+ * did (fed or petted their new animal), and it needs to happen a fixed three
+ * seconds later, on demand, with its own three-way choice of buttons —
+ * nothing about that fits the existing pool-and-cooldown machinery.
+ *
+ * `show` is a stable `useCallback` inside the component with no real
+ * dependencies, so registering the current instance's copy here and calling
+ * it from `pets.ts` (via `clippySay`) is safe: it goes through the same
+ * `setLine`/chime/auto-hide path a normal tip would, it's just chosen from
+ * outside instead of from `pickNext`. Guarded by both `isClippyEnabled()` and
+ * the suspended flag so a pet event can never force him on screen while the
+ * visitor has turned him off or something else owns the screen.
+ */
+let activeShow: ((line: Line) => void) | null = null;
+let activeSuspended = false;
+
+export function clippySay(line: Line): void {
+    if (!isClippyEnabled() || activeSuspended) return;
+    activeShow?.(line);
+}
+
 export function useClippyEnabled(): boolean {
     const [, forceRender] = useState(0);
     useEffect(() => {
@@ -539,6 +578,20 @@ const Clippy: React.FC<ClippyProps> = ({
             window.setTimeout(() => setLine(null), VISIBLE_FOR)
         );
     }, []);
+
+    // Lets `clippySay` (called from `pets.ts` for the pet check-in) speak
+    // through this instance without a prop threaded down from Desktop.tsx —
+    // see the comment above `clippySay` itself.
+    useEffect(() => {
+        activeShow = show;
+        return () => {
+            if (activeShow === show) activeShow = null;
+        };
+    }, [show]);
+
+    useEffect(() => {
+        activeSuspended = suspended || !enabled;
+    }, [suspended, enabled]);
 
     const say = useCallback(() => {
         if (!unsaid.current.length) {
@@ -688,44 +741,73 @@ const Clippy: React.FC<ClippyProps> = ({
             <div style={styles.bubble}>
                 <p style={styles.text}>{line.text}</p>
                 <div style={styles.bubbleButtons}>
-                    {line.action && (
-                        <button
-                            style={Object.assign({}, styles.button, styles.primary)}
-                            onClick={() => {
-                                playClick();
-                                if (line.save) saveable?.requestSave();
-                                else if (line.minimizeShowcase) {
-                                    onMinimizeShowcase?.();
-                                } else if (line.openAppKey) {
-                                    openApp?.(line.openAppKey);
-                                } else if (line.route) {
-                                    goToShowcase(line.route);
-                                }
-                                setLine(null);
-                            }}
-                        >
-                            {line.action}
-                        </button>
+                    {line.buttons ? (
+                        // The pet check-in's three-way choice, and anything
+                        // else that doesn't fit the ordinary action/"Tell me
+                        // more"/"Go away" shape.
+                        line.buttons.map((b) => (
+                            <button
+                                key={b.label}
+                                style={Object.assign(
+                                    {},
+                                    styles.button,
+                                    b.primary && styles.primary
+                                )}
+                                onClick={() => {
+                                    playClick();
+                                    b.onClick();
+                                    setLine(null);
+                                }}
+                            >
+                                {b.label}
+                            </button>
+                        ))
+                    ) : (
+                        <>
+                            {line.action && (
+                                <button
+                                    style={Object.assign(
+                                        {},
+                                        styles.button,
+                                        styles.primary
+                                    )}
+                                    onClick={() => {
+                                        playClick();
+                                        if (line.save) saveable?.requestSave();
+                                        else if (line.minimizeShowcase) {
+                                            onMinimizeShowcase?.();
+                                        } else if (line.openAppKey) {
+                                            openApp?.(line.openAppKey);
+                                        } else if (line.route) {
+                                            goToShowcase(line.route);
+                                        }
+                                        setLine(null);
+                                    }}
+                                >
+                                    {line.action}
+                                </button>
+                            )}
+                            <button
+                                style={styles.button}
+                                onClick={() => {
+                                    playClick();
+                                    sayNext();
+                                }}
+                            >
+                                Tell me more
+                            </button>
+                            <button
+                                style={styles.button}
+                                onClick={() => {
+                                    playClick();
+                                    setDismissed(true);
+                                }}
+                                title="Hide Clippy (Start > Clippy brings him back)"
+                            >
+                                Go away
+                            </button>
+                        </>
                     )}
-                    <button
-                        style={styles.button}
-                        onClick={() => {
-                            playClick();
-                            sayNext();
-                        }}
-                    >
-                        Tell me more
-                    </button>
-                    <button
-                        style={styles.button}
-                        onClick={() => {
-                            playClick();
-                            setDismissed(true);
-                        }}
-                        title="Hide Clippy (Start > Clippy brings him back)"
-                    >
-                        Go away
-                    </button>
                 </div>
                 {/* The tail, drawn as two triangles so it has an outline. */}
                 <div style={styles.tailOuter} />
