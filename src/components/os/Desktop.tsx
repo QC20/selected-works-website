@@ -40,6 +40,9 @@ import WeatherStation from '../applications/WeatherStation';
 import Television from '../applications/Television';
 import Statistics from '../applications/Statistics';
 import Pet from '../applications/Pet';
+import Stereogram from '../applications/Stereogram';
+import PerceptionLab from '../applications/PerceptionLab';
+import SystemMonitor from '../applications/SystemMonitor';
 import ProgramFrame from '../applications/ProgramFrame';
 import { WIN98_PROGRAMS, win98ProgramByKey } from '../applications/win98Programs';
 import { useTheme } from './theme';
@@ -89,7 +92,13 @@ import {
     recycleBinMenu,
     shortcutMenu,
 } from './desktopMenus';
-import { install, isOptional, uninstall, useInstalledApps } from './installedApps';
+import {
+    STORE_APPS,
+    install,
+    isOptional,
+    uninstall,
+    useInstalledApps,
+} from './installedApps';
 import Screensaver, { useScreensaverSettings } from './Screensaver';
 import { useTvPlaying } from './tvState';
 import Snake from '../applications/Snake';
@@ -99,6 +108,11 @@ import StartBalloon from './StartBalloon';
 import { trackEvent } from './analyticsApi';
 import { noteApp, noteSession } from './usageStats';
 import { feedPet, noteSessionForPet, noticeAppOpenedForPet, PETS } from './pets';
+import { reportOpenWindows } from './resourceMeter';
+import { SessionWindow, pendingSession, saveSession } from './session';
+import DesktopPet from './DesktopPet';
+import FindDialog from './FindDialog';
+import { PROGRAM_ALIASES, registerProgramEntries } from './searchIndex';
 import { registerOpenApp } from './appBridge';
 import { clippySay, randomClippy } from './Clippy';
 import Secret from '../applications/Secret';
@@ -524,6 +538,33 @@ const APPLICATIONS: {
         shortcutIcon: 'petModemIcon',
         component: Pet,
     },
+
+    // A real single-image random-dot stereogram generator — see the long
+    // comment at the top of Stereogram.tsx for how it actually works.
+    stereogram: {
+        key: 'stereogram',
+        name: 'Hidden Dimension',
+        shortcutIcon: 'stereogramIcon',
+        component: Stereogram,
+    },
+
+    // A small, real reaction-time and Stroop-task suite — see the long
+    // comment at the top of PerceptionLab.tsx for why these two paradigms.
+    perceptionLab: {
+        key: 'perceptionLab',
+        name: 'Perception Lab',
+        shortcutIcon: 'perceptionLabIcon',
+        component: PerceptionLab,
+    },
+
+    // The window behind the tray's Resource Meter. Utility and Control Panel
+    // both list it; no desktop icon by default.
+    systemMonitor: {
+        key: 'systemMonitor',
+        name: 'System Monitor',
+        shortcutIcon: 'resourceMeterIcon',
+        component: SystemMonitor,
+    },
 };
 
 /**
@@ -621,6 +662,9 @@ const DESKTOP_ORDER: string[] = [
     'calculator',
     'secret',
     'statistics',
+    'stereogram',
+    'perceptionLab',
+    'systemMonitor',
 ];
 
 /**
@@ -648,6 +692,33 @@ const runnablePrograms = Object.keys(APPLICATIONS)
 
 const Desktop: React.FC<DesktopProps> = (props) => {
     const [windows, setWindows] = useState<DesktopWindows>({});
+
+    // Real desktop state, published for the Resource Meter — see
+    // resourceMeter.ts. A plain module variable rather than a subscribed
+    // store, because the meter only ever reads it once a second; publishing
+    // through state here would re-render the whole desktop on every open
+    // and close for no reason.
+    useEffect(() => {
+        reportOpenWindows(Object.keys(windows).length);
+    }, [windows]);
+
+    /**
+     * Session restore — see session.ts for why this exists and what it
+     * deliberately refuses to bring back.
+     *
+     * Saved on every change rather than on `beforeunload`, because that event
+     * is unreliable on mobile Safari (a tab discarded in the background never
+     * fires it). Writing a handful of keys to sessionStorage on each window
+     * open or close is cheap enough not to care.
+     */
+    useEffect(() => {
+        saveSession(
+            Object.keys(windows).map((key) => ({
+                key,
+                minimized: windows[key].minimized,
+            }))
+        );
+    }, [windows]);
 
     // Whatever the browser was last asked to show (see IE_WINDOW_KEY). Injected
     // into the open WebFrame at render time, so a request made while it's up
@@ -759,6 +830,40 @@ const Desktop: React.FC<DesktopProps> = (props) => {
     // Arrow-key desktop navigation's cursor — which icon Enter would open.
     // Not persisted: it's a keyboard session's cursor, not a setting.
     const [focusedIconKey, setFocusedIconKey] = useState<string | null>(null);
+
+    /**
+     * Start > Find. Ctrl+F, Cmd+F or a bare `/` opens it from anywhere on the
+     * desktop — see `searchIndex.ts` for why this exists at all.
+     *
+     * Ctrl+F is deliberately taken over: the browser's own find-in-page is
+     * close to useless here, because almost everything worth reaching is
+     * inside a window that isn't open yet. `/` is ignored while a text field
+     * has focus, so it never eats a keystroke meant for Notepad or the
+     * guestbook.
+     */
+    const [findOpen, setFindOpen] = useState(false);
+    useEffect(() => {
+        const onKey = (e: KeyboardEvent) => {
+            const target = e.target as HTMLElement | null;
+            const typing =
+                !!target &&
+                (target.tagName === 'INPUT' ||
+                    target.tagName === 'TEXTAREA' ||
+                    target.isContentEditable);
+
+            if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'f') {
+                e.preventDefault();
+                setFindOpen(true);
+                return;
+            }
+            if (e.key === '/' && !typing && !e.ctrlKey && !e.metaKey) {
+                e.preventDefault();
+                setFindOpen(true);
+            }
+        };
+        window.addEventListener('keydown', onKey);
+        return () => window.removeEventListener('keydown', onKey);
+    }, []);
 
     // The Konami code's one-off reveal (see `konami.ts` / `Secret.tsx`).
     const [konamiBurst, setKonamiBurst] = useState(false);
@@ -1439,6 +1544,72 @@ const Desktop: React.FC<DesktopProps> = (props) => {
     }, [openApp]);
 
     /**
+     * Publishes every runnable program to Find. Built from APPLICATIONS
+     * itself, so a program added there is findable without touching the
+     * search code — and `runnablePrograms` already excludes the handful of
+     * internal keys that aren't really apps.
+     */
+    useEffect(() => {
+        registerProgramEntries(
+            Object.keys(APPLICATIONS).map((key) => {
+                const app = APPLICATIONS[key];
+                // The Store's own blurb doubles as search keywords, so
+                // "stereogram" finds Hidden Dimension and "shooter" finds
+                // Doom without a hand-written alias list.
+                const store = STORE_APPS.find((a) => a.key === key);
+                return {
+                    id: `program:${key}`,
+                    label: app.name,
+                    detail: 'Program',
+                    kind: 'program' as const,
+                    icon: app.shortcutIcon,
+                    keywords: [store?.blurb, PROGRAM_ALIASES[key]]
+                        .filter(Boolean)
+                        .join(' '),
+                    run: () => openApp(key),
+                };
+            })
+        );
+    }, [openApp]);
+
+    /**
+     * Restore whatever was open before the last reload — see session.ts.
+     *
+     * Runs once, after `openApp` exists. Minimised windows are reopened and
+     * then minimised again on the next tick, so they come back as taskbar
+     * buttons rather than springing open in your face — which is the whole
+     * point: the desktop should look like you left it, not like it just did
+     * something.
+     */
+    const sessionRestored = useRef(false);
+    // Read during render, before any effect can clear it — see session.ts.
+    const pendingRef = useRef<SessionWindow[] | null>(null);
+    if (pendingRef.current === null) pendingRef.current = pendingSession();
+
+    useEffect(() => {
+        if (sessionRestored.current) return;
+        sessionRestored.current = true;
+        const previous = pendingRef.current ?? [];
+        if (!previous.length) return;
+
+        previous.forEach((w) => openApp(w.key));
+        const stillMinimized = previous
+            .filter((w) => w.minimized)
+            .map((w) => w.key);
+        if (stillMinimized.length) {
+            window.setTimeout(() => {
+                setWindows((prev) => {
+                    const next = { ...prev };
+                    stillMinimized.forEach((key) => {
+                        if (next[key]) next[key] = { ...next[key], minimized: true };
+                    });
+                    return next;
+                });
+            }, 0);
+        }
+    }, [openApp]);
+
+    /**
      * Opens any image in the picture viewer — used both by desktop file icons
      * and by the Pictures folder inside My Computer.
      */
@@ -1908,6 +2079,26 @@ const Desktop: React.FC<DesktopProps> = (props) => {
             {!IS_EMBEDDED_IN_CRT && (
                 <StartBalloon dismissed={startMenuUsed} />
             )}
+            <FindDialog
+                open={findOpen}
+                onClose={() => setFindOpen(false)}
+                openApp={openApp}
+                goToShowcase={(route) => {
+                    // Same trick Clippy uses: the showcase runs its own
+                    // BrowserRouter, which follows the address bar.
+                    window.history.pushState({}, '', route);
+                    window.dispatchEvent(new PopStateEvent('popstate'));
+                    openApp('showcase');
+                }}
+            />
+            <DesktopPet
+                suspended={
+                    experienceOpen ||
+                    shutdownDialogOpen ||
+                    loggedOff ||
+                    IS_EMBEDDED_IN_CRT
+                }
+            />
             <Clippy
                 suspended={
                     experienceOpen ||
@@ -1941,6 +2132,7 @@ const Desktop: React.FC<DesktopProps> = (props) => {
                         setLoggedOff(true);
                     }}
                     onStartOpened={() => setStartMenuUsed(true)}
+                    onOpenFind={() => setFindOpen(true)}
                     resolution={resolution}
                     setResolution={setResolution}
                     openApp={openApp}

@@ -9,6 +9,7 @@ import {
 } from './battery';
 import { Connection, useConnection, usePublicIP } from './network';
 import { PetDef, PetMood, computeMood, contentment, feedPet, pettPet } from './pets';
+import { ResourceSnapshot } from './resourceMeter';
 
 /**
  * The small panels behind the tray icons: battery, the connection, and the
@@ -495,6 +496,107 @@ const petStyles: StyleSheetCSS = {
         borderRightColor: Colors.darkGray,
         borderBottomColor: Colors.darkGray,
     },
+};
+
+
+/* -------------------------------------------------------------------------
+ * Resource Meter
+ * ---------------------------------------------------------------------- */
+
+/** Green above 40% free, amber above 15%, red below — the same thresholds
+ *  the battery gauge uses, so "the machine is under strain" reads the same
+ *  way wherever it shows up in the tray. */
+const resourceColor = (freePercent: number): string =>
+    freePercent <= 15 ? '#d80000' : freePercent <= 40 ? '#e8c000' : '#00a800';
+
+/** The tray icon: a single vertical bar, exactly the shape the real Windows
+ *  95 Resource Meter used — one number, not a dashboard. */
+export const ResourceGauge: React.FC<{ freePercent: number }> = ({
+    freePercent,
+}) => (
+    <div style={resourceStyles.gauge}>
+        <div style={resourceStyles.body}>
+            <div
+                style={{
+                    ...resourceStyles.fill,
+                    height: `${Math.max(4, freePercent)}%`,
+                    background: resourceColor(freePercent),
+                }}
+            />
+        </div>
+    </div>
+);
+
+export const ResourcePanel: React.FC<{
+    open: boolean;
+    snapshot: ResourceSnapshot;
+    onOpenApp?: () => void;
+}> = ({ open, snapshot, onOpenApp }) => {
+    if (!open) return null;
+    const mins = Math.floor(snapshot.uptimeSeconds / 60);
+    const secs = snapshot.uptimeSeconds % 60;
+
+    return (
+        <div style={styles.panel}>
+            <div style={styles.header}>
+                <Icon icon="resourceMeterIcon" size={16} />
+                <span style={styles.title}>System Resources</span>
+            </div>
+
+            <Row
+                label="Resources free"
+                value={`${snapshot.memoryFreePercent}%`}
+            />
+            <Row
+                label={snapshot.hasMemoryApi ? 'Heap used' : 'DOM nodes'}
+                value={
+                    snapshot.hasMemoryApi
+                        ? `${snapshot.usedHeapMB!.toFixed(1)} / ${snapshot.limitHeapMB!.toFixed(
+                              0
+                          )} MB`
+                        : String(snapshot.domNodeCount)
+                }
+            />
+            <Row label="Frame rate" value={`${snapshot.fps} fps`} />
+            <Row label="Windows open" value={String(snapshot.openWindows)} />
+            <Row
+                label="Session uptime"
+                value={`${mins}:${String(secs).padStart(2, '0')}`}
+            />
+
+            <p style={styles.note}>
+                {snapshot.hasMemoryApi
+                    ? 'Real JS heap usage for this tab.'
+                    : "This browser doesn't expose heap usage — DOM size stands in."}
+            </p>
+
+            {onOpenApp && (
+                <button
+                    type="button"
+                    style={counterStyles.more}
+                    onPointerDown={(e) => {
+                        e.stopPropagation();
+                        onOpenApp();
+                    }}
+                >
+                    System Monitor...
+                </button>
+            )}
+        </div>
+    );
+};
+
+const resourceStyles: StyleSheetCSS = {
+    gauge: { width: 12, height: 16, flexDirection: 'column' },
+    body: {
+        flex: 1,
+        justifyContent: 'flex-end',
+        background: '#111',
+        border: `1px solid ${Colors.darkGray}`,
+        borderRightColor: Colors.white,
+        borderBottomColor: Colors.white,
+    },
+    fill: { width: '100%' },
 };
 
 const Row: React.FC<{ label: string; value: string }> = ({ label, value }) => (

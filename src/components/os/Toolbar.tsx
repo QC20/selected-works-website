@@ -6,8 +6,9 @@ import { Resolution, RESOLUTIONS, scaleFor } from './resolution';
 import { TASKBAR_HEIGHT } from './metrics';
 import StockTicker from './StockTicker';
 import { randomProject } from './githubProjects';
-import { PetGauge, PetPanel } from './TrayPanels';
+import { PetGauge, PetPanel, ResourceGauge, ResourcePanel } from './TrayPanels';
 import { PET_LIST, computeMood, contentment, usePetState } from './pets';
+import { useResourceSnapshot } from './resourceMeter';
 import WeatherPanel from './WeatherPanel';
 import {
     BatteryGauge,
@@ -157,6 +158,8 @@ export interface ToolbarProps {
     shutdown: () => void;
     resolution: Resolution;
     setResolution: (r: Resolution) => void;
+    /** Start > Find — opens the search dialog (see FindDialog.tsx). */
+    onOpenFind?: () => void;
     /** Opens an app by its APPLICATIONS key (see Desktop.tsx). */
     openApp: (key: string, options?: LaunchOptions) => void;
     /** Start > Log Off — drops to the log-on screen without shutting down. */
@@ -174,6 +177,7 @@ const Toolbar: React.FC<ToolbarProps> = ({
     openApp,
     logOff,
     onStartOpened,
+    onOpenFind,
 }) => {
     const [resMenuOpen, setResMenuOpen] = useState(false);
     const [tickerOpen, setTickerOpen] = useState(false);
@@ -183,8 +187,10 @@ const Toolbar: React.FC<ToolbarProps> = ({
     const [calendarOpen, setCalendarOpen] = useState(false);
     const [visitsOpen, setVisitsOpen] = useState(false);
     const [petOpen, setPetOpen] = useState(false);
+    const [resourceOpen, setResourceOpen] = useState(false);
 
     const petState = usePetState();
+    const resources = useResourceSnapshot();
     const battery = useBattery();
     const connection = useConnection();
     const muted = useMuted();
@@ -507,6 +513,24 @@ const Toolbar: React.FC<ToolbarProps> = ({
                                 style={styles.startMenuOption}
                                 onMouseEnter={closeFolders}
                                 onPointerDown={chooseStartMenuItem(() =>
+                                    onOpenFind?.()
+                                )}
+                                title="Find anything on this machine (Ctrl+F)"
+                            >
+                                <Icon
+                                    style={styles.startMenuIcon}
+                                    icon="searchIcon"
+                                />
+                                <p style={styles.startMenuText}>
+                                    <u>F</u>ind...
+                                </p>
+                            </div>
+                            <div style={styles.startMenuLine} />
+                            <div
+                                className="start-menu-option"
+                                style={styles.startMenuOption}
+                                onMouseEnter={closeFolders}
+                                onPointerDown={chooseStartMenuItem(() =>
                                     openApp(pickSurprise())
                                 )}
                                 title="Open something at random"
@@ -739,6 +763,14 @@ const Toolbar: React.FC<ToolbarProps> = ({
                             }}
                         />
                     )}
+                    <ResourcePanel
+                        open={resourceOpen}
+                        snapshot={resources}
+                        onOpenApp={() => {
+                            setResourceOpen(false);
+                            openApp('systemMonitor');
+                        }}
+                    />
                     <ConnectionPanel
                         open={connectionOpen}
                         connection={connection}
@@ -853,6 +885,15 @@ const Toolbar: React.FC<ToolbarProps> = ({
                             />
                         </div>
                     )}
+
+                    <div
+                        style={styles.trayIconWrap}
+                        title={`System resources: ${resources.memoryFreePercent}% free — click for details`}
+                        data-open={resourceOpen}
+                        onPointerDown={trayToggle(setResourceOpen)}
+                    >
+                        <ResourceGauge freePercent={resources.memoryFreePercent} />
+                    </div>
 
                     <div
                         style={styles.trayIconWrap}

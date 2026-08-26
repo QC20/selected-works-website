@@ -279,6 +279,14 @@ const CONTENTS: { [key in FolderId]: Entry[] } = {
             launch: 'statistics',
         },
         {
+            key: 'systemMonitor',
+            label: 'System Monitor',
+            icon: 'resourceMeterIcon',
+            size: 28,
+            type: 'Application',
+            launch: 'systemMonitor',
+        },
+        {
             key: 'resetStorage',
             label: 'Reset Storage',
             icon: 'resetStorageIcon',
@@ -326,6 +334,14 @@ const CONTENTS: { [key in FolderId]: Entry[] } = {
             size: 64,
             type: 'Application',
             launch: 'statistics',
+        },
+        {
+            key: 'systemMonitor',
+            label: 'System Monitor',
+            icon: 'resourceMeterIcon',
+            size: 28,
+            type: 'Application',
+            launch: 'systemMonitor',
         },
         {
             // Also lives in Utility. A real Control Panel is exactly where you

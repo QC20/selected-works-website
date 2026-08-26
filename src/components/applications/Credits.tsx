@@ -39,6 +39,24 @@ const CREDITS = [
         ],
     },
     {
+        // The algorithms behind two of the accessories. Both are published
+        // methods rather than borrowed code — implemented here from the
+        // descriptions — but they are somebody's ideas and belong on this list.
+        title: 'Algorithms & Methods',
+        rows: [
+            ['Thimbleby, Inglis & Witten', 'Stereogram algorithm, 1994'],
+            ['J. Ridley Stroop', 'Colour-word interference, 1935'],
+            ['F. C. Donders', 'Reaction time method, 1868'],
+        ],
+    },
+    {
+        title: 'Television Archive',
+        rows: [
+            ['The Internet Archive', 'archive.org'],
+            ['Prelinger Archives', 'Computer Chronicles'],
+        ],
+    },
+    {
         title: 'Inspiration',
         rows: [
             ['Bruno Simon', 'Jesse Zhou'],

@@ -49,6 +49,30 @@ export interface StoreApp {
 
 export const STORE_APPS: StoreApp[] = [
     {
+        key: 'systemMonitor',
+        name: 'System Monitor',
+        blurb: 'Real heap, real frame rate. The Resource Meter, in full.',
+        size: 28,
+        category: 'Accessories',
+        defaultInstalled: false,
+    },
+    {
+        key: 'perceptionLab',
+        name: 'Perception Lab',
+        blurb: 'Two real psychology experiments. Actually timed.',
+        size: 36,
+        category: 'Accessories',
+        defaultInstalled: false,
+    },
+    {
+        key: 'stereogram',
+        name: 'Hidden Dimension',
+        blurb: 'A real stereogram generator. Cross your eyes and a shape appears.',
+        size: 40,
+        category: 'Accessories',
+        defaultInstalled: false,
+    },
+    {
         key: 'pet',
         name: 'Pet',
         blurb: 'Something is living on this machine. Feed it.',

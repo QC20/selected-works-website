@@ -35,6 +35,20 @@ export interface FolderItem {
  */
 const NATIVE_PROGRAMS: FolderItem[] = [
     {
+        key: 'perceptionLab',
+        name: 'Perception Lab',
+        icon: 'perceptionLabIcon',
+        size: 36,
+        type: 'Application',
+    },
+    {
+        key: 'stereogram',
+        name: 'Hidden Dimension',
+        icon: 'stereogramIcon',
+        size: 40,
+        type: 'Application',
+    },
+    {
         key: 'pet',
         name: 'Pet',
         icon: 'petModemIcon',

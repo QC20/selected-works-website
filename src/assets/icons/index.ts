@@ -115,6 +115,10 @@ import petModemIcon from './petModemIcon.png';
 import petGlitchIcon from './petGlitchIcon.png';
 import petStaticIcon from './petStaticIcon.png';
 import petPixelIcon from './petPixelIcon.png';
+import stereogramIcon from './stereogramIcon.png';
+import resourceMeterIcon from './resourceMeterIcon.png';
+import perceptionLabIcon from './perceptionLabIcon.png';
+import searchIcon from './searchIcon.png';
 
 const getIconByName = (
     iconName: IconName
@@ -215,6 +219,10 @@ const icons = {
     petGlitchIcon: petGlitchIcon,
     petStaticIcon: petStaticIcon,
     petPixelIcon: petPixelIcon,
+    stereogramIcon: stereogramIcon,
+    resourceMeterIcon: resourceMeterIcon,
+    perceptionLabIcon: perceptionLabIcon,
+    searchIcon: searchIcon,
 };
 
 
