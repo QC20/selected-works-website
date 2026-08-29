@@ -241,3 +241,99 @@ export function playDialUp(): number {
 
     return Math.ceil(t * 1000);
 }
+
+/* -------------------------------------------------------------------------
+ * The pets
+ * ---------------------------------------------------------------------- */
+
+/**
+ * Four voices, one per animal, built out of the same oscillators as
+ * everything else above.
+ *
+ * A screen-mate that makes no sound is a picture that moves; a screen-mate
+ * with a sampled bark is a 40kB download and somebody else's dog. These are
+ * caricatures in three or four tones each — enough that Modem and Static are
+ * obviously not the same creature, short enough that hearing one twenty times
+ * in a session never becomes the reason somebody hits the mute button.
+ *
+ * They go through `tone`, which goes through `audio()`, which returns null
+ * while the tray speaker is muted — so the pet is silent by exactly the same
+ * switch as the rest of the machine.
+ */
+export function playPetVoice(species: string): void {
+    switch (species) {
+        // A bark: two clipped square notes, the second lower than the first.
+        case 'modem':
+            tone({ frequency: 300, endFrequency: 210, duration: 0.07, type: 'square', gain: 0.05 });
+            tone({
+                frequency: 250,
+                endFrequency: 170,
+                duration: 0.09,
+                type: 'square',
+                gain: 0.045,
+                delay: 0.11,
+            });
+            break;
+
+        // A meow: one triangle note bent up and then let down again.
+        case 'static':
+            tone({ frequency: 520, endFrequency: 780, duration: 0.13, type: 'triangle', gain: 0.05 });
+            tone({
+                frequency: 760,
+                endFrequency: 430,
+                duration: 0.2,
+                type: 'triangle',
+                gain: 0.045,
+                delay: 0.12,
+            });
+            break;
+
+        // Corrupted data given a voice: three short blips at unrelated pitches.
+        case 'glitch':
+            for (let i = 0; i < 3; i++) {
+                tone({
+                    frequency: 400 + Math.random() * 1400,
+                    duration: 0.035,
+                    type: i === 1 ? 'sawtooth' : 'square',
+                    gain: 0.035,
+                    delay: i * 0.055,
+                });
+            }
+            break;
+
+        // A bubble leaving the water: a quick rise that stops abruptly.
+        case 'pixel':
+        default:
+            tone({ frequency: 380, endFrequency: 1100, duration: 0.09, type: 'sine', gain: 0.05 });
+            break;
+    }
+}
+
+/** The little fanfare at the end of a trick, or a caught ball brought back. */
+export function playPetHappy(): void {
+    [784, 988, 1319].forEach((f, i) => {
+        tone({
+            frequency: f,
+            duration: 0.08,
+            type: 'triangle',
+            gain: 0.045,
+            delay: i * 0.06,
+        });
+    });
+}
+
+/** Landing on the taskbar after being dropped, or bouncing off a wall. */
+export function playPetBump(): void {
+    tone({ frequency: 150, endFrequency: 70, duration: 0.09, type: 'square', gain: 0.045 });
+}
+
+/** Picked up. A rising slide, as if the creature has been lifted off the bar. */
+export function playPetLift(): void {
+    tone({ frequency: 320, endFrequency: 620, duration: 0.11, type: 'sine', gain: 0.035 });
+}
+
+/** Something small and edible has appeared on the taskbar. */
+export function playPetTreat(): void {
+    tone({ frequency: 1200, duration: 0.04, type: 'square', gain: 0.03 });
+    tone({ frequency: 1600, duration: 0.06, type: 'square', gain: 0.03, delay: 0.05 });
+}

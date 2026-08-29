@@ -9,8 +9,13 @@ import {
     computeMood,
     contentment,
     feedPet,
+    hidePetForNow,
     pettPet,
+    playFetch,
     resetPetChoice,
+    tossTreat,
+    trickPet,
+    unhidePet,
     usePetState,
 } from '../os/pets';
 
@@ -151,11 +156,51 @@ const Dashboard: React.FC<{
                 </div>
             </fieldset>
 
+            {/* Everything here happens out on the taskbar rather than in this
+                window — the buttons are a remote control for the creature on
+                the bar, which is why they say where to look. */}
+            <fieldset style={styles.group}>
+                <legend style={styles.legend}>Play</legend>
+                <div style={styles.actions}>
+                    <button
+                        type="button"
+                        style={styles.actionButton}
+                        onClick={() => playFetch()}
+                    >
+                        Play fetch
+                    </button>
+                    <button
+                        type="button"
+                        style={styles.actionButton}
+                        onClick={() => trickPet()}
+                    >
+                        Do a trick
+                    </button>
+                    <button
+                        type="button"
+                        style={styles.actionButton}
+                        onClick={() => tossTreat()}
+                    >
+                        Toss a treat
+                    </button>
+                </div>
+                <p style={styles.hint}>
+                    {pet.name} {pet.trickName} on command, chases {pet.toyName}{' '}
+                    along the taskbar, and will come and find {pet.treatName}{' '}
+                    wherever it lands. Out there you can also drag {pet.name}{' '}
+                    around the screen, throw them, double-click for the trick,
+                    or right-click for the lot.
+                </p>
+            </fieldset>
+
             <fieldset style={styles.group}>
                 <legend style={styles.legend}>About {pet.name}</legend>
                 <Row label="Adopted" value={`${humanAge(state.adoptedAt)} ago`} />
                 <Row label="Times fed" value={String(state.totalFeedings)} />
                 <Row label="Times patted" value={String(state.totalPets)} />
+                <Row label="Tricks performed" value={String(state.totalTricks)} />
+                <Row label="Games of fetch" value={String(state.totalGames)} />
+                <Row label="Treats tossed" value={String(state.totalTreats)} />
                 {state.totalAdoptions > 1 && (
                     <Row
                         label="Pets adopted in total"
@@ -164,13 +209,34 @@ const Dashboard: React.FC<{
                 )}
             </fieldset>
 
-            <button
-                type="button"
-                style={styles.switchButton}
-                onClick={() => resetPetChoice()}
-            >
-                Choose a different pet…
-            </button>
+            {state.hidden && (
+                <button
+                    type="button"
+                    style={styles.switchButton}
+                    onClick={() => unhidePet()}
+                >
+                    Bring {pet.name} back to the taskbar
+                </button>
+            )}
+
+            <div style={styles.footerLinks}>
+                <button
+                    type="button"
+                    style={styles.switchButton}
+                    onClick={() => resetPetChoice()}
+                >
+                    Choose a different pet…
+                </button>
+                {!state.hidden && (
+                    <button
+                        type="button"
+                        style={styles.switchButton}
+                        onClick={() => hidePetForNow()}
+                    >
+                        Send {pet.name} away for now
+                    </button>
+                )}
+            </div>
         </div>
     );
 };
@@ -193,7 +259,7 @@ const Pet: React.FC<PetProps> = ({ onInteract, onClose, onMinimize }) => {
             top={100}
             left={220}
             width={pet ? 360 : 540}
-            height={pet ? 480 : 520}
+            height={pet ? 600 : 520}
             windowTitle={pet ? `${pet.name} - Pet` : 'Adopt a Pet'}
             windowBarIcon={pet ? pet.icon : 'petModemIcon'}
             closeWindow={onClose}
@@ -345,8 +411,20 @@ const styles: StyleSheetCSS = {
         fontWeight: 'bold',
         color: Colors.black,
     },
+    hint: {
+        fontFamily: 'MSSerif',
+        fontSize: 10,
+        lineHeight: 1.5,
+        color: '#444',
+        margin: 0,
+    },
+    footerLinks: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        flexWrap: 'wrap',
+        gap: 4,
+    },
     switchButton: {
-        alignSelf: 'flex-start',
         padding: '4px 8px',
         cursor: 'pointer',
         fontFamily: 'MSSerif',

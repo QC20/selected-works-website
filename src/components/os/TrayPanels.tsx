@@ -8,7 +8,17 @@ import {
     useBattery,
 } from './battery';
 import { Connection, useConnection, usePublicIP } from './network';
-import { PetDef, PetMood, computeMood, contentment, feedPet, pettPet } from './pets';
+import {
+    PetDef,
+    PetMood,
+    computeMood,
+    contentment,
+    feedPet,
+    pettPet,
+    playFetch,
+    tossTreat,
+    trickPet,
+} from './pets';
 import { ResourceSnapshot } from './resourceMeter';
 
 /**
@@ -444,6 +454,42 @@ export const PetPanel: React.FC<{
                     }}
                 >
                     Pat
+                </button>
+            </div>
+
+            {/* The second row is a remote control for the creature out on the
+                taskbar: nothing here changes anything in this flyout, it all
+                happens on the bar behind it. */}
+            <div style={petStyles.actions}>
+                <button
+                    type="button"
+                    style={petStyles.actionButton}
+                    onPointerDown={(e) => {
+                        e.stopPropagation();
+                        playFetch();
+                    }}
+                >
+                    Fetch
+                </button>
+                <button
+                    type="button"
+                    style={petStyles.actionButton}
+                    onPointerDown={(e) => {
+                        e.stopPropagation();
+                        trickPet();
+                    }}
+                >
+                    Trick
+                </button>
+                <button
+                    type="button"
+                    style={petStyles.actionButton}
+                    onPointerDown={(e) => {
+                        e.stopPropagation();
+                        tossTreat();
+                    }}
+                >
+                    Treat
                 </button>
             </div>
 

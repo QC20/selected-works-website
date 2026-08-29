@@ -45,6 +45,26 @@ export interface PetDef {
     welcomeBackLines: string[];
     feedLines: string[];
     petLines: string[];
+    /* --- the screen-mate's own vocabulary ------------------------------
+     * Everything below is used by `DesktopPet.tsx` rather than by the tray
+     * or the window: it only means anything to a creature that is actually
+     * walking around and can be picked up, thrown, or asked to perform. */
+    /** What this animal's trick *is*, as a verb phrase: "rolls over". */
+    trickName: string;
+    trickLines: string[];
+    /** Chasing the toy, and bringing it back. */
+    playLines: string[];
+    /** Held off the taskbar between finger and thumb. */
+    heldLines: string[];
+    /** Put down again — or, if it was thrown, landed. */
+    droppedLines: string[];
+    /** Woken up on purpose. */
+    wakeLines: string[];
+    /** The thing it chases when you play fetch, and what colour that is. */
+    toyName: string;
+    toyColor: string;
+    /** What a tossed treat is, for this animal. */
+    treatName: string;
 }
 
 export const PETS: Record<PetSpecies, PetDef> = {
@@ -68,6 +88,27 @@ export const PETS: Record<PetSpecies, PetDef> = {
             'Modem wolfs it down and looks enormously pleased with himself.',
         ],
         petLines: ['Modem leans into it. Good boy.'],
+        trickName: 'rolls over',
+        trickLines: [
+            'Modem rolls over, gets halfway back up, and gives up. Still counts.',
+            'Modem does a full spin and looks around for applause.',
+        ],
+        playLines: [
+            'Modem is after it. Modem is entirely after it.',
+            'Modem brings it back and refuses to let go of it.',
+        ],
+        heldLines: [
+            'Modem is pedalling his legs in mid-air. He does not appear worried.',
+            'Modem has gone completely limp. This is apparently fine.',
+        ],
+        droppedLines: [
+            'Modem shakes himself off and pretends that was the plan.',
+            'Modem lands, wags once, and forgives you immediately.',
+        ],
+        wakeLines: ['Modem is awake. Modem was always awake. Obviously.'],
+        toyName: 'a tennis ball',
+        toyColor: '#c8d94a',
+        treatName: 'a biscuit',
     },
     glitch: {
         id: 'glitch',
@@ -85,6 +126,27 @@ export const PETS: Record<PetSpecies, PetDef> = {
         ],
         feedLines: ['Glitch absorbs it instantly and glows for a second.'],
         petLines: ['Glitch wobbles happily.'],
+        trickName: 'reboots itself',
+        trickLines: [
+            'Glitch turns itself inside out and back again. Do not think about it.',
+            'Glitch briefly renders at the wrong resolution, on purpose, for you.',
+        ],
+        playLines: [
+            'Glitch is chasing a stray pixel that should not exist.',
+            'Glitch absorbs the pixel, thinks better of it, and puts it back.',
+        ],
+        heldLines: [
+            'Glitch is dripping upward. That is not how anything works.',
+            'Glitch has stopped rendering its own edges. It seems relaxed.',
+        ],
+        droppedLines: [
+            'Glitch reassembles itself out of order and then fixes it.',
+            'Glitch splatters, reforms, and looks pleased about the whole thing.',
+        ],
+        wakeLines: ['Glitch reboots. Two seconds of nothing, then a slime again.'],
+        toyName: 'a stray pixel',
+        toyColor: '#7ae0ff',
+        treatName: 'a spare byte',
     },
     static: {
         id: 'static',
@@ -102,6 +164,27 @@ export const PETS: Record<PetSpecies, PetDef> = {
         ],
         feedLines: ['Static eats without acknowledging you. High praise, actually.'],
         petLines: ['Static allows exactly three pets before walking off.'],
+        trickName: 'does a slow blink',
+        trickLines: [
+            'Static does a slow blink. In cat, this is an enormous compliment.',
+            'Static performs a trick so subtle you may have missed it. That is the trick.',
+        ],
+        playLines: [
+            'Static pretends not to care about the yarn, then destroys the yarn.',
+            'Static returns the yarn and acts as though it came back on its own.',
+        ],
+        heldLines: [
+            'Static has gone rigid with dignity. Put her down.',
+            'Static is looking directly at you. This will be remembered.',
+        ],
+        droppedLines: [
+            'Static lands on her feet, obviously, and does not mention it.',
+            'Static walks off three steps and sits down facing away from you.',
+        ],
+        wakeLines: ['Static opens one eye. Only one. You have not earned two.'],
+        toyName: 'a ball of yarn',
+        toyColor: '#e08a8a',
+        treatName: 'a fish flake',
     },
     pixel: {
         id: 'pixel',
@@ -121,6 +204,27 @@ export const PETS: Record<PetSpecies, PetDef> = {
         petLines: [
             'Pixel presses against the glass. About as close to affection as a fish gets.',
         ],
+        trickName: 'does a barrel roll',
+        trickLines: [
+            'Pixel does a barrel roll. It was over quickly but it definitely happened.',
+            'Pixel loops the loop twice and returns to staring at nothing.',
+        ],
+        playLines: [
+            'Pixel is chasing the flake with genuine, uncomplicated joy.',
+            'Pixel nudges the flake back over to you. Nobody taught it that.',
+        ],
+        heldLines: [
+            'Pixel is out of the water and taking it remarkably well.',
+            'Pixel is flapping gently. Pixel would like to go back in the bowl.',
+        ],
+        droppedLines: [
+            'Pixel plops back down and resumes swimming through solid taskbar.',
+            'Pixel bounces once, forgets the entire incident, and swims on.',
+        ],
+        wakeLines: ['Pixel was asleep with its eyes open. Fish do that.'],
+        toyName: 'a flake',
+        toyColor: '#e8c86a',
+        treatName: 'a pinch of flakes',
     },
 };
 
@@ -148,6 +252,11 @@ interface PetState {
     totalFeedings: number;
     totalPets: number;
     totalAdoptions: number;
+    totalTricks: number;
+    totalGames: number;
+    totalTreats: number;
+    /** Hidden for the rest of this tab — see `hidePetForNow`. */
+    hidden: boolean;
     /** Whether Clippy's "do you like them" check-in has fired for this pet. */
     checkedIn: boolean;
     /** "No pets, thanks" was chosen — suppress the unprompted nudges. */
@@ -164,6 +273,10 @@ const DEFAULT_STATE: PetState = {
     totalFeedings: 0,
     totalPets: 0,
     totalAdoptions: 0,
+    totalTricks: 0,
+    totalGames: 0,
+    totalTreats: 0,
+    hidden: false,
     checkedIn: false,
     optedOut: false,
 };
@@ -179,7 +292,7 @@ const load = (): PetState => {
     }
 };
 
-let current: PetState = load();
+let current: PetState = { ...load(), hidden: false };
 let excitedUntil = 0;
 let excitedTimer: number | undefined;
 const listeners = new Set<() => void>();
@@ -201,6 +314,48 @@ const bumpExcited = () => {
     excitedTimer = window.setTimeout(notify, EXCITED_FOR_MS + 50);
     notify();
 };
+
+/* -------------------------------------------------------------------------
+ * The event bus
+ * ---------------------------------------------------------------------- */
+
+/**
+ * A *moment*, as opposed to a state change.
+ *
+ * `listeners` above already tells everyone that the numbers moved; it cannot
+ * tell them the difference between "was fed a second ago" and "is being fed
+ * right now", and a screen-mate needs exactly that difference — it has to
+ * chew, not to have chewed. So actions emit a one-shot event alongside the
+ * usual `persist()`.
+ *
+ * The point of routing it through the store rather than calling into
+ * `DesktopPet` directly is that the same feed happens from four places — the
+ * Pet window, the tray flyout, the creature's own body, and Clippy — and all
+ * four should produce the same animation on the taskbar without any of them
+ * knowing that a creature on the taskbar exists.
+ */
+export type PetEvent =
+    | 'fed'
+    | 'patted'
+    | 'trick'
+    | 'fetch'
+    | 'treat'
+    | 'appOpened';
+
+const eventListeners = new Set<(event: PetEvent) => void>();
+
+export function onPetEvent(fn: (event: PetEvent) => void): () => void {
+    eventListeners.add(fn);
+    return () => {
+        eventListeners.delete(fn);
+    };
+}
+
+const emit = (event: PetEvent) => eventListeners.forEach((fn) => fn(event));
+
+/** One of a list, at random. Every flavour array in `PETS` is read this way. */
+export const randomLine = (lines: string[]): string =>
+    lines[Math.floor(Math.random() * lines.length)] ?? '';
 
 /* -------------------------------------------------------------------------
  * Actions
@@ -239,6 +394,7 @@ export function feedPet(): void {
     };
     bumpExcited();
     persist();
+    emit('fed');
     triggerCheckInIfDue();
 }
 
@@ -246,7 +402,54 @@ export function pettPet(): void {
     current = { ...current, totalPets: current.totalPets + 1 };
     bumpExcited();
     persist();
+    emit('patted');
     triggerCheckInIfDue();
+}
+
+/**
+ * Ask for the trick. Counts, cheers the animal up the way a pat does, and
+ * lets the screen-mate know to actually perform it.
+ */
+export function trickPet(): void {
+    current = { ...current, totalTricks: current.totalTricks + 1 };
+    bumpExcited();
+    persist();
+    emit('trick');
+    triggerCheckInIfDue();
+}
+
+/** Throw the toy. The chase, the catch and the return all live in the view. */
+export function playFetch(): void {
+    current = { ...current, totalGames: current.totalGames + 1 };
+    bumpExcited();
+    persist();
+    emit('fetch');
+    triggerCheckInIfDue();
+}
+
+/**
+ * Drop something edible on the taskbar.
+ *
+ * Deliberately *not* a feed: `lastFed` only moves once the animal has walked
+ * over and eaten it, which `DesktopPet` does by calling `feedPet` when the
+ * two meet. Tossing a treat at a pet that then ignores it should not count.
+ */
+export function tossTreat(): void {
+    current = { ...current, totalTreats: current.totalTreats + 1 };
+    persist();
+    emit('treat');
+}
+
+/** "Go away for a bit" from the creature's own right-click menu. */
+export function hidePetForNow(): void {
+    current = { ...current, hidden: true };
+    persist();
+}
+
+export function unhidePet(): void {
+    if (!current.hidden) return;
+    current = { ...current, hidden: false };
+    persist();
 }
 
 /* -------------------------------------------------------------------------
@@ -319,7 +522,9 @@ function buildCheckInLine(pet: PetDef): Line {
 
 /** Called from `Desktop.tsx` whenever any app is opened — a small perk-up. */
 export function noticeAppOpenedForPet(): void {
-    if (current.species) bumpExcited();
+    if (!current.species) return;
+    bumpExcited();
+    emit('appOpened');
 }
 
 /**
