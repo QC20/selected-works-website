@@ -36,6 +36,20 @@ export interface FolderItem {
  */
 const NATIVE_PROGRAMS: FolderItem[] = [
     {
+        key: 'vault',
+        name: 'The Vault',
+        icon: 'obsidianIcon',
+        size: 1400,
+        type: 'Application',
+    },
+    {
+        key: 'readingList',
+        name: 'Reading List',
+        icon: 'zoteroIcon',
+        size: 820,
+        type: 'Application',
+    },
+    {
         key: 'perceptionLab',
         name: 'Perception Lab',
         icon: 'perceptionLabIcon',

@@ -42,6 +42,8 @@ import Statistics from '../applications/Statistics';
 import Pet from '../applications/Pet';
 import Stereogram from '../applications/Stereogram';
 import PerceptionLab from '../applications/PerceptionLab';
+import Vault from '../applications/Vault';
+import ReadingList from '../applications/ReadingList';
 import SystemMonitor from '../applications/SystemMonitor';
 import ProgramFrame from '../applications/ProgramFrame';
 import { WIN98_PROGRAMS, win98ProgramByKey } from '../applications/win98Programs';
@@ -565,6 +567,24 @@ const APPLICATIONS: {
         shortcutIcon: 'resourceMeterIcon',
         component: SystemMonitor,
     },
+
+    // The two read-only windows onto things kept somewhere else: what Jonas
+    // writes, and what he reads. Neither service can be embedded, so both read
+    // the data and render it here instead — see `library.ts` for the wiring
+    // and the long note at the top of each component for why.
+    vault: {
+        key: 'vault',
+        name: 'The Vault',
+        shortcutIcon: 'obsidianIcon',
+        component: Vault,
+    },
+
+    readingList: {
+        key: 'readingList',
+        name: 'Reading List',
+        shortcutIcon: 'zoteroIcon',
+        component: ReadingList,
+    },
 };
 
 /**
@@ -643,6 +663,8 @@ const DESKTOP_ORDER: string[] = [
     'notepad',
     'television',
     'pet',
+    'vault',
+    'readingList',
     // Everything from here down starts uninstalled (see `installedApps.ts`,
     // `defaultInstalled: false`) — on the machine and fully working, but with
     // no desktop icon until the Store adds one. Being listed here is only

@@ -14,24 +14,30 @@
 
 const stock = require('../api/stock');
 const feed = require('../api/feed');
+const obsidian = require('../api/obsidian');
+const zotero = require('../api/zotero');
+
+/**
+ * All four behave the same way and only differ by name, so they're mounted
+ * from one list rather than four near-identical blocks.
+ */
+const handlers = {
+    '/api/stock': stock,
+    '/api/feed': feed,
+    '/api/obsidian': obsidian,
+    '/api/zotero': zotero,
+};
 
 module.exports = function (app) {
-    app.use('/api/stock', (req, res) => {
-        Promise.resolve(stock(req, res)).catch((error) => {
-            // eslint-disable-next-line no-console
-            console.error('[api/stock]', error);
-            if (!res.headersSent) {
-                res.status(500).json({ error: 'Local API handler failed.' });
-            }
-        });
-    });
-    app.use('/api/feed', (req, res) => {
-        Promise.resolve(feed(req, res)).catch((error) => {
-            // eslint-disable-next-line no-console
-            console.error('[api/feed]', error);
-            if (!res.headersSent) {
-                res.status(500).json({ error: 'Local API handler failed.' });
-            }
+    Object.keys(handlers).forEach((path) => {
+        app.use(path, (req, res) => {
+            Promise.resolve(handlers[path](req, res)).catch((error) => {
+                // eslint-disable-next-line no-console
+                console.error(`[${path.slice(1)}]`, error);
+                if (!res.headersSent) {
+                    res.status(500).json({ error: 'Local API handler failed.' });
+                }
+            });
         });
     });
 };

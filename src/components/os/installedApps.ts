@@ -193,6 +193,22 @@ export const STORE_APPS: StoreApp[] = [
         defaultInstalled: true,
     },
     {
+        key: 'vault',
+        name: 'The Vault',
+        blurb: 'My published notes, straight from Obsidian. Read-only.',
+        size: 1400,
+        category: 'Internet',
+        defaultInstalled: true,
+    },
+    {
+        key: 'readingList',
+        name: 'Reading List',
+        blurb: 'The literature I keep coming back to, straight from Zotero.',
+        size: 820,
+        category: 'Internet',
+        defaultInstalled: true,
+    },
+    {
         key: 'floating',
         name: 'Interactive Attractor',
         blurb: 'A strange attractor you can push around with the mouse.',

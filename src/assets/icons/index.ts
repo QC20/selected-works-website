@@ -119,6 +119,8 @@ import stereogramIcon from './stereogramIcon.png';
 import resourceMeterIcon from './resourceMeterIcon.png';
 import perceptionLabIcon from './perceptionLabIcon.png';
 import searchIcon from './searchIcon.png';
+import obsidianIcon from './obsidianIcon.png';
+import zoteroIcon from './zoteroIcon.png';
 
 const getIconByName = (
     iconName: IconName
@@ -223,6 +225,8 @@ const icons = {
     resourceMeterIcon: resourceMeterIcon,
     perceptionLabIcon: perceptionLabIcon,
     searchIcon: searchIcon,
+    obsidianIcon: obsidianIcon,
+    zoteroIcon: zoteroIcon,
 };
 
 

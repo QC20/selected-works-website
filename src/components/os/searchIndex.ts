@@ -72,6 +72,8 @@ export const PROGRAM_ALIASES: Record<string, string> = {
     resumeFile: 'cv curriculum vitae career',
     howItsBuilt: 'technical architecture how it works source',
     credits: 'attribution thanks licences licenses',
+    vault: 'obsidian notes vault markdown zettelkasten wiki second brain writing',
+    readingList: 'zotero bibliography papers literature references citations reading library',
 };
 
 /* ---- the registry Desktop fills in ---------------------------------- */
