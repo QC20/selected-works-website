@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import Window from '../os/Window';
+import MenuBar, { MenuBarMenu } from '../os/MenuBar';
 import Colors from '../../constants/colors';
 import { openExternal } from '../os/openExternal';
 import cv from '../../assets/resume/CV_Jonas_Kjeldmand_Jensen.pdf';
@@ -24,6 +25,89 @@ const ResumeFile: React.FC<ResumeFileProps> = ({
 }) => {
     const [loaded, setLoaded] = useState(false);
 
+    /**
+     * A document viewer's File menu is Print / Open / Save As, and all three
+     * are things a browser will do for a PDF given the chance — so they hand
+     * the file straight to it rather than pretending.
+     */
+    const menus: MenuBarMenu[] = [
+        {
+            label: 'File',
+            items: [
+                {
+                    label: 'Open in New Window',
+                    bold: true,
+                    onClick: () => openExternal(cv),
+                },
+                {
+                    label: 'Save As...',
+                    accelerator: 'Ctrl+S',
+                    onClick: () => {
+                        const a = document.createElement('a');
+                        a.href = cv;
+                        a.download = 'CV_Jonas_Kjeldmand_Jensen.pdf';
+                        a.click();
+                    },
+                },
+                {
+                    label: 'Print...',
+                    accelerator: 'Ctrl+P',
+                    // The PDF is in an iframe; printing the desktop around it
+                    // would produce a page of taskbar. Opening it on its own
+                    // is the honest route to a printable copy.
+                    onClick: () => openExternal(cv),
+                },
+                {
+                    label: 'Close',
+                    separatorBefore: true,
+                    accelerator: 'Alt+F4',
+                    onClick: onClose,
+                },
+            ],
+        },
+        {
+            label: 'Edit',
+            items: [
+                {
+                    label: 'Copy Link to CV',
+                    accelerator: 'Ctrl+C',
+                    onClick: () =>
+                        navigator.clipboard
+                            ?.writeText(new URL(cv, window.location.href).href)
+                            .catch(() => undefined),
+                },
+            ],
+        },
+        {
+            label: 'View',
+            items: [
+                {
+                    label: 'Fit Width',
+                    checked: true,
+                    onClick: () => undefined,
+                },
+                {
+                    label: 'Reload',
+                    separatorBefore: true,
+                    accelerator: 'F5',
+                    onClick: () => setLoaded(false),
+                },
+            ],
+        },
+        {
+            label: 'Help',
+            items: [
+                {
+                    label: 'About This Document',
+                    onClick: () =>
+                        window.alert(
+                            'CV_Jonas_Kjeldmand_Jensen.pdf — the same PDF the Download button hands you, shown here in the browser\u2019s own viewer so it keeps the desktop\u2019s frame.'
+                        ),
+                },
+            ],
+        },
+    ];
+
     return (
         <Window
             top={40}
@@ -38,20 +122,7 @@ const ResumeFile: React.FC<ResumeFileProps> = ({
             bottomLeftText="CV_Jonas_Kjeldmand_Jensen.pdf"
         >
             <div style={styles.container}>
-                <div style={styles.menuBar}>
-                    <span style={styles.menuItem}>
-                        File<u style={{ marginLeft: '-2px' }}>_</u>
-                    </span>
-                    <span style={styles.menuItem}>
-                        Edit<u style={{ marginLeft: '-2px' }}>_</u>
-                    </span>
-                    <span style={styles.menuItem}>
-                        View<u style={{ marginLeft: '-2px' }}>_</u>
-                    </span>
-                    <span style={styles.menuItem}>
-                        Help<u style={{ marginLeft: '-2px' }}>_</u>
-                    </span>
-                </div>
+                <MenuBar menus={menus} />
 
                 <div style={styles.viewport}>
                     <iframe
@@ -96,17 +167,6 @@ const styles: StyleSheetCSS = {
         background: Colors.lightGray,
         fontFamily: 'MSSerif',
         fontSize: 11,
-    },
-    menuBar: {
-        display: 'flex',
-        gap: 16,
-        padding: '4px 6px',
-        borderBottom: `1px solid ${Colors.darkGray}`,
-        flexShrink: 0,
-    },
-    menuItem: {
-        cursor: 'default',
-        userSelect: 'none',
     },
     viewport: {
         position: 'relative',

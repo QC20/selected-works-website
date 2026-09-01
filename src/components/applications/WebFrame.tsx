@@ -6,6 +6,7 @@ import React, {
     useState,
 } from 'react';
 import Window from '../os/Window';
+import MenuBar, { MenuBarMenu } from '../os/MenuBar';
 import Colors from '../../constants/colors';
 import { Icon } from '../general';
 import { IconName } from '../../assets/icons';
@@ -196,6 +197,97 @@ const WebFrame: React.FC<WebFrameProps> = ({
      * The ref starts at whatever `seq` we were mounted with, so opening the
      * window doesn't immediately re-navigate it to the address it already has.
      */
+    /**
+     * The browser's menus, which is the one window on this desktop where the
+     * 1995 menu bar and the modern toolbar overlap almost exactly: Back,
+     * Forward, Stop, Refresh and the Favorites list are all up here as well as
+     * down there, because that is where Internet Explorer put them.
+     */
+    const menus: MenuBarMenu[] = [
+        {
+            label: 'File',
+            items: [
+                {
+                    label: 'Open in New Window',
+                    bold: true,
+                    onClick: () => openExternal(url),
+                },
+                {
+                    label: 'Close',
+                    separatorBefore: true,
+                    accelerator: 'Alt+F4',
+                    onClick: onClose,
+                },
+            ],
+        },
+        {
+            label: 'Edit',
+            items: [
+                {
+                    label: 'Copy Address',
+                    accelerator: 'Ctrl+C',
+                    onClick: () =>
+                        navigator.clipboard
+                            ?.writeText(url)
+                            .catch(() => undefined),
+                },
+            ],
+        },
+        {
+            label: 'View',
+            items: [
+                {
+                    label: 'Back',
+                    accelerator: 'Alt+←',
+                    disabled: index === 0,
+                    onClick: () => go(-1),
+                },
+                {
+                    label: 'Forward',
+                    accelerator: 'Alt+→',
+                    disabled: index >= history.length - 1,
+                    onClick: () => go(1),
+                },
+                {
+                    label: 'Stop',
+                    separatorBefore: true,
+                    accelerator: 'Esc',
+                    disabled: !loading,
+                    onClick: stop,
+                },
+                {
+                    label: 'Refresh',
+                    accelerator: 'F5',
+                    onClick: reload,
+                },
+                {
+                    label: 'Home',
+                    separatorBefore: true,
+                    onClick: () => navigate(IE_HOME),
+                },
+            ],
+        },
+        {
+            label: 'Favorites',
+            items: IE_FAVORITES.map((site) => ({
+                label: site.label,
+                onClick: () => navigate(site.url),
+            })),
+        },
+        {
+            label: 'Help',
+            items: [
+                {
+                    label: 'About Internet Explorer',
+                    onClick: () =>
+                        window.alert(
+                            'Not really Internet Explorer. Pages load in an ordinary iframe, which is why some sites refuse to appear in here at all \u2014 they send a header telling browsers not to frame them. Open in New Window is the way past that.'
+                        ),
+                },
+            ],
+        },
+    ];
+
     const handledSeq = useRef(navRequest?.seq ?? -1);
     useEffect(() => {
         if (!navRequest || navRequest.seq === handledSeq.current) return;
@@ -236,23 +328,7 @@ const WebFrame: React.FC<WebFrameProps> = ({
             bottomLeftText={status}
         >
             <div style={styles.container}>
-                <div style={styles.menuBar}>
-                    <span style={styles.menuItem}>
-                        File<u style={{ marginLeft: '-2px' }}>_</u>
-                    </span>
-                    <span style={styles.menuItem}>
-                        Edit<u style={{ marginLeft: '-2px' }}>_</u>
-                    </span>
-                    <span style={styles.menuItem}>
-                        View<u style={{ marginLeft: '-2px' }}>_</u>
-                    </span>
-                    <span style={styles.menuItem}>
-                        Favorites<u style={{ marginLeft: '-2px' }}>_</u>
-                    </span>
-                    <span style={styles.menuItem}>
-                        Help<u style={{ marginLeft: '-2px' }}>_</u>
-                    </span>
-                </div>
+                <MenuBar menus={menus} />
 
                 {/* Toolbar — the IE 4 button row: the real button art, label
                     alongside, greyed out when the button can't be used. */}
@@ -452,17 +528,6 @@ const styles: StyleSheetCSS = {
         background: Colors.lightGray,
         fontFamily: 'MSSerif',
         fontSize: 11,
-    },
-    menuBar: {
-        display: 'flex',
-        gap: 14,
-        padding: '4px 6px',
-        borderBottom: `1px solid ${Colors.darkGray}`,
-        flexShrink: 0,
-    },
-    menuItem: {
-        cursor: 'default',
-        userSelect: 'none',
     },
     toolbar: {
         alignItems: 'stretch',

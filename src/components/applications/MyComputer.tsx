@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import Window from '../os/Window';
+import MenuBar, { MenuBarMenu } from '../os/MenuBar';
 import Colors from '../../constants/colors';
 import { Icon } from '../general';
 import { IconName } from '../../assets/icons';
@@ -46,7 +47,7 @@ import {
  *   ├── Hard Disk (D:) → Utility      → Market Watch, Task Manager,
  *   │                                   Patch Notes, Reset Storage
  *   │                  → Control Panel → Display, System, Add/Remove Programs, Run
- *   └── CD-ROM (empty)
+ *   └── SELECTED WORKS '26 (E:) → the portfolio disc, and a DEMOS folder
  *
  * Notes and Paintings are the only folders whose contents aren't known up
  * front: they show what Notepad and Paint have actually written to the fake C:
@@ -61,6 +62,7 @@ type FolderId =
     | 'diskC'
     | 'diskD'
     | 'cdRom'
+    | 'cdDemos'
     | 'programs'
     | 'games'
     | 'pictures'
@@ -95,7 +97,17 @@ const FOLDERS: FolderDef[] = [
     { id: 'diskD', label: 'Hard Disk (D:)', icon: 'hardDriveIcon', parent: 'myComputer', depth: 1 },
     { id: 'utility', label: 'Utility', icon: 'folderIcon', parent: 'diskD', depth: 2 },
     { id: 'controlPanel', label: 'Control Panel', icon: 'controlPanelFolderIcon', parent: 'diskD', depth: 2 },
-    { id: 'cdRom', label: 'CD-ROM', icon: 'cdRomIcon', parent: 'myComputer', depth: 1 },
+    {
+        id: 'cdRom',
+        // A drive with a disc in it is labelled with the disc's own volume
+        // name, not "CD-ROM" — that is how you could tell at a glance whether
+        // there was anything in it.
+        label: "SELECTED WORKS '26 (E:)",
+        icon: 'cdRomIcon',
+        parent: 'myComputer',
+        depth: 1,
+    },
+    { id: 'cdDemos', label: 'DEMOS', icon: 'folderIcon', parent: 'cdRom', depth: 2 },
 ];
 
 const folderById = (id: FolderId) => FOLDERS.find((f) => f.id === id)!;
@@ -128,7 +140,7 @@ const CONTENTS: { [key in FolderId]: Entry[] } = {
     myComputer: [
         folderEntry('diskC', 2_100_000, 'Local Disk'),
         folderEntry('diskD', 1_400_000, 'Local Disk'),
-        folderEntry('cdRom', 0, 'CD-ROM Drive'),
+        folderEntry('cdRom', 41_800, 'CD-ROM Drive'),
     ],
     diskC: [
         folderEntry('programs', 42_000, 'File Folder'),
@@ -142,7 +154,95 @@ const CONTENTS: { [key in FolderId]: Entry[] } = {
         folderEntry('utility', 40, 'File Folder'),
         folderEntry('controlPanel', 60, 'File Folder'),
     ],
-    cdRom: [],
+    /**
+     * The disc in the drive.
+     *
+     * An empty CD-ROM drive on a portfolio site is a piece of furniture with
+     * nothing behind it — you click it once, read "Please insert a disc into
+     * drive", and never open it again. What belongs in it is the thing this
+     * whole desktop is a re-enactment of: before there was a portfolio site,
+     * a designer's portfolio went out in a jewel case, and the disc booted
+     * into exactly this kind of menu. So the drive has that disc in it.
+     *
+     * Nothing here is new work — every entry launches a window that already
+     * exists elsewhere on the machine. The disc is a second, period-correct
+     * route to the CV, the contact form and the showcase, presented the way
+     * 1996 would have presented them, right down to AUTORUN.INF being the
+     * first thing in the listing.
+     */
+    cdRom: [
+        {
+            key: 'cdAutorun',
+            label: 'AUTORUN.INF',
+            icon: 'notepadIcon',
+            size: 1,
+            type: 'Setup Information',
+            launch: 'showcase',
+        },
+        {
+            key: 'cdPortfolio',
+            label: 'PORTFOLIO.EXE',
+            icon: 'showcaseIcon',
+            size: 12_400,
+            type: 'Application',
+            launch: 'showcase',
+        },
+        {
+            key: 'cdResume',
+            label: 'RESUME.DOC',
+            icon: 'resumeFileIcon',
+            size: 86,
+            type: 'Microsoft Word Document',
+            launch: 'resumeFile',
+        },
+        {
+            key: 'cdContact',
+            label: 'CONTACT.TXT',
+            icon: 'mailIcon',
+            size: 2,
+            type: 'Text Document',
+            launch: 'mail',
+        },
+        {
+            key: 'cdCredits',
+            label: 'CREDITS.EXE',
+            icon: 'credits',
+            size: 340,
+            type: 'Application',
+            launch: 'credits',
+        },
+        folderEntry('cdDemos', 28_900, 'File Folder'),
+    ],
+    /**
+     * Every cover disc had one of these: the bit you actually put the CD in
+     * for, tucked behind the bit the publisher wanted you to look at.
+     */
+    cdDemos: [
+        {
+            key: 'cdDoom',
+            label: 'DOOM.EXE',
+            icon: 'doomIcon',
+            size: 12_000,
+            type: 'Application',
+            launch: 'doom',
+        },
+        {
+            key: 'cdTrail',
+            label: 'OREGON.EXE',
+            icon: 'trailIcon',
+            size: 3200,
+            type: 'Application',
+            launch: 'trail',
+        },
+        {
+            key: 'cdPinball',
+            label: 'PINBALL.EXE',
+            icon: 'pinballIcon',
+            size: 6700,
+            type: 'Application',
+            launch: 'pinball',
+        },
+    ],
     // My Documents holds the two folders the programs write into; what's
     // inside each is read off the drive at open time (see `documents` below).
     myDocuments: [
@@ -730,6 +830,134 @@ const MyComputer: React.FC<MyComputerProps> = ({
     const canGoBack = history.length > 1;
     const canGoUp = current.parent !== null;
 
+    /**
+     * The full path of where we are, the way the real Address bar spelled it:
+     * `C:\My Documents\Notes`. Walks up the tree rather than being stored,
+     * so it cannot drift out of step with `FOLDERS`.
+     */
+    const currentPath = useMemo(() => {
+        const parts: string[] = [];
+        let node: FolderDef | undefined = current;
+        while (node && node.id !== 'myComputer') {
+            parts.unshift(node.label);
+            const parent: FolderId | null = node.parent;
+            node = parent ? folderById(parent) : undefined;
+        }
+        if (!parts.length) return 'My Computer';
+        // "Hard Disk (C:)" is the drive's label; a path wants the letter.
+        const drive = parts[0].match(/\(([A-Z]:)\)/);
+        if (drive) parts[0] = drive[1];
+        return parts.join('\\');
+    }, [current]);
+
+    /** Best-effort — a folder window is not the place to report a clipboard
+     *  permission prompt, so a refusal is simply silent. */
+    const copyText = (text: string) => {
+        navigator.clipboard?.writeText(text).catch(() => undefined);
+    };
+
+    const selectedDocument = selectedEntry?.document;
+
+    const menus: MenuBarMenu[] = [
+        {
+            label: 'File',
+            items: [
+                {
+                    label: 'Open',
+                    bold: true,
+                    disabled: !selectedEntry,
+                    onClick: openSelected,
+                },
+                {
+                    label: 'Save a Copy...',
+                    disabled: !selectedDocument,
+                    onClick: () => {
+                        if (selectedDocument) downloadDocument(selectedDocument);
+                    },
+                },
+                {
+                    label: 'Delete',
+                    accelerator: 'Del',
+                    disabled: !selectedDocument,
+                    onClick: binSelected,
+                },
+                {
+                    label: 'Close',
+                    separatorBefore: true,
+                    accelerator: 'Alt+F4',
+                    onClick: onClose,
+                },
+            ],
+        },
+        {
+            label: 'Edit',
+            items: [
+                {
+                    label: 'Copy Address',
+                    accelerator: 'Ctrl+C',
+                    onClick: () => copyText(currentPath),
+                },
+                {
+                    label: 'Copy Name',
+                    disabled: !selectedEntry,
+                    onClick: () => {
+                        if (selectedEntry) copyText(selectedEntry.label);
+                    },
+                },
+                {
+                    label: 'Deselect',
+                    separatorBefore: true,
+                    accelerator: 'Esc',
+                    disabled: !selectedEntry,
+                    onClick: () => setSelected(null),
+                },
+            ],
+        },
+        {
+            label: 'View',
+            items: [
+                {
+                    label: 'Back',
+                    accelerator: 'Alt+←',
+                    disabled: !canGoBack,
+                    onClick: back,
+                },
+                {
+                    label: 'Up One Level',
+                    accelerator: 'Backspace',
+                    disabled: !canGoUp,
+                    onClick: up,
+                },
+                {
+                    label: 'Refresh',
+                    separatorBefore: true,
+                    accelerator: 'F5',
+                    onClick: () => refreshDocuments(documentDir),
+                },
+                {
+                    label: 'Address Bar',
+                    separatorBefore: true,
+                    checked: true,
+                    onClick: () => setAddressOpen((o) => !o),
+                },
+            ],
+        },
+        {
+            label: 'Help',
+            items: [
+                {
+                    label: 'Help Topics',
+                    onClick: () => openApp('howItsBuilt'),
+                },
+                {
+                    label: 'About My Computer',
+                    separatorBefore: true,
+                    onClick: () => openApp('systemProperties'),
+                },
+            ],
+        },
+    ];
+
     return (
         <Window
             top={60}
@@ -744,20 +972,7 @@ const MyComputer: React.FC<MyComputerProps> = ({
             bottomLeftText={status}
         >
             <div style={styles.container} ref={frameRef}>
-                <div style={styles.menuBar}>
-                    <span style={styles.menuItem}>
-                        File<u style={{ marginLeft: '-2px' }}>_</u>
-                    </span>
-                    <span style={styles.menuItem}>
-                        Edit<u style={{ marginLeft: '-2px' }}>_</u>
-                    </span>
-                    <span style={styles.menuItem}>
-                        View<u style={{ marginLeft: '-2px' }}>_</u>
-                    </span>
-                    <span style={styles.menuItem}>
-                        Help<u style={{ marginLeft: '-2px' }}>_</u>
-                    </span>
-                </div>
+                <MenuBar menus={menus} />
 
                 {/* Address combo box — jumps anywhere in the tree. */}
                 <div style={styles.addressBar}>
@@ -918,11 +1133,7 @@ const MyComputer: React.FC<MyComputerProps> = ({
                                     )}
                                 </p>
                             ) : (
-                                <p style={styles.emptyText}>
-                                    {location === 'cdRom'
-                                        ? 'Please insert a disc into drive.'
-                                        : 'This folder is empty.'}
-                                </p>
+                                <p style={styles.emptyText}>This folder is empty.</p>
                             )}
                         </div>
                     ) : (
@@ -1021,17 +1232,6 @@ const styles: StyleSheetCSS = {
         background: Colors.lightGray,
         fontFamily: 'MSSerif',
         fontSize: 11,
-    },
-    menuBar: {
-        display: 'flex',
-        gap: 16,
-        padding: '4px 6px',
-        borderBottom: `1px solid ${Colors.darkGray}`,
-        flexShrink: 0,
-    },
-    menuItem: {
-        cursor: 'default',
-        userSelect: 'none',
     },
     addressBar: {
         alignItems: 'center',

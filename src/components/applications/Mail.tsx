@@ -1,5 +1,6 @@
 import React, { useRef, useState } from 'react';
 import Window from '../os/Window';
+import MenuBar, { MenuBarMenu } from '../os/MenuBar';
 import Colors from '../../constants/colors';
 
 // Note: To make email sending work, you need to set up EmailJS
@@ -23,6 +24,82 @@ const Mail: React.FC<MailProps> = ({ onInteract, onClose, onMinimize }) => {
     const EMAILJS_SERVICE_ID = 'YOUR_SERVICE_ID';
     const EMAILJS_TEMPLATE_ID = 'YOUR_TEMPLATE_ID';
     const EMAILJS_PUBLIC_KEY = 'YOUR_PUBLIC_KEY';
+
+    /**
+     * A compose window's menus, doing the four things a compose window does.
+     * Send is the default action, so it is the bold one, and it is greyed for
+     * exactly the same reason the Send button is: an empty message.
+     */
+    const canSend =
+        !!senderName.trim() && !!senderEmail.trim() && !!message.trim();
+
+    const menus: MenuBarMenu[] = [
+        {
+            label: 'File',
+            items: [
+                {
+                    label: 'Send',
+                    bold: true,
+                    accelerator: 'Ctrl+Enter',
+                    disabled: !canSend || status === 'sending',
+                    onClick: () => handleSendEmail(),
+                },
+                {
+                    label: 'Close',
+                    separatorBefore: true,
+                    accelerator: 'Alt+F4',
+                    onClick: onClose,
+                },
+            ],
+        },
+        {
+            label: 'Edit',
+            items: [
+                {
+                    label: 'Copy Message',
+                    accelerator: 'Ctrl+C',
+                    disabled: !message.trim(),
+                    onClick: () =>
+                        navigator.clipboard
+                            ?.writeText(message)
+                            .catch(() => undefined),
+                },
+                {
+                    label: 'Clear Message',
+                    separatorBefore: true,
+                    disabled: !senderName && !senderEmail && !message,
+                    onClick: () => {
+                        setSenderName('');
+                        setSenderEmail('');
+                        setMessage('');
+                        setStatus('idle');
+                    },
+                },
+            ],
+        },
+        {
+            label: 'View',
+            items: [
+                {
+                    label: 'Plain Text',
+                    checked: true,
+                    onClick: () => undefined,
+                },
+            ],
+        },
+        {
+            label: 'Help',
+            items: [
+                {
+                    label: "Where does this go?",
+                    onClick: () =>
+                        window.alert(
+                            'Straight to jokje@dtu.dk. Nothing is stored on this site \u2014 the message is handed to the mail service and forgotten.'
+                        ),
+                },
+            ],
+        },
+    ];
 
     const handleSendEmail = async () => {
         if (!senderName.trim() || !senderEmail.trim() || !message.trim()) {
@@ -91,18 +168,6 @@ const Mail: React.FC<MailProps> = ({ onInteract, onClose, onMinimize }) => {
             background: Colors.lightGray,
             fontFamily: 'MSSerif',
             fontSize: 11,
-        },
-        menuBar: {
-            display: 'flex',
-            gap: 16,
-            padding: '4px 6px',
-            background: Colors.lightGray,
-            borderBottom: `1px solid ${Colors.darkGray}`,
-            fontSize: 11,
-        },
-        menuItem: {
-            cursor: 'default',
-            userSelect: 'none' as const,
         },
         toContainer: {
             display: 'flex',
@@ -246,20 +311,7 @@ const Mail: React.FC<MailProps> = ({ onInteract, onClose, onMinimize }) => {
         >
         <div style={styles.container}>
             {/* Menu Bar */}
-            <div style={styles.menuBar}>
-                <span style={styles.menuItem}>
-                    File<u style={{ marginLeft: '-2px' }}>_</u>
-                </span>
-                <span style={styles.menuItem}>
-                    Edit<u style={{ marginLeft: '-2px' }}>_</u>
-                </span>
-                <span style={styles.menuItem}>
-                    View<u style={{ marginLeft: '-2px' }}>_</u>
-                </span>
-                <span style={styles.menuItem}>
-                    Help<u style={{ marginLeft: '-2px' }}>_</u>
-                </span>
-            </div>
+            <MenuBar menus={menus} />
 
             {/* To Field - Recipient Email (disabled, shows your email) */}
             <div style={styles.toContainer}>

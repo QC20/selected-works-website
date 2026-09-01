@@ -1,5 +1,6 @@
 import React, { useCallback, useRef, useState } from 'react';
 import Window from '../os/Window';
+import MenuBar, { MenuBarMenu } from '../os/MenuBar';
 import FileIcon from '../os/FileIcon';
 import Colors from '../../constants/colors';
 import { DesktopFile, filesIn, updateFile, useDesktopFiles } from '../os/desktopFiles';
@@ -98,6 +99,85 @@ const RecycleBin: React.FC<RecycleBinProps> = ({
         ? `1 object(s) selected   ${selected.size} KB`
         : `${contents.length} object(s)   ${totalSize} KB`;
 
+    /**
+     * The bin already knew how to restore, delete and empty — those were
+     * toolbar buttons and nothing else. The menu is where a Windows 95 user
+     * looks for them first, so it offers the same three, plus the one thing
+     * the toolbar has no room for: restoring everything at once.
+     */
+    const menus: MenuBarMenu[] = [
+        {
+            label: 'File',
+            items: [
+                {
+                    label: 'Restore',
+                    bold: true,
+                    disabled: !selected,
+                    onClick: handleRestore,
+                },
+                {
+                    label: 'Delete',
+                    accelerator: 'Del',
+                    disabled: !selected,
+                    onClick: handlePermanentDelete,
+                },
+                {
+                    label: 'Close',
+                    separatorBefore: true,
+                    accelerator: 'Alt+F4',
+                    onClick: onClose,
+                },
+            ],
+        },
+        {
+            label: 'Edit',
+            items: [
+                {
+                    label: 'Restore All',
+                    disabled: contents.length === 0,
+                    onClick: () => {
+                        // Copy first: restoring mutates the list this is
+                        // iterating, and a bin that empties halfway is worse
+                        // than one that does nothing.
+                        [...contents].forEach((file) => restoreFile(file));
+                        setSelectedId(null);
+                    },
+                },
+                {
+                    label: 'Deselect',
+                    separatorBefore: true,
+                    accelerator: 'Esc',
+                    disabled: !selected,
+                    onClick: () => setSelectedId(null),
+                },
+            ],
+        },
+        {
+            label: 'View',
+            items: [
+                { label: 'Large Icons', checked: true, onClick: () => undefined },
+                {
+                    label: 'Empty Recycle Bin',
+                    separatorBefore: true,
+                    disabled: contents.length === 0,
+                    onClick: handleEmptyBin,
+                },
+            ],
+        },
+        {
+            label: 'Help',
+            items: [
+                {
+                    label: 'What is the Recycle Bin?',
+                    onClick: () =>
+                        window.alert(
+                            'Files you delete are kept here rather than removed, so you can put them back. Drag one out onto the desktop, or select it and choose File > Restore. Emptying the bin is permanent.'
+                        ),
+                },
+            ],
+        },
+    ];
+
     return (
         <Window
             top={112}
@@ -115,20 +195,7 @@ const RecycleBin: React.FC<RecycleBinProps> = ({
         >
             <div style={styles.container}>
                 {/* Menu Bar */}
-                <div style={styles.menuBar}>
-                    <span style={styles.menuItem}>
-                        File<u style={{ marginLeft: '-2px' }}>_</u>
-                    </span>
-                    <span style={styles.menuItem}>
-                        Edit<u style={{ marginLeft: '-2px' }}>_</u>
-                    </span>
-                    <span style={styles.menuItem}>
-                        View<u style={{ marginLeft: '-2px' }}>_</u>
-                    </span>
-                    <span style={styles.menuItem}>
-                        Help<u style={{ marginLeft: '-2px' }}>_</u>
-                    </span>
-                </div>
+                <MenuBar menus={menus} />
 
                 {/* Toolbar */}
                 <div style={styles.toolbar}>
@@ -240,19 +307,6 @@ const styles: StyleSheetCSS = {
         background: Colors.lightGray,
         fontFamily: 'MSSerif',
         fontSize: 11,
-    },
-    menuBar: {
-        display: 'flex',
-        gap: 16,
-        padding: '4px 6px',
-        background: Colors.lightGray,
-        borderBottom: `1px solid ${Colors.darkGray}`,
-        fontSize: 11,
-        flexShrink: 0,
-    },
-    menuItem: {
-        cursor: 'default',
-        userSelect: 'none',
     },
     toolbar: {
         display: 'flex',

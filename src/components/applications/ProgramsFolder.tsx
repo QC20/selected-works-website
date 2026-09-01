@@ -1,5 +1,6 @@
 import React, { useRef, useState } from 'react';
 import Window from '../os/Window';
+import MenuBar, { MenuBarMenu } from '../os/MenuBar';
 import Colors from '../../constants/colors';
 import { Icon } from '../general';
 import { IconName } from '../../assets/icons';
@@ -139,6 +140,79 @@ const ProgramsFolder: React.FC<ProgramsFolderProps> = ({
         ? `${current.name} — ${current.type}, ${formatSize(current.size)}`
         : `${PROGRAMS_CONTENTS.length} object(s)   ${formatSize(totalSize)}`;
 
+    const copyText = (text: string) =>
+        navigator.clipboard?.writeText(text).catch(() => undefined);
+
+    /**
+     * This folder can do exactly three things — select, open, and count — so
+     * its menus offer exactly those. Nothing here is greyed out to look
+     * authentic; an item is disabled only when there is genuinely nothing for
+     * it to act on.
+     */
+    const menus: MenuBarMenu[] = [
+        {
+            label: 'File',
+            items: [
+                {
+                    label: 'Open',
+                    bold: true,
+                    disabled: !current,
+                    onClick: () => current && openApp(current.key),
+                },
+                {
+                    label: 'Close',
+                    separatorBefore: true,
+                    accelerator: 'Alt+F4',
+                    onClick: onClose,
+                },
+            ],
+        },
+        {
+            label: 'Edit',
+            items: [
+                {
+                    label: 'Copy Name',
+                    accelerator: 'Ctrl+C',
+                    disabled: !current,
+                    onClick: () => current && copyText(current.name),
+                },
+                {
+                    label: 'Deselect',
+                    separatorBefore: true,
+                    accelerator: 'Esc',
+                    disabled: !current,
+                    onClick: () => setSelected(null),
+                },
+            ],
+        },
+        {
+            label: 'View',
+            items: [
+                {
+                    label: 'Large Icons',
+                    checked: true,
+                    onClick: () => undefined,
+                },
+                {
+                    label: 'Add/Remove Programs...',
+                    separatorBefore: true,
+                    onClick: () => openApp('store'),
+                },
+            ],
+        },
+        {
+            label: 'Help',
+            items: [
+                { label: 'Help Topics', onClick: () => openApp('howItsBuilt') },
+                {
+                    label: 'About Programs',
+                    separatorBefore: true,
+                    onClick: () => openApp('systemProperties'),
+                },
+            ],
+        },
+    ];
+
     return (
         <Window
             top={70}
@@ -155,20 +229,7 @@ const ProgramsFolder: React.FC<ProgramsFolderProps> = ({
             bottomLeftText={status}
         >
             <div style={styles.container}>
-                <div style={styles.menuBar}>
-                    <span style={styles.menuItem}>
-                        File<u style={{ marginLeft: '-2px' }}>_</u>
-                    </span>
-                    <span style={styles.menuItem}>
-                        Edit<u style={{ marginLeft: '-2px' }}>_</u>
-                    </span>
-                    <span style={styles.menuItem}>
-                        View<u style={{ marginLeft: '-2px' }}>_</u>
-                    </span>
-                    <span style={styles.menuItem}>
-                        Help<u style={{ marginLeft: '-2px' }}>_</u>
-                    </span>
-                </div>
+                <MenuBar menus={menus} />
 
                 {/* Click the empty area to deselect, like a real folder. */}
                 <div
@@ -233,17 +294,6 @@ const styles: StyleSheetCSS = {
         background: Colors.lightGray,
         fontFamily: 'MSSerif',
         fontSize: 11,
-    },
-    menuBar: {
-        display: 'flex',
-        gap: 16,
-        padding: '4px 6px',
-        borderBottom: `1px solid ${Colors.darkGray}`,
-        flexShrink: 0,
-    },
-    menuItem: {
-        cursor: 'default',
-        userSelect: 'none',
     },
     contents: {
         display: 'flex',

@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import Window from '../os/Window';
+import MenuBar, { MenuBarMenu } from '../os/MenuBar';
 import Colors from '../../constants/colors';
 import { openExternal } from '../os/openExternal';
 
@@ -77,6 +78,75 @@ const GitHubViewer: React.FC<GitHubViewerProps> = ({
           ? 'Connecting to github.com…'
           : `${repos.length} repositor${repos.length === 1 ? 'y' : 'ies'}`;
 
+    /**
+     * This window is a read-only view of a live API, so its menus are the two
+     * things you can actually do with one: go and look at the real thing, and
+     * ask for the list again.
+     */
+    const menus: MenuBarMenu[] = [
+        {
+            label: 'File',
+            items: [
+                {
+                    label: 'Open Repository',
+                    bold: true,
+                    disabled: !current,
+                    onClick: () => current && openExternal(current.html_url),
+                },
+                {
+                    label: 'Open Profile on github.com',
+                    onClick: () => openExternal(GITHUB_URL),
+                },
+                {
+                    label: 'Close',
+                    separatorBefore: true,
+                    accelerator: 'Alt+F4',
+                    onClick: onClose,
+                },
+            ],
+        },
+        {
+            label: 'Edit',
+            items: [
+                {
+                    label: 'Copy Repository URL',
+                    accelerator: 'Ctrl+C',
+                    disabled: !current,
+                    onClick: () =>
+                        current &&
+                        navigator.clipboard
+                            ?.writeText(current.html_url)
+                            .catch(() => undefined),
+                },
+                {
+                    label: 'Deselect',
+                    separatorBefore: true,
+                    accelerator: 'Esc',
+                    disabled: !current,
+                    onClick: () => setSelected(null),
+                },
+            ],
+        },
+        {
+            label: 'View',
+            items: [
+                { label: 'Refresh', accelerator: 'F5', onClick: () => load() },
+            ],
+        },
+        {
+            label: 'Help',
+            items: [
+                {
+                    label: 'About This List',
+                    onClick: () =>
+                        window.alert(
+                            'Read live from the public GitHub API each time this window opens — forks excluded. Nothing is cached, so what you see is what is on github.com right now.'
+                        ),
+                },
+            ],
+        },
+    ];
+
     return (
         <Window
             top={40}
@@ -94,20 +164,7 @@ const GitHubViewer: React.FC<GitHubViewerProps> = ({
             bottomLeftText={status}
         >
             <div style={styles.container}>
-                <div style={styles.menuBar}>
-                    <span style={styles.menuItem}>
-                        File<u style={{ marginLeft: '-2px' }}>_</u>
-                    </span>
-                    <span style={styles.menuItem}>
-                        Edit<u style={{ marginLeft: '-2px' }}>_</u>
-                    </span>
-                    <span style={styles.menuItem}>
-                        View<u style={{ marginLeft: '-2px' }}>_</u>
-                    </span>
-                    <span style={styles.menuItem}>
-                        Help<u style={{ marginLeft: '-2px' }}>_</u>
-                    </span>
-                </div>
+                <MenuBar menus={menus} />
 
                 <div style={styles.addressBar}>
                     <span style={styles.addressLabel}>Address</span>
@@ -229,18 +286,6 @@ const styles: StyleSheetCSS = {
         background: Colors.lightGray,
         fontFamily: 'MSSerif',
         fontSize: 11,
-    },
-    menuBar: {
-        display: 'flex',
-        gap: 16,
-        padding: '4px 6px',
-        borderBottom: `1px solid ${Colors.darkGray}`,
-        fontSize: 11,
-        flexShrink: 0,
-    },
-    menuItem: {
-        cursor: 'default',
-        userSelect: 'none',
     },
     addressBar: {
         alignItems: 'center',

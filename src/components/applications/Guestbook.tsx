@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Window from '../os/Window';
+import MenuBar, { MenuBarMenu } from '../os/MenuBar';
 import Colors from '../../constants/colors';
 import { Icon } from '../general';
 import nudgeSound from '../../assets/audio/nudge.mp3';
@@ -199,6 +200,102 @@ const Guestbook: React.FC<GuestbookProps> = (props) => {
         revealTimer.current = window.setTimeout(() => setRevealed(null), 3000);
     };
 
+    /**
+     * Everything in these menus already existed as a button somewhere in the
+     * window — the nudge, the bot switch, the name dialog. The menu is the
+     * other place a Windows 95 user looks for them, and the bot switch in
+     * particular is easy to miss in the toolbar.
+     */
+    const menus: MenuBarMenu[] = [
+        {
+            label: 'File',
+            items: [
+                {
+                    label: 'Send',
+                    bold: true,
+                    accelerator: 'Enter',
+                    disabled: !draft.trim() || sending,
+                    onClick: () => send(),
+                },
+                {
+                    label: 'Change Name...',
+                    separatorBefore: true,
+                    onClick: () => {
+                        setNameDraft(name);
+                        setNameDialogOpen(true);
+                    },
+                },
+                {
+                    label: 'Close',
+                    separatorBefore: true,
+                    accelerator: 'Alt+F4',
+                    onClick: props.onClose,
+                },
+            ],
+        },
+        {
+            label: 'Edit',
+            items: [
+                {
+                    label: 'Copy Conversation',
+                    accelerator: 'Ctrl+C',
+                    disabled: messages.length === 0,
+                    onClick: () =>
+                        navigator.clipboard
+                            ?.writeText(
+                                messages
+                                    .map((m) => `${m.name}: ${m.message}`)
+                                    .join('\n')
+                            )
+                            .catch(() => undefined),
+                },
+                {
+                    label: 'Clear Draft',
+                    separatorBefore: true,
+                    disabled: !draft,
+                    onClick: () => setDraft(''),
+                },
+            ],
+        },
+        {
+            label: 'View',
+            items: [
+                {
+                    label: 'Refresh',
+                    accelerator: 'F5',
+                    onClick: () => load(),
+                },
+                {
+                    label: 'Scroll to Latest',
+                    onClick: () => scrollToBottom(),
+                },
+                {
+                    label: 'Chat Bot',
+                    separatorBefore: true,
+                    checked: botActive,
+                    onClick: () => toggleBot(),
+                },
+            ],
+        },
+        {
+            label: 'Help',
+            items: [
+                {
+                    label: 'Send a Nudge',
+                    onClick: () => nudge(),
+                },
+                {
+                    label: 'About the Guestbook',
+                    separatorBefore: true,
+                    onClick: () =>
+                        window.alert(
+                            'Messages are shared with everyone who opens this window. Be nice \u2014 they stay up.'
+                        ),
+                },
+            ],
+        },
+    ];
+
     const commitName = () => {
         const next = nameDraft.trim().slice(0, 20);
         setName(next);
@@ -226,20 +323,7 @@ const Guestbook: React.FC<GuestbookProps> = (props) => {
             }
         >
             <div style={styles.page}>
-                <div style={styles.menuBar}>
-                    <span style={styles.menuItem}>
-                        File<u style={styles.mnemonic}>_</u>
-                    </span>
-                    <span style={styles.menuItem}>
-                        Edit<u style={styles.mnemonic}>_</u>
-                    </span>
-                    <span style={styles.menuItem}>
-                        View<u style={styles.mnemonic}>_</u>
-                    </span>
-                    <span style={styles.menuItem}>
-                        Help<u style={styles.mnemonic}>_</u>
-                    </span>
-                </div>
+                <MenuBar menus={menus} />
 
                 {/* Grooved toolbar: username, nudge, and the bot switch. */}
                 <div style={styles.groove}>
@@ -437,20 +521,6 @@ const styles: StyleSheetCSS = {
         background: Colors.lightGray,
         boxSizing: 'border-box',
         fontFamily: 'MSSerif',
-    },
-    menuBar: {
-        display: 'flex',
-        gap: 14,
-        padding: '4px 8px',
-        fontSize: 12,
-        flexShrink: 0,
-    },
-    menuItem: {
-        cursor: 'default',
-        userSelect: 'none',
-    },
-    mnemonic: {
-        marginLeft: '-2px',
     },
     groove: {
         alignItems: 'center',
