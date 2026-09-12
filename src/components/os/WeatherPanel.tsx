@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState, useRef } from 'react';
 import Colors from '../../constants/colors';
 import { Icon } from '../general';
 import {
@@ -39,12 +39,26 @@ const WeatherPanel: React.FC<WeatherPanelProps> = ({ open }) => {
     const [error, setError] = useState<string | null>(null);
     const [loading, setLoading] = useState(false);
 
+    /**
+     * A token per request, so only the most recent one is allowed to write.
+     *
+     * Changing the city twice quickly is the ordinary case here — the
+     * drop-down is right there — and without this the *slower* of the two
+     * responses wins whenever it happens to land second, which shows
+     * Copenhagen's temperature under Tokyo's name.
+     */
+    const requestId = useRef(0);
+
     const load = useCallback(async (target: City, force = false) => {
+        const id = ++requestId.current;
         setLoading(true);
         setError(null);
         try {
-            setWeather(await fetchWeather(target, { force }));
+            const result = await fetchWeather(target, { force });
+            if (requestId.current !== id) return;
+            setWeather(result);
         } catch (e) {
+            if (requestId.current !== id) return;
             setWeather(null);
             setError(
                 e instanceof WeatherError
@@ -52,7 +66,7 @@ const WeatherPanel: React.FC<WeatherPanelProps> = ({ open }) => {
                     : 'Could not reach the weather service.'
             );
         } finally {
-            setLoading(false);
+            if (requestId.current === id) setLoading(false);
         }
     }, []);
 

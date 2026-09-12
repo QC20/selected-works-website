@@ -3,6 +3,7 @@ import Window from '../os/Window';
 import MenuBar, { MenuBarMenu } from '../os/MenuBar';
 import Colors from '../../constants/colors';
 import { openExternal } from '../os/openExternal';
+import useMountedRef from '../../hooks/useMountedRef';
 
 export const GITHUB_URL = 'https://github.com/QC20';
 const USER = 'QC20';
@@ -41,6 +42,7 @@ const GitHubViewer: React.FC<GitHubViewerProps> = ({
 }) => {
     const [repos, setRepos] = useState<Repo[] | null>(null);
     const [error, setError] = useState<string | null>(null);
+    const mounted = useMountedRef();
     const [selected, setSelected] = useState<number | null>(null);
 
     const load = useCallback(async () => {
@@ -58,12 +60,15 @@ const GitHubViewer: React.FC<GitHubViewerProps> = ({
                 );
             }
             const data: Repo[] = await res.json();
+            if (!mounted.current) return;
             setRepos(data.filter((r) => !r.fork));
         } catch (e) {
+            if (!mounted.current) return;
             setError(
                 e instanceof Error ? e.message : 'Could not reach GitHub.'
             );
         }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     useEffect(() => {

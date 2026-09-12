@@ -6,6 +6,7 @@ import smiley from '../../assets/icons/ms-smiley-face.png';
 import deadFace from '../../assets/icons/ms-dead-face.png';
 import mineImg from '../../assets/icons/ms-minesweeper.png';
 import flagImg from '../../assets/icons/ms-flag.png';
+import { clippyMoment } from '../os/clippyMoments';
 
 /**
  * Minesweeper, ported from Yute (Yuteoctober)'s Windows95 Portfolio into this
@@ -53,8 +54,16 @@ const minesForLevel = (level: number): number =>
     Math.min(MAX_MINES, BASE_MINES + (Math.max(1, level) - 1) * 2);
 
 const readLevel = (): number => {
-    const stored = Number(localStorage.getItem(LEVEL_KEY));
-    return Number.isFinite(stored) && stored > 0 ? stored : 1;
+    // Guarded like every other storage call in this file. This one runs
+    // inside a `useState` initializer, so in Safari's private mode — where
+    // `localStorage` access throws rather than returning null — it threw
+    // during the first render and the window never opened at all.
+    try {
+        const stored = Number(localStorage.getItem(LEVEL_KEY));
+        return Number.isFinite(stored) && stored > 0 ? stored : 1;
+    } catch {
+        return 1;
+    }
 };
 
 const createBoard = (): Square[][] =>
@@ -168,6 +177,7 @@ const Minesweeper: React.FC<MinesweeperProps> = ({
         (didWin: boolean) => {
             stopTimer();
             setGameOver(true);
+            clippyMoment('gameOver');
             setWon(didWin);
             if (!didWin) return;
 
@@ -218,7 +228,14 @@ const Minesweeper: React.FC<MinesweeperProps> = ({
                         nc >= 0 &&
                         nc < COLS &&
                         !next[nr][nc].hasBomb &&
-                        !next[nr][nc].isRevealed
+                        !next[nr][nc].isRevealed &&
+                        // A flag is the player saying "do not touch this".
+                        // Without this the fill revealed flagged squares, the
+                        // flag icon vanished (it only draws on an unrevealed
+                        // square) and `flagsLeft` stayed decremented — so the
+                        // counter was wrong for the rest of the game and
+                        // could go negative.
+                        !next[nr][nc].isFlagged
                     ) {
                         stack.push({ row: nr, col: nc });
                     }

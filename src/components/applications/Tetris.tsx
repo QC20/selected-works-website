@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import Window from '../os/Window';
 import Colors from '../../constants/colors';
 import { playClick, playError } from '../os/sounds';
+import { clippyMoment } from '../os/clippyMoments';
 
 /**
  * Tetris.
@@ -135,6 +136,26 @@ const loadHighScore = (): number => {
 
 export interface TetrisProps extends WindowAppProps {}
 
+/**
+ * Whether a keystroke belongs to something the visitor is typing into.
+ *
+ * Both games on this desktop listen on `window` — their boards are divs, not
+ * focusable controls — so without this every keypress in every other window
+ * also drives the game, and `preventDefault` stops the letter reaching the
+ * field it was meant for.
+ */
+function isTyping(target: EventTarget | null): boolean {
+    const el = target as HTMLElement | null;
+    if (!el || !el.tagName) return false;
+    const tag = el.tagName.toLowerCase();
+    return (
+        tag === 'input' ||
+        tag === 'textarea' ||
+        tag === 'select' ||
+        el.isContentEditable === true
+    );
+}
+
 const Tetris: React.FC<TetrisProps> = ({ onInteract, onClose, onMinimize }) => {
     const [board, setBoard] = useState<Cell[][]>(emptyBoard);
     const [piece, setPiece] = useState<Piece>(randomPiece);
@@ -195,6 +216,7 @@ const Tetris: React.FC<TetrisProps> = ({ onInteract, onClose, onMinimize }) => {
             setOver(true);
             setRunning(false);
             playError();
+            clippyMoment('gameOver');
             setScore((final) => {
                 setHighScore((best) => {
                     if (final <= best) return best;
@@ -270,6 +292,13 @@ const Tetris: React.FC<TetrisProps> = ({ onInteract, onClose, onMinimize }) => {
 
     useEffect(() => {
         const onKey = (e: KeyboardEvent) => {
+            // Somebody typing into another window is not playing Tetris. The
+            // handler is on `window` because the board is a div rather than a
+            // focusable control, which means every keystroke anywhere on the
+            // desktop arrives here — and `preventDefault` on 'a'/'d'/'s'/'w'
+            // was eating letters out of the Guestbook's name field.
+            if (isTyping(e.target)) return;
+
             if (over) {
                 if (e.key === ' ') {
                     e.preventDefault();
@@ -277,6 +306,12 @@ const Tetris: React.FC<TetrisProps> = ({ onInteract, onClose, onMinimize }) => {
                 }
                 return;
             }
+
+            // Space starts a stopped game; nothing else does anything to one.
+            // Holding ArrowDown on the Start screen used to merge pieces into
+            // the board, accumulate score, and lose a game nobody had begun.
+            if (!running && e.key !== ' ' && e.key !== 'p') return;
+
             switch (e.key) {
                 case 'ArrowLeft':
                 case 'a':

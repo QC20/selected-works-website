@@ -3,6 +3,7 @@ import Bsod from './Bsod';
 import Starfield from './screensavers/Starfield';
 import Mystify from './screensavers/Mystify';
 import FlyingIcons from './screensavers/FlyingIcons';
+import { clippyMoment } from './clippyMoments';
 
 /**
  * The screen saver.
@@ -250,7 +251,24 @@ const Screensaver: React.FC<ScreensaverProps> = ({
     const [activeKind, setActiveKind] = useState<ConcreteKind>('pipes');
     const timer = useRef<number>();
 
-    const stop = useCallback(() => setMode('off'), []);
+    /**
+     * Dismissing whatever was on screen. A blue screen gets a word afterwards
+     * rather than during — Clippy is suspended while the saver owns the
+     * display, and a reassurance nobody can see is not a reassurance.
+     *
+     * The mode is mirrored into a ref rather than read through the closure so
+     * `stop` can keep its empty dependency list (it is handed to three
+     * children and to a window listener), and so the side effect stays out of
+     * the `setMode` updater — updaters have to be pure.
+     */
+    const modeRef = useRef<Mode>('off');
+    modeRef.current = mode;
+
+    const stop = useCallback(() => {
+        const wasBsod = modeRef.current === 'bsod';
+        setMode('off');
+        if (wasBsod) clippyMoment('bsod');
+    }, []);
 
     useEffect(() => {
         if (kind === 'off' || suspended) {

@@ -2,6 +2,7 @@ import React, { useMemo, useRef, useState } from 'react';
 import Window from '../os/Window';
 import Colors from '../../constants/colors';
 import { Icon } from '../general';
+import { noticePetDesktopEvent } from '../os/pets';
 
 /** A program Run can launch, supplied by the Desktop. */
 export interface RunProgram {
@@ -49,6 +50,7 @@ const Run: React.FC<RunProps> = ({
         const key = index.get(normalise(typed));
         if (!key) {
             setError(typed);
+            noticePetDesktopEvent('error');
             return;
         }
         launch(key);

@@ -9,7 +9,7 @@
  * inside the bin window or out on the desktop).
  */
 
-import React, { useCallback, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import Colors from '../../constants/colors';
 import { Icon } from '../general';
 import { DesktopFile } from './desktopFiles';
@@ -55,6 +55,29 @@ const FileIcon: React.FC<FileIconProps> = ({
 
     const requiredIcon = require(`../../assets/icons/${file.icon}.png`);
 
+
+    /*
+     * Whatever pointer listeners are currently attached to `window`.
+     *
+     * Both of these are added on pointerdown and removed inside their own
+     * `pointerup`, which is fine right up until the icon unmounts mid-drag —
+     * dropped on the Recycle Bin, uninstalled from the Store, or a `pointerup`
+     * swallowed by an iframe. Then they survive for the rest of the session,
+     * calling setState on a component that no longer exists. Tracked in a ref
+     * because the handlers are fresh closures each time and a cleanup would
+     * otherwise be handed a different function than the one that was added.
+     */
+    const gestureRef = useRef<[string, EventListener][]>([]);
+
+    const detachGesture = useCallback(() => {
+        gestureRef.current.forEach(([type, fn]) =>
+            window.removeEventListener(type, fn)
+        );
+        gestureRef.current = [];
+    }, []);
+
+    useEffect(() => detachGesture, [detachGesture]);
+
     const handlePointerDown = useCallback(
         (e: React.PointerEvent) => {
             e.stopPropagation();
@@ -85,8 +108,7 @@ const FileIcon: React.FC<FileIconProps> = ({
 
             const onUp = (ev: PointerEvent) => {
                 const start = dragRef.current;
-                window.removeEventListener('pointermove', onMove);
-                window.removeEventListener('pointerup', onUp);
+                detachGesture();
                 dragRef.current = null;
                 setDragDelta(null);
                 if (start?.moved) {
@@ -102,6 +124,10 @@ const FileIcon: React.FC<FileIconProps> = ({
 
             window.addEventListener('pointermove', onMove);
             window.addEventListener('pointerup', onUp);
+            gestureRef.current.push(
+                ['pointermove', onMove as EventListener],
+                ['pointerup', onUp as EventListener]
+            );
         },
         [onOpen, onSelect, onDropped]
     );

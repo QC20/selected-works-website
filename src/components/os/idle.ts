@@ -64,11 +64,19 @@ export const patiently = (min: number, max: number): number =>
     between(min + (max - min) * 0.66, max);
 
 /**
- * Fires `onIdle` once the visitor has been still for `delay` ms, then stops.
+ * Fires `onIdle` once the visitor has been still for `delay` ms.
  *
- * Returns nothing and re-arms itself on every input, so the callback lands in a
- * genuine lull. Pass `delay = null` to disarm entirely (already fired, feature
- * switched off, something else owns the screen).
+ * It re-arms on every input, so the callback lands in a genuine lull — and,
+ * importantly, it re-arms *after firing too*. This hook does not stop on its
+ * own: left armed, it will fire again at the next lull, and again after that.
+ * Callers that want a single shot have to disarm themselves by passing
+ * `delay = null` (the way `StartBalloon` does with `visible ? null : delay`)
+ * or by changing `delay` to a fresh value each time (the way `Clippy` does,
+ * which re-arms deliberately and rate-limits itself with its own cooldown).
+ *
+ * The comment here used to claim it fired once and then stopped, which is not
+ * what the code does and is the sort of thing the next caller finds out about
+ * in production.
  */
 export function useIdleTrigger(
     delay: number | null,

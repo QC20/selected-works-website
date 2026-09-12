@@ -42,6 +42,7 @@ import Statistics from '../applications/Statistics';
 import Pet from '../applications/Pet';
 import Stereogram from '../applications/Stereogram';
 import PerceptionLab from '../applications/PerceptionLab';
+import FaceValue from '../applications/FaceValue';
 import Vault from '../applications/Vault';
 import ReadingList from '../applications/ReadingList';
 import SystemMonitor from '../applications/SystemMonitor';
@@ -108,8 +109,15 @@ import Tetris from '../applications/Tetris';
 import Clippy from './Clippy';
 import StartBalloon from './StartBalloon';
 import { trackEvent } from './analyticsApi';
-import { noteApp, noteSession } from './usageStats';
-import { feedPet, noteSessionForPet, noticeAppOpenedForPet, PETS } from './pets';
+import { getUsageStats, noteApp, noteSession } from './usageStats';
+import { isGame } from '../applications/games';
+import {
+    feedPet,
+    noteSessionForPet,
+    noticeAppOpenedForPet,
+    noticePetDesktopEvent,
+    PETS,
+} from './pets';
 import { reportOpenWindows } from './resourceMeter';
 import { SessionWindow, pendingSession, saveSession } from './session';
 import DesktopPet from './DesktopPet';
@@ -117,6 +125,7 @@ import FindDialog from './FindDialog';
 import { PROGRAM_ALIASES, registerProgramEntries } from './searchIndex';
 import { registerOpenApp } from './appBridge';
 import { clippySay, randomClippy } from './Clippy';
+import { clippyMoment, clippyNoteArrival } from './clippyMoments';
 import Secret from '../applications/Secret';
 import { useKonamiCode } from './konami';
 import KonamiBurst from './KonamiBurst';
@@ -550,6 +559,17 @@ const APPLICATIONS: {
         component: Stereogram,
     },
 
+    // A real Viola-Jones-style face search with the trained cascade taken
+    // out, pointed at procedural noise — see the long comment at the top of
+    // FaceValue.tsx. Lives in the Games folder because the honest description
+    // of what it does is "it plays a trick on you".
+    faceValue: {
+        key: 'faceValue',
+        name: 'Face Value',
+        shortcutIcon: 'perceptionLabIcon',
+        component: FaceValue,
+    },
+
     // A small, real reaction-time and Stroop-task suite — see the long
     // comment at the top of PerceptionLab.tsx for why these two paradigms.
     perceptionLab: {
@@ -712,6 +732,21 @@ const runnablePrograms = Object.keys(APPLICATIONS)
     )
     .map((app) => ({ key: app.key, name: app.name }));
 
+/**
+ * The topmost window's z-index in a given map.
+ *
+ * Free-standing rather than a hook so `addWindow` can call it on the
+ * `prevState` handed to its updater — see the note at that call site.
+ */
+const highestZIndexIn = (map: DesktopWindows): number => {
+    let highest = 0;
+    Object.keys(map).forEach((key) => {
+        const entry = map[key];
+        if (entry && entry.zIndex > highest) highest = entry.zIndex;
+    });
+    return highest;
+};
+
 const Desktop: React.FC<DesktopProps> = (props) => {
     const [windows, setWindows] = useState<DesktopWindows>({});
 
@@ -804,6 +839,10 @@ const Desktop: React.FC<DesktopProps> = (props) => {
     // One per tab, same rule the hit counter uses — see usageStats.ts.
     useEffect(() => {
         noteSession();
+        // ...and one remark about *this* arrival specifically — the small
+        // hours, or a second visit. See `clippyMoments.ts`; everything about
+        // whether he is allowed to say it is decided in there.
+        clippyNoteArrival(getUsageStats().sessions);
     }, []);
 
     // If a pet exists and it's been a long while, greet it through Clippy
@@ -895,6 +934,7 @@ const Desktop: React.FC<DesktopProps> = (props) => {
             playChime();
             setKonamiBurst(true);
             openAppRef.current('secret');
+            clippyMoment('konami');
         }, [])
     );
 
@@ -1165,6 +1205,10 @@ const Desktop: React.FC<DesktopProps> = (props) => {
     }, []);
 
     const removeWindow = useCallback((key: string) => {
+        // The creature on the taskbar watches the window go. Fired here
+        // rather than inside the deferred setState below so it lands on the
+        // click rather than a tenth of a second after it.
+        noticePetDesktopEvent('appClosed');
         // Absolute hack and a half
         setTimeout(() => {
             setWindows((prevWindows) => {
@@ -1183,17 +1227,10 @@ const Desktop: React.FC<DesktopProps> = (props) => {
         });
     }, []);
 
-    const getHighestZIndex = useCallback((): number => {
-        let highestZIndex = 0;
-        Object.keys(windows).forEach((key) => {
-            const window = windows[key];
-            if (window) {
-                if (window.zIndex > highestZIndex)
-                    highestZIndex = window.zIndex;
-            }
-        });
-        return highestZIndex;
-    }, [windows]);
+    const getHighestZIndex = useCallback(
+        (): number => highestZIndexIn(windows),
+        [windows]
+    );
 
     const toggleMinimize = useCallback(
         (key: string) => {
@@ -1297,7 +1334,15 @@ const Desktop: React.FC<DesktopProps> = (props) => {
             setWindows((prevState) => ({
                 ...prevState,
                 [key]: {
-                    zIndex: getHighestZIndex() + 1,
+                    // Computed from `prevState` rather than from the `windows`
+                    // captured in this callback's closure. Session restore
+                    // opens up to eight windows in one synchronous loop, and
+                    // every one of them used to read the same pre-loop value
+                    // — so they all came back with an identical z-index, the
+                    // stacking order fell back to DOM order, and Alt+Tab's
+                    // comparator returned 0 for every pair and could not
+                    // cycle between them at all.
+                    zIndex: highestZIndexIn(prevState) + 1,
                     minimized: false,
                     component: element,
                     name: meta ? meta.name : APPLICATIONS[key].name,
@@ -1324,6 +1369,16 @@ const Desktop: React.FC<DesktopProps> = (props) => {
             noteApp(app.key);
             // A pet, if one has been adopted, perks up whenever anything opens.
             noticeAppOpenedForPet();
+            // Three things worth remarking on, all of them only knowable from
+            // here: the first game of the visit, the same window for the third
+            // time, and a desktop that has quietly filled up. The guards all
+            // live in `clippyMoments.ts`, so calling this on every open is
+            // free.
+            if (isGame(app.key)) clippyMoment('firstGame');
+            if ((getUsageStats().apps[app.key] ?? 0) >= 3) {
+                clippyMoment('sameAppAgain');
+            }
+            if (Object.keys(windows).length >= 6) clippyMoment('manyWindows');
 
             if (FULLSCREEN_EXPERIENCES.includes(app.key)) {
                 setExperienceOpen(true);

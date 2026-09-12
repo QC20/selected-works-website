@@ -166,6 +166,9 @@ export function createCrtRoomScene(
     renderer.setClearColor(0x000000, 0);
 
     const scene = new THREE.Scene();
+
+    /** Set by `dispose()`; checked by everything that resolves later. */
+    let disposed = false;
     scene.background = null;
 
     const camera = new THREE.PerspectiveCamera(
@@ -327,13 +330,32 @@ export function createCrtRoomScene(
         loadBaked(`${BASE}/models/Decor/decor.glb`, `${BASE}/models/Decor/baked_decor_modified.jpg`),
     ])
         .then((groups) => {
+            // Three .glb files over the network, and pressing Esc before they
+            // land is the ordinary case on a slow connection. `dispose()`
+            // walks the scene once and frees what is in it at that moment, so
+            // geometry that arrived afterwards was never freed at all — enter
+            // the room and leave it a few times and GPU memory only climbs.
+            if (disposed) {
+                groups.forEach((g) =>
+                    g.traverse((child: any) => {
+                        child.geometry?.dispose?.();
+                        const mat = child.material;
+                        if (Array.isArray(mat)) mat.forEach((m) => m?.dispose?.());
+                        else mat?.dispose?.();
+                    })
+                );
+                return;
+            }
             groups.forEach((g) => scene.add(g));
             modelsDone = true;
             maybeReady();
         })
-        .catch((err) => options.onError?.(err));
+        .catch((err) => {
+            if (!disposed) options.onError?.(err);
+        });
 
     // ---- Mode + interaction routing -------------------------------------------
+    /** Set by `dispose()`, checked by everything asynchronous. */
     let mode: CrtMode = 'loading';
     const setMode = (m: CrtMode) => {
         mode = m;
@@ -834,6 +856,7 @@ export function createCrtRoomScene(
     raf = requestAnimationFrame(tick);
 
     const dispose = () => {
+        disposed = true;
         running = false;
         cancelAnimationFrame(raf);
         window.clearInterval(envelopeTimer);

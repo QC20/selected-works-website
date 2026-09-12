@@ -37,7 +37,12 @@ module.exports = function handler(req, res) {
         (req.headers.host && req.headers.host.startsWith('localhost')
             ? 'http'
             : 'https');
-    const base = `${proto}://${req.headers.host}`;
+    // Escaped and shape-checked. `Host` is a request header, so it is input:
+    // a value containing a quote or an angle bracket goes straight into
+    // <link> and atom:link/@href below and produces XML no reader can parse.
+    const rawHost = String(req.headers.host || '');
+    const host = /^[A-Za-z0-9.\-:[\]]+$/.test(rawHost) ? rawHost : 'localhost';
+    const base = `${proto}://${host}`;
 
     const items = patchNotes
         .map((entry) => {

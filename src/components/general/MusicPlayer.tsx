@@ -7,6 +7,7 @@ import CDIcon from '../../assets/icons/cd.png';
 import colors from '../../constants/colors';
 
 import { motion, Variants } from 'framer-motion';
+import { noticePetDesktopEvent } from '../os/pets';
 
 export interface MusicPlayerProps {
     src: string;
@@ -47,11 +48,17 @@ const MusicPlayer: React.FC<MusicPlayerProps> = (props) => {
         audio.crossOrigin = 'anonymous';
         audio.addEventListener('timeupdate', () => {
             setCurrentTime(audio.currentTime);
-            setDuration(audio.duration);
-            if (audio.currentTime === audio.duration) {
-                setIsPlaying(false);
-            }
+            // `duration` is NaN until the metadata arrives, and a NaN in
+            // state became `scaleX(NaN)` on the progress bar and "NaN:NaN"
+            // on the clock for the first fraction of a second of every track.
+            if (Number.isFinite(audio.duration)) setDuration(audio.duration);
         });
+        // The end of a track is `ended`, not `currentTime === duration`.
+        // `timeupdate` fires on a roughly quarter-second cadence and is under
+        // no obligation to land exactly on the duration — so a set that
+        // finished normally left the CD graphic spinning and the Pause button
+        // showing, because `isPlaying` was never cleared.
+        audio.addEventListener('ended', () => setIsPlaying(false));
         audioRef.current = audio;
 
         // Web Audio needs a user gesture to start, which this always has —
@@ -119,8 +126,11 @@ const MusicPlayer: React.FC<MusicPlayerProps> = (props) => {
 
     useEffect(() => {
         if (props.currentSong === props.title) {
-            getAudio().play();
+            getAudio().play().catch(() => {});
             setIsPlaying(true);
+            // The creature on the taskbar hears it. It is the one bit of the
+            // machine that reacts to the music rather than producing it.
+            noticePetDesktopEvent('music');
         } else {
             releaseAudio();
             setIsPlaying(false);
@@ -137,7 +147,13 @@ const MusicPlayer: React.FC<MusicPlayerProps> = (props) => {
 
     useEffect(() => {
         if (!audioRef.current) return;
-        if (isPlaying) audioRef.current.play();
+        // `play()` returns a promise that rejects with AbortError when the
+        // element is paused or torn down before playback starts — which is
+        // exactly what happens when you click one track and then another
+        // before the first has begun. Swallowed rather than handled: there
+        // is nothing to do about it, and an unhandled rejection in the
+        // console on every impatient click is noise.
+        if (isPlaying) audioRef.current.play().catch(() => {});
         else audioRef.current.pause();
     }, [isPlaying]);
 

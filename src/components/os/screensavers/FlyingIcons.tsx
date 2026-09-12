@@ -52,9 +52,21 @@ const spawn = (width: number, height: number): Piece => {
 
 const FlyingIcons: React.FC = () => {
     const containerRef = useRef<HTMLDivElement>(null);
-    const piecesRef = useRef<Piece[]>([]);
 
-    useEffect(() => {
+    /**
+     * Built during the first render rather than in an effect.
+     *
+     * The JSX below maps over this list to create the elements the animation
+     * loop then writes transforms to. Filling it from a `useEffect` means the
+     * first — and, on an idle machine, only — render sees an empty array, so
+     * no elements are created, every `p.el` stays null, and the whole saver
+     * is a black screen with a perfectly healthy rAF loop running behind it.
+     *
+     * A lazily initialised ref rather than `useState`: the list is mutated in
+     * place sixty times a second and must never trigger a re-render.
+     */
+    const piecesRef = useRef<Piece[]>();
+    if (!piecesRef.current) {
         const width = window.innerWidth;
         const height = window.innerHeight;
         // Staggered so they don't all burst from the centre at once.
@@ -66,7 +78,10 @@ const FlyingIcons: React.FC = () => {
             p.scale = Math.min(1, 0.2 + t);
             return p;
         });
+    }
+    const pieces = piecesRef.current;
 
+    useEffect(() => {
         let raf = 0;
         const tick = () => {
             const w = window.innerWidth;
@@ -74,7 +89,7 @@ const FlyingIcons: React.FC = () => {
             const cx = w / 2;
             const cy = h / 2;
 
-            for (const p of piecesRef.current) {
+            for (const p of pieces) {
                 p.x += p.vx;
                 p.y += p.vy;
                 p.vx *= 1.01;
@@ -98,15 +113,15 @@ const FlyingIcons: React.FC = () => {
         raf = window.requestAnimationFrame(tick);
 
         return () => window.cancelAnimationFrame(raf);
-    }, []);
+    }, [pieces]);
 
     return (
         <div ref={containerRef} style={styles.stage}>
-            {piecesRef.current.map((p, i) => (
+            {pieces.map((p, i) => (
                 <div
                     key={i}
                     ref={(el) => {
-                        piecesRef.current[i].el = el;
+                        pieces[i].el = el;
                     }}
                     style={styles.piece}
                 >

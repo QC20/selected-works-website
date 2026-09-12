@@ -3,6 +3,7 @@ import Window from '../os/Window';
 import MenuBar, { MenuBarMenu } from '../os/MenuBar';
 import Colors from '../../constants/colors';
 import { openExternal } from '../os/openExternal';
+import useMountedRef from '../../hooks/useMountedRef';
 import {
     VaultFile,
     VaultSite,
@@ -91,6 +92,7 @@ const Vault: React.FC<VaultProps> = ({ onInteract, onClose, onMinimize }) => {
     const [site, setSite] = useState<VaultSite | null>(null);
     const [files, setFiles] = useState<VaultFile[] | null>(null);
     const [error, setError] = useState<string | null>(null);
+    const mounted = useMountedRef();
 
     const [current, setCurrent] = useState<VaultFile | null>(null);
     const [note, setNote] = useState<string | null>(null);
@@ -119,13 +121,18 @@ const Vault: React.FC<VaultProps> = ({ onInteract, onClose, onMinimize }) => {
             if (!cache.ok) {
                 throw new Error(`The vault returned ${cache.status}.`);
             }
+            // Three sequential requests, so the window between opening this
+            // and closing it again is seconds wide. See `useMountedRef`.
+            if (!mounted.current) return;
             setSite(info);
             setFiles(parseVaultCache(await cache.json()));
         } catch (e) {
+            if (!mounted.current) return;
             setError(
                 e instanceof Error ? e.message : 'Could not reach the vault.'
             );
         }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     useEffect(() => {

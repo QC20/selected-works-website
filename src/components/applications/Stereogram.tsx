@@ -146,6 +146,7 @@ const Stereogram: React.FC<StereogramProps> = ({
     onMinimize,
 }) => {
     const canvasRef = useRef<HTMLCanvasElement | null>(null);
+    const drawTimer = useRef<number | undefined>(undefined);
     const [preset, setPreset] = useState<Preset>('sphere');
     const [mirrored, setMirrored] = useState(false);
     const [busy, setBusy] = useState(false);
@@ -158,12 +159,21 @@ const Stereogram: React.FC<StereogramProps> = ({
         // One frame of "generating" text before the (synchronous, but not
         // instant) computation — a full row-by-row pass over 560x380 pixels
         // is a few tens of milliseconds, enough to want the busy state.
-        window.setTimeout(() => {
+        //
+        // Cancelling the previous timer matters: clicking through the presets
+        // quickly used to queue several passes, and whichever finished last
+        // won — not necessarily the preset that was clicked last. The same
+        // ref is cleared on unmount, so a 30ms timer can't call setState on a
+        // window that has just been closed either.
+        window.clearTimeout(drawTimer.current);
+        drawTimer.current = window.setTimeout(() => {
             const image = renderStereogram(which);
             ctx.putImageData(image, 0, 0);
             setBusy(false);
         }, 30);
     }, []);
+
+    useEffect(() => () => window.clearTimeout(drawTimer.current), []);
 
     useEffect(() => {
         draw(preset);

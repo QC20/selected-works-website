@@ -82,6 +82,8 @@ const Guestbook: React.FC<GuestbookProps> = (props) => {
     // Clicking a message reveals its timestamp for a few seconds.
     const [revealed, setRevealed] = useState<string | number | null>(null);
     const revealTimer = useRef<number>();
+    const botTimer = useRef<number | undefined>(undefined);
+    useEffect(() => () => window.clearTimeout(botTimer.current), []);
 
     const listRef = useRef<HTMLDivElement>(null);
     const nudgeAudio = useRef<HTMLAudioElement>();
@@ -166,7 +168,10 @@ const Guestbook: React.FC<GuestbookProps> = (props) => {
             if (botActive) {
                 const reply = botReply(text, n);
                 // A beat's delay so it reads as a reply rather than an echo.
-                window.setTimeout(() => {
+                // Tracked so closing the window inside those 700ms doesn't
+                // leave a `setMessages` landing on a dead component — the
+                // reveal timer above is already guarded this way.
+                botTimer.current = window.setTimeout(() => {
                     setMessages((prev) => [
                         ...prev,
                         {

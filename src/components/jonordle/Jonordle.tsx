@@ -1,8 +1,61 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { motion, useAnimation } from 'framer-motion';
 import WORDS from './Words';
 import { Easing } from '../general/Animation';
 import Window from '../os/Window';
+
+/**
+ * Wordle's actual scoring rule.
+ * -----------------------------
+ * Green for a letter in the right place, yellow for one that is in the word
+ * somewhere else, grey otherwise — with the crucial detail that yellows are
+ * drawn from a *pool*. A guess with two of a letter where the answer has one
+ * gets one mark, not two, and the exact match always takes priority.
+ *
+ * What used to be here compared `word.indexOf(letter)` with
+ * `guess.indexOf(letter)`, which asks a different question entirely: "does
+ * the first occurrence of this letter fall in the same place in both?" Every
+ * copy of a letter in a row was then coloured identically, from the position
+ * of the first one. Against JONAS, guessing BOOKS painted the O at index 2
+ * green — JONAS has an N there — and guessing CLASS painted the genuinely
+ * correct S at index 4 yellow. The game was giving actively wrong feedback
+ * on 583 of the letter/position pairs in the shipped word list.
+ */
+export type LetterStatus = 'empty' | 'absent' | 'present' | 'correct';
+
+export function scoreGuess(guess: string, word: string): LetterStatus[] {
+    const g = guess.toUpperCase();
+    const w = word.toUpperCase();
+    const out: LetterStatus[] = g.split('').map(() => 'absent');
+
+    // Pass one: the exact matches, and a tally of what is left over. It has
+    // to be a separate pass — a letter later in the guess can only claim a
+    // yellow from a position that no green has already spoken for.
+    const pool: Record<string, number> = {};
+    for (let i = 0; i < g.length; i++) {
+        if (i < w.length && g[i] === w[i]) out[i] = 'correct';
+        else if (i < w.length) pool[w[i]] = (pool[w[i]] ?? 0) + 1;
+    }
+
+    // Pass two: yellows, first come first served out of what the greens left.
+    for (let i = 0; i < g.length; i++) {
+        if (out[i] === 'correct') continue;
+        const c = g[i];
+        if ((pool[c] ?? 0) > 0) {
+            out[i] = 'present';
+            pool[c] -= 1;
+        }
+    }
+    return out;
+}
+
+/** Green beats yellow beats grey, for the keyboard's running tint. */
+const STATUS_RANK: Record<LetterStatus, number> = {
+    empty: 0,
+    absent: 1,
+    present: 2,
+    correct: 3,
+};
 
 export interface KeyboardLetterProps {
     letter: string;
@@ -21,28 +74,31 @@ const KeyboardLetter: React.FC<KeyboardLetterProps> = ({
     setGuesses,
     setCurrentGuess,
 }) => {
-    const [isInWord, setIsInWord] = useState(false);
-    const [isInPlace, setIsInPlace] = useState(false);
-    const [notInWord, setNotInWord] = useState(false);
-
-    useEffect(() => {
+    /**
+     * The best this key has ever scored, across every guess so far — so a
+     * letter that came up yellow and later green stays green. Derived rather
+     * than accumulated in three booleans: the old version could only ever go
+     * one way, which meant "New game" left the keyboard coloured in.
+     */
+    const status = useMemo<LetterStatus>(() => {
+        let best: LetterStatus = 'empty';
         guesses.forEach((guess) => {
-            if (word.includes(letter) && guess.includes(letter)) {
-                setIsInWord(true);
-                if (word.indexOf(letter) === guess.indexOf(letter)) {
-                    setIsInPlace(true);
-                }
-            }
-            if (!word.includes(letter) && guess.includes(letter)) {
-                setNotInWord(true);
-            }
+            const marks = scoreGuess(guess, word);
+            guess.toUpperCase()
+                .split('')
+                .forEach((ch, i) => {
+                    if (ch !== letter.toUpperCase()) return;
+                    if (STATUS_RANK[marks[i]] > STATUS_RANK[best]) {
+                        best = marks[i];
+                    }
+                });
         });
-        if (guesses.length === 0) {
-            setIsInPlace(false);
-            setIsInWord(false);
-            setNotInWord(false);
-        }
+        return best;
     }, [guesses, letter, word]);
+
+    const isInWord = status === 'present';
+    const isInPlace = status === 'correct';
+    const notInWord = status === 'absent';
 
     const handleClick = () => {
         if (letter === 'RET') {
@@ -78,30 +134,23 @@ const KeyboardLetter: React.FC<KeyboardLetterProps> = ({
 
 export interface GuessLetterProps {
     letter: string;
-    word: string;
-    guess: string;
+    /** Worked out once per row by `scoreGuess`, not per tile. */
+    status: LetterStatus;
     guessed: boolean;
 }
 
+/**
+ * One tile. Deliberately has no idea what the answer is — the whole row is
+ * scored in one pass by its parent, because Wordle's yellow rule is about
+ * the row as a whole and cannot be decided a letter at a time.
+ */
 const GuessLetter: React.FC<GuessLetterProps> = ({
     guessed,
     letter,
-    guess,
-    word,
+    status,
 }) => {
-    const [isInWord, setIsInWord] = useState(false);
-    const [isInPlace, setIsInPlace] = useState(false);
-
-    useEffect(() => {
-        if (guessed) {
-            if (word.includes(letter)) {
-                setIsInWord(true);
-                if (word.indexOf(letter) === guess.indexOf(letter)) {
-                    setIsInPlace(true);
-                }
-            }
-        }
-    }, [guessed, guess, letter, word]);
+    const isInWord = guessed && status === 'present';
+    const isInPlace = guessed && status === 'correct';
 
     return (
         <div
@@ -182,6 +231,13 @@ const GuessWord: React.FC<GuessWordProps> = ({
         if (guesses.length === 0 && !noClear) setSavedGuess('');
     }, [guesses, noClear]);
 
+    // Scored once for the whole row — see `scoreGuess`. An unsubmitted row
+    // has no marks at all, which is what `guessed` gates on below.
+    const marks = useMemo(
+        () => (active ? [] : scoreGuess(savedGuess, word)),
+        [active, savedGuess, word]
+    );
+
     return (
         <motion.div animate={controls} style={styles.guessWordRow}>
             {savedGuess.split('').map((letter, index) => (
@@ -189,19 +245,19 @@ const GuessWord: React.FC<GuessWordProps> = ({
                     guessed={!active}
                     key={index}
                     letter={letter}
-                    guess={savedGuess}
-                    word={word}
+                    status={marks[index] ?? 'empty'}
                 />
             ))}
-            {[...Array(word.length - savedGuess.length)].map((e, i) => (
-                <GuessLetter
-                    guessed={!active}
-                    key={i}
-                    letter={' '}
-                    guess={savedGuess}
-                    word={word}
-                />
-            ))}
+            {[...Array(Math.max(0, word.length - savedGuess.length))].map(
+                (e, i) => (
+                    <GuessLetter
+                        guessed={!active}
+                        key={`pad-${i}`}
+                        letter={' '}
+                        status="empty"
+                    />
+                )
+            )}
         </motion.div>
     );
 };

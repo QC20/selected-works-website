@@ -1,35 +1,26 @@
-// contentScript.js
+/**
+ * Dead file. Kept only so the deletion is a deliberate decision rather than
+ * an accident, and neutered so it cannot do any harm while it sits here.
+ * ---------------------------------------------------------------------
+ * This is not a desktop application, despite living in `applications/` and
+ * carrying a `.tsx` extension. It is a Chrome extension content script that
+ * ended up in the repository by mistake — its first line still says
+ * `contentScript.js`. It has never been imported by anything: the AsciiVision
+ * references elsewhere in this codebase (`githubProjects.ts`, the Music
+ * showcase page) are to the *project* of that name, which lives on GitHub
+ * Pages and is reached through Internet Explorer like every other side
+ * project.
+ *
+ * What it used to do, at module scope, was append a fixed blue "dr.dk" button
+ * to `document.body` and wire it to `window.location.href = 'https://www.dr.dk/'`.
+ * Because that call sat at the top level rather than inside a component, the
+ * first `import` of this path from anywhere would have put a navigation-away
+ * button on the desktop with no further action required — a landmine with a
+ * ten-year fuse in a folder every new app gets added to.
+ *
+ * The body has been removed. Deleting the file is the right end state; it is
+ * left in place, inert, so that is somebody's decision rather than a diff
+ * nobody noticed.
+ */
 
-// Add an empty export statement to make it a module
 export {};
-
-// Create a function to add the shortcut to the webpage
-function addShortcut() {
-    // Create a new shortcut element
-    const shortcut = document.createElement('div');
-    shortcut.classList.add('my-custom-shortcut');
-    
-    // Customize the shortcut appearance
-    shortcut.style.position = 'fixed';
-    shortcut.style.bottom = '20px';
-    shortcut.style.right = '20px';
-    shortcut.style.cursor = 'pointer';
-    // Add your icon or text here
-    shortcut.textContent = 'dr.dk';
-    shortcut.style.padding = '10px';
-    shortcut.style.backgroundColor = 'blue';
-    shortcut.style.color = 'white';
-    shortcut.style.borderRadius = '5px';
-    
-    // Handle click event
-    shortcut.addEventListener('click', () => {
-        // Navigate to dr.dk when the shortcut is clicked
-        window.location.href = 'https://www.dr.dk/';
-    });
-    
-    // Append the shortcut to the document body
-    document.body.appendChild(shortcut);
-}
-
-// Call the function to add the shortcut when the content script is injected
-addShortcut();

@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import Window from '../os/Window';
 import Colors from '../../constants/colors';
 import { playClick, playError } from '../os/sounds';
+import { clippyMoment } from '../os/clippyMoments';
 
 /**
  * Snake.
@@ -89,6 +90,8 @@ const Snake: React.FC<SnakeProps> = ({ onInteract, onClose, onMinimize }) => {
      */
     const direction = useRef<Direction>('right');
     const queued = useRef<Direction | null>(null);
+    /** Set by the tick's (now pure) updater; drained by the effect below. */
+    const crashed = useRef(false);
 
     const reset = useCallback(() => {
         const fresh = startingSnake();
@@ -136,24 +139,13 @@ const Snake: React.FC<SnakeProps> = ({ onInteract, onClose, onMinimize }) => {
                     .some((s) => s.x === head.x && s.y === head.y);
 
                 if (hitWall || hitSelf) {
-                    setDead(true);
-                    setRunning(false);
-                    playError();
-                    setScore((final) => {
-                        setHighScore((best) => {
-                            if (final <= best) return best;
-                            try {
-                                localStorage.setItem(
-                                    HIGH_SCORE_KEY,
-                                    String(final)
-                                );
-                            } catch {
-                                /* storage disabled — score just isn't kept */
-                            }
-                            return final;
-                        });
-                        return final;
-                    });
+                    // Flagged here, acted on in the effect below. A state
+                    // updater has to be pure: this one used to call four other
+                    // setters, play a sound and write to localStorage from
+                    // inside `setSnake`, which under StrictMode's deliberate
+                    // double-invocation replays the sound and the high-score
+                    // write, and is undefined behaviour in any case.
+                    crashed.current = true;
                     return previous;
                 }
 
@@ -172,10 +164,51 @@ const Snake: React.FC<SnakeProps> = ({ onInteract, onClose, onMinimize }) => {
         return () => window.clearInterval(id);
     }, [running, dead, score, apple]);
 
+    /**
+     * Everything the crash actually does.
+     *
+     * Split out of the `setSnake` updater above so that updater stays pure —
+     * see the note there. It runs on the render following the tick in which
+     * the snake hit something, which is soon enough for a game running at
+     * four to twelve frames a second.
+     */
+    useEffect(() => {
+        if (!crashed.current || dead) return;
+        crashed.current = false;
+        setDead(true);
+        setRunning(false);
+        playError();
+        clippyMoment('gameOver');
+        setHighScore((best) => {
+            if (score <= best) return best;
+            try {
+                localStorage.setItem(HIGH_SCORE_KEY, String(score));
+            } catch {
+                /* storage disabled — the score just isn't kept */
+            }
+            return score;
+        });
+    });
+
     // Keyboard. Bound to the window because the board isn't focusable, and the
     // arrows are swallowed so they don't scroll the desktop underneath.
     useEffect(() => {
         const onKey = (e: KeyboardEvent) => {
+            // Somebody typing into another window is not playing Snake. The
+            // listener is on `window` because the board isn't focusable, so
+            // without this the w/a/s/d bindings were swallowing letters out
+            // of the Guestbook's name field and Market Watch's ticker box.
+            const el = e.target as HTMLElement | null;
+            const tag = el?.tagName?.toLowerCase();
+            if (
+                tag === 'input' ||
+                tag === 'textarea' ||
+                tag === 'select' ||
+                el?.isContentEditable === true
+            ) {
+                return;
+            }
+
             const map: { [key: string]: Direction } = {
                 ArrowUp: 'up',
                 ArrowDown: 'down',

@@ -119,6 +119,29 @@ const DesktopShortcut: React.FC<DesktopShortcutProps> = ({
         }, 300);
     }, [doubleClickTimerActive, setIsSelected, onOpen]);
 
+
+    /*
+     * Whatever pointer listeners are currently attached to `window`.
+     *
+     * Both of these are added on pointerdown and removed inside their own
+     * `pointerup`, which is fine right up until the icon unmounts mid-drag —
+     * dropped on the Recycle Bin, uninstalled from the Store, or a `pointerup`
+     * swallowed by an iframe. Then they survive for the rest of the session,
+     * calling setState on a component that no longer exists. Tracked in a ref
+     * because the handlers are fresh closures each time and a cleanup would
+     * otherwise be handed a different function than the one that was added.
+     */
+    const gestureRef = useRef<[string, EventListener][]>([]);
+
+    const detachGesture = useCallback(() => {
+        gestureRef.current.forEach(([type, fn]) =>
+            window.removeEventListener(type, fn)
+        );
+        gestureRef.current = [];
+    }, []);
+
+    useEffect(() => detachGesture, [detachGesture]);
+
     // ---- Dragging ---------------------------------------------------------
     // Icons can be dragged anywhere on the desktop. A press only counts as a
     // drag once it passes a small threshold, so ordinary (double-)clicks to open
@@ -148,8 +171,7 @@ const DesktopShortcut: React.FC<DesktopShortcutProps> = ({
 
             const onUp = (ev: PointerEvent) => {
                 const start = dragRef.current;
-                window.removeEventListener('pointermove', onMove);
-                window.removeEventListener('pointerup', onUp);
+                detachGesture();
                 dragRef.current = null;
                 setDragDelta(null);
                 if (start?.moved) {
@@ -163,6 +185,10 @@ const DesktopShortcut: React.FC<DesktopShortcutProps> = ({
 
             window.addEventListener('pointermove', onMove);
             window.addEventListener('pointerup', onUp);
+            gestureRef.current.push(
+                ['pointermove', onMove as EventListener],
+                ['pointerup', onUp as EventListener]
+            );
         },
         [handleClickShortcut, onMoved]
     );

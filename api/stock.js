@@ -386,7 +386,14 @@ async function quoteFor(symbol, range) {
 module.exports = async function handler(req, res) {
     const query = req.query || {};
     const action = String(query.action || 'quote');
-    const range = RANGES[query.range] ? String(query.range) : null;
+    // `Object.prototype.hasOwnProperty.call` rather than a truthiness test:
+    // `RANGES['toString']` is an inherited function and therefore truthy, so
+    // `?range=toString` passed validation, made `days` a function, and blew
+    // up in `new Date(NaN)` several layers down — turning a valid ticker into
+    // "No price history found". Same for valueOf, constructor and friends.
+    const range = Object.prototype.hasOwnProperty.call(RANGES, query.range)
+        ? String(query.range)
+        : null;
 
     // Prices move; this cache is what keeps us off the providers' rate
     // limiters. Five minutes fresh, an hour stale-while-revalidate — a

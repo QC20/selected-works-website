@@ -18,6 +18,16 @@ import {
     unhidePet,
     usePetState,
 } from '../os/pets';
+import {
+    ACCESSORIES,
+    SCALE_STEP,
+    achievementRows,
+    adjustScale,
+    equipAccessory,
+    resetScale,
+    unlockedAccessories,
+    useAchievementState,
+} from '../os/petAchievements';
 
 /**
  * Pet — Desktop, Programs, and the Store.
@@ -209,6 +219,9 @@ const Dashboard: React.FC<{
                 )}
             </fieldset>
 
+            <Achievements />
+            <Wardrobe pet={pet} />
+
             {state.hidden && (
                 <button
                     type="button"
@@ -241,6 +254,176 @@ const Dashboard: React.FC<{
     );
 };
 
+/**
+ * The trophy cabinet.
+ * -------------------
+ * Twelve rows, nine of them visible from the start and three that read
+ * "???" until they happen. The visible ones carry a progress bar, because a
+ * checklist with no sense of how close you are is just a list of things you
+ * have not done; the secret ones carry nothing, because a progress bar on a
+ * secret is a spoiler with extra steps.
+ *
+ * The locked hints never state the number. "Ask for the trick. Then ask
+ * again." is an invitation; "Perform 15 tricks" is a chore, and a portfolio
+ * is not the place to hand somebody a chore.
+ */
+const Achievements: React.FC = () => {
+    const achievements = useAchievementState();
+    const rows = achievementRows(achievements);
+    const earned = rows.filter((r) => r.unlocked).length;
+
+    return (
+        <fieldset style={styles.group}>
+            <legend style={styles.legend}>
+                Achievements ({earned}/{rows.length})
+            </legend>
+            <div style={styles.achievementList}>
+                {rows.map((row) => {
+                    const hidden = row.secret && !row.unlocked;
+                    return (
+                        <div key={row.id} style={styles.achievementRow}>
+                            <span
+                                style={{
+                                    ...styles.achievementTick,
+                                    ...(row.unlocked
+                                        ? styles.achievementTickOn
+                                        : null),
+                                }}
+                                aria-hidden="true"
+                            >
+                                {row.unlocked ? '\u2713' : ''}
+                            </span>
+                            <div style={styles.achievementText}>
+                                <span
+                                    style={{
+                                        ...styles.achievementName,
+                                        ...(row.unlocked
+                                            ? null
+                                            : styles.achievementNameLocked),
+                                    }}
+                                >
+                                    {hidden ? 'Secret achievement' : row.name}
+                                </span>
+                                <span style={styles.achievementBlurb}>
+                                    {row.unlocked ? row.blurb : row.hint}
+                                </span>
+                                {!row.unlocked && !row.secret && (
+                                    <div style={styles.progressTrack}>
+                                        <div
+                                            style={{
+                                                ...styles.progressFill,
+                                                width: `${Math.round(
+                                                    (row.current / row.goal) * 100
+                                                )}%`,
+                                            }}
+                                        />
+                                    </div>
+                                )}
+                                {row.unlocked && row.reward && (
+                                    <span style={styles.rewardNote}>
+                                        Unlocked: {ACCESSORIES[row.reward].name}
+                                    </span>
+                                )}
+                            </div>
+                        </div>
+                    );
+                })}
+            </div>
+        </fieldset>
+    );
+};
+
+/**
+ * The wardrobe and the size control.
+ *
+ * Both are here as well as on the creature's own right-click menu, because
+ * the menu is only reachable if you already know the creature is clickable —
+ * and half the people who open this window have never noticed it walking
+ * about down there at all.
+ */
+const Wardrobe: React.FC<{ pet: PetDef }> = ({ pet }) => {
+    const achievements = useAchievementState();
+    const owned = unlockedAccessories();
+
+    return (
+        <fieldset style={styles.group}>
+            <legend style={styles.legend}>Wardrobe</legend>
+            {owned.length === 0 ? (
+                <p style={styles.hint}>
+                    Nothing yet. {pet.name} earns something to wear for most of
+                    the achievements above — the first one is a bow tie, and it
+                    only takes a single pat.
+                </p>
+            ) : (
+                <div style={styles.actions}>
+                    <button
+                        type="button"
+                        style={{
+                            ...styles.actionButton,
+                            ...(achievements.equipped
+                                ? null
+                                : styles.actionButtonActive),
+                        }}
+                        onClick={() => equipAccessory(null)}
+                    >
+                        Nothing
+                    </button>
+                    {owned.map((a) => (
+                        <button
+                            key={a.id}
+                            type="button"
+                            style={{
+                                ...styles.actionButton,
+                                ...(achievements.equipped === a.id
+                                    ? styles.actionButtonActive
+                                    : null),
+                            }}
+                            onClick={() => equipAccessory(a.id)}
+                        >
+                            {a.name}
+                        </button>
+                    ))}
+                </div>
+            )}
+
+            <div style={styles.sizeRow}>
+                <span style={styles.rowLabel}>
+                    Size on the taskbar
+                    <span style={styles.sizeValue}>
+                        {Math.round(achievements.scale * 100)}%
+                    </span>
+                </span>
+                <div style={styles.actions}>
+                    <button
+                        type="button"
+                        style={styles.actionButton}
+                        disabled={achievements.scale <= 0.4}
+                        onClick={() => adjustScale(-SCALE_STEP)}
+                    >
+                        Shrink
+                    </button>
+                    <button
+                        type="button"
+                        style={styles.actionButton}
+                        disabled={achievements.scale >= 2}
+                        onClick={() => adjustScale(SCALE_STEP)}
+                    >
+                        Grow
+                    </button>
+                    <button
+                        type="button"
+                        style={styles.actionButton}
+                        disabled={achievements.scale === 1}
+                        onClick={() => resetScale()}
+                    >
+                        Reset
+                    </button>
+                </div>
+            </div>
+        </fieldset>
+    );
+};
+
 const Row: React.FC<{ label: string; value: string }> = ({ label, value }) => (
     <div style={styles.row}>
         <span style={styles.rowLabel}>{label}</span>
@@ -258,8 +441,12 @@ const Pet: React.FC<PetProps> = ({ onInteract, onClose, onMinimize }) => {
         <Window
             top={100}
             left={220}
-            width={pet ? 360 : 540}
-            height={pet ? 600 : 520}
+            // Wider and taller than it was, because the dashboard now
+            // carries a twelve-row achievement list and a wardrobe under the
+            // original three panels. At 360 the achievement blurbs wrapped to
+            // four lines each and the whole thing read as a wall.
+            width={pet ? 408 : 540}
+            height={pet ? 640 : 520}
             windowTitle={pet ? `${pet.name} - Pet` : 'Adopt a Pet'}
             windowBarIcon={pet ? pet.icon : 'petModemIcon'}
             closeWindow={onClose}
@@ -405,6 +592,76 @@ const styles: StyleSheetCSS = {
         gap: 10,
     },
     rowLabel: { fontFamily: 'MSSerif', fontSize: 11, color: Colors.black },
+
+    // ---- achievements and wardrobe ----
+    achievementList: { flexDirection: 'column', gap: 7 },
+    achievementRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 7 },
+    /** The Win95 checkbox, sunk into the dialog the way a real one was. */
+    achievementTick: {
+        flexShrink: 0,
+        width: 13,
+        height: 13,
+        marginTop: 1,
+        background: Colors.white,
+        border: `1px solid ${Colors.darkGray}`,
+        borderRightColor: Colors.white,
+        borderBottomColor: Colors.white,
+        boxShadow: `inset 1px 1px 0 ${Colors.black}`,
+        fontFamily: 'MSSerif',
+        fontSize: 10,
+        lineHeight: '11px',
+        textAlign: 'center',
+        color: Colors.black,
+    },
+    achievementTickOn: { color: '#0a5a14' },
+    achievementText: { flexDirection: 'column', gap: 2, minWidth: 0, flex: 1 },
+    achievementName: {
+        fontFamily: 'MSSerif',
+        fontSize: 11,
+        fontWeight: 'bold',
+        color: Colors.black,
+    },
+    /** Locked titles sit back a shade so the earned ones read as earned. */
+    achievementNameLocked: { fontWeight: 'normal', color: '#4a4a4a' },
+    achievementBlurb: {
+        fontFamily: 'MSSerif',
+        fontSize: 10,
+        lineHeight: 1.4,
+        color: '#3a3a3a',
+    },
+    rewardNote: {
+        fontFamily: 'MSSerif',
+        fontSize: 10,
+        color: '#0a5a14',
+    },
+    progressTrack: {
+        marginTop: 2,
+        height: 8,
+        background: Colors.white,
+        border: `1px solid ${Colors.darkGray}`,
+        borderRightColor: Colors.white,
+        borderBottomColor: Colors.white,
+    },
+    progressFill: {
+        height: '100%',
+        background: '#000080',
+        minWidth: 0,
+    },
+    actionButtonActive: {
+        borderColor: Colors.darkGray,
+        borderRightColor: Colors.white,
+        borderBottomColor: Colors.white,
+        fontWeight: 'bold',
+    },
+    sizeRow: {
+        flexDirection: 'column',
+        gap: 5,
+        marginTop: 8,
+    },
+    sizeValue: {
+        marginLeft: 6,
+        fontWeight: 'bold',
+    },
     rowValue: {
         fontFamily: 'MSSerif',
         fontSize: 11,

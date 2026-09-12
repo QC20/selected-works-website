@@ -210,8 +210,18 @@ const Statistics: React.FC<StatisticsProps> = ({
                                         <div
                                             style={{
                                                 ...styles.barFill,
+                                                // `ranked` is guarded for
+                                                // being empty but not for a
+                                                // top count of zero, which
+                                                // gives `NaN%` and silently
+                                                // drops every bar.
                                                 width: `${
-                                                    (n / ranked[0][1]) * 100
+                                                    (n /
+                                                        Math.max(
+                                                            1,
+                                                            ranked[0][1]
+                                                        )) *
+                                                    100
                                                 }%`,
                                             }}
                                         />

@@ -1,97 +1,163 @@
 [
-    {
-        "head": "Internet Explorer",
-        "date": "2026-07-30",
-        "why": "Every site used to open in its own bare iframe, no chrome, no way back. One real browser window with actual history means following a link never strands you outside the desktop.",
-        "notes": [
-            "Every site on the desktop now opens in one Internet Explorer window instead of a plain frame",
-            "Added Back and Forward, working from a real history stack",
-            "Added Stop, which cancels the load and shows the \"Action canceled\" page",
-            "Added Refresh and Home",
-            "The address bar is editable — type a URL or a search and press Enter",
-            "Added a Favorites drop-down listing every site on this desktop"
-        ]
-    },
-    {
-        "head": "Utility",
-        "date": "2026-07-30",
-        "why": "Task Manager, Patch Notes and Reset Storage needed a home that wasn't the desktop itself — Windows 95's own Utility folder, under Hard Disk (D:), was the obvious slot.",
-        "notes": [
-            "Added Task Manager to Hard Disk (D:) > Utility",
-            "Added Patch Notes to Hard Disk (D:) > Utility",
-            "Added Reset Storage to Hard Disk (D:) > Utility"
-        ]
-    },
-    {
-        "head": "Start Menu",
-        "date": "2026-07-30",
-        "why": "LinkedIn was already one of the contact icons on the Contact page — worth surfacing from Start too, the same way a resume link is.",
-        "notes": ["Added LinkedIn under Start > Resume"]
-    },
-    {
-        "head": "Notepad",
-        "date": "2026-07-29",
-        "why": "A silent \"Untitled.txt\" download the moment you clicked Save didn't feel like Notepad. Asking for a name, and keeping the file in My Documents so it's still there next visit, does.",
-        "notes": [
-            "Save As now asks for a file name instead of silently downloading Untitled.txt",
-            "Files can be saved to My Documents on the C: drive, and opened again later",
-            "Files can also be downloaded to your own computer"
-        ]
-    },
-    {
-        "head": "MSN Messenger",
-        "date": "2026-07-29",
-        "why": "The guestbook was already dressed as MSN Messenger. The nudge — and its sound — is the one detail of that client almost everyone who used it in 2003 still remembers.",
-        "notes": [
-            "Added the nudge button, with its sound",
-            "Reworked the chat window toolbar"
-        ]
-    },
-    {
-        "head": "Programs",
-        "date": "2026-07-29",
-        "why": "Windows 95 apps didn't only live on the desktop — the Programs folder, Start menu and Hard Disk (C:) are how a real install actually organised them, so games and utilities are reachable the same three ways here.",
-        "notes": [
-            "Added the Programs folder, with Paint, Notepad, Solitaire, Pinball and the rest",
-            "Programs are reachable from the desktop, the Start menu, Hard Disk (C:) and Run"
-        ]
-    },
-    {
-        "head": "My Computer",
-        "date": "2026-07-29",
-        "why": "A flat window listing every drive read as a shortcut list, not a computer. Back, Up one level and a real address bar make it browsable the way My Computer actually was.",
-        "notes": [
-            "My Computer now browses a filesystem in one window: Back, Up one level and an address drop-down",
-            "Added Hard Disk (C:), Hard Disk (D:) and CD-ROM",
-            "Added the Pictures folder, which opens photos in the picture viewer"
-        ]
-    },
-    {
-        "head": "Desktop",
-        "date": "2026-07-28",
-        "why": "Icons snapping back to the same grid on every reload broke the one thing that was supposed to sell the idea: that this is your desktop, not a screenshot of one. Remembering where you dragged things, and a right-click menu, are what make it feel owned rather than borrowed.",
-        "notes": [
-            "Icons can be dragged, and their positions are remembered",
-            "Added the right-click context menu, including New Folder",
-            "Files can be dragged into the Recycle Bin, and restored from it"
-        ]
-    },
-    {
-        "head": "3D Experience",
-        "date": "2026-07-26",
-        "why": "Wanted one moment where the site's own bit — 'this is all a simulation' — actually pays off, rather than staying a joke in the copy. The desktop receding into a CRT in a real room is that moment, built on Henry Heffernan's original 3D room (credited in Credits).",
-        "notes": [
-            "Added Step Outside — the desktop recedes into a CRT monitor in a 3D room",
-            "Added camera controls to the 3D scene"
-        ]
-    },
-    {
-        "head": "Showcase",
-        "date": "2026-07-22",
-        "why": "The papers section and the experience timeline were the oldest, least-touched parts of the site — overdue for the same care the rest of the desktop was getting.",
-        "notes": [
-            "Reworked the papers and publications section",
-            "Updated the experience timeline"
-        ]
-    }
+  {
+    "head": "The pet",
+    "date": "2026-09-11",
+    "why": "Microsoft put an experimental pet above the chat box in VS Code 1.137 and ran a naming contest for it, and four of its ideas were good enough to take: a repertoire instead of a single reaction, achievements you can wear, somewhere to be other than the one line it walks along, and keyboard control. The wall-climbing is from tonybaloney's vscode-pets, which has had cats scaling the editor's left edge for years.",
+    "notes": [
+      "Clicking the creature now plays one of seven short performances — it presses the Start button, puts on sunglasses, sings, lies on its side and yaps, goes speechless, worries, or just loves you",
+      "The seven are drawn from a shuffled bag, so the same one never lands twice running and all seven come round before any repeats",
+      "Twelve achievements, three of them secret. A gold star appears on the creature for ten seconds when one unlocks; click it to open the list",
+      "Nine of the achievements unlock something to wear — a bow tie, sunglasses, a party hat, a propeller cap, a dial-up antenna, a 3.5\" floppy, a traffic cone, a halo, a tiny CRT and a crown",
+      "It now climbs the left and right edges of the screen, hangs there, and sometimes falls asleep halfway up",
+      "Tab to it and the arrow keys hop it along the taskbar; Shift and an arrow throws it at a wall; Enter pokes it",
+      "Alternate the arrows fast enough, or shake it about while holding it, and it gets dizzy",
+      "Drop it past the very bottom of the screen and it falls out of the world, then drops back in through the top",
+      "\"Send it on the run\" hides it behind the taskbar, where it peeks out every so often until you call it back — feeding or patting it from anywhere brings it straight out",
+      "Grow and Shrink, in twenty-point steps between 40% and 200%",
+      "Sleep now accumulates: one z when it drops off, three once it is properly under",
+      "It reacts to the machine as well as to you — a window closing, a failed Run command, a DJ set starting",
+      "Every animal's vocabulary roughly tripled, so the lines repeat far less"
+    ]
+  },
+  {
+    "head": "Face Value",
+    "date": "2026-09-11",
+    "why": "Pareidolia is the oldest bug in human vision and one of the most reliable — the face area of your brain will fire at three dots in a triangle. A machine that deliberately hunts for that configuration in something that is definitely not a face, and then turns the contrast up until you cannot unsee it, seemed like the most direct way to demonstrate it.",
+    "notes": [
+      "New in the Games folder: Face Value, which finds a face in a wall and then makes sure you see it too",
+      "Five procedural textures to hunt in — television static, clouds, wood grain, concrete and crumpled paper — generated fresh each time from noise functions",
+      "The detector is the Viola–Jones integral-image scan from 2001 with the trained cascade removed: four hand-picked Haar features, variance-normalised, thinned by non-maximum suppression",
+      "The reveal slider amplifies the found features and then renders the result as a Mooney two-tone image, the way Craig Mooney made his in 1957 — blur, then threshold",
+      "Nothing is ever drawn in. The reveal only widens differences that were already there",
+      "\"Show what it found\" outlines the eyes and mouth it thinks it has found, with its confidence",
+      "Drop a photograph of your own onto the picture — it is read on this machine and never leaves it"
+    ]
+  },
+  {
+    "head": "Clippy",
+    "date": "2026-09-11",
+    "why": "The rotation is good at coverage and hopeless at timing — it cannot say anything about the fact that you have just opened Minesweeper for the fourth time, or that it is twenty past two in the morning. This is the other half.",
+    "notes": [
+      "Clippy now remarks on specific things: the small hours, a second visit, your first game, losing one, the same window three times, seven windows at once, muting the sound, the Konami code, a blue screen",
+      "Every remark has two to four variants, drawn without replacement, so a trigger never reads the same way twice",
+      "Each one fires at most once or twice a session, several seconds after the thing happened rather than on top of it, with a floor of forty-five seconds between any two"
+    ]
+  },
+  {
+    "head": "Fixes",
+    "date": "2026-09-11",
+    "why": "A full read of the codebase, looking for things that were quietly wrong rather than things that looked wrong.",
+    "notes": [
+      "Jonordle was colouring its tiles from the first occurrence of a letter rather than the position — guessing BOOKS against JONAS turned the wrong O green. It now uses Wordle's real rule, greens first and yellows drawn from what is left",
+      "A note whose heading was indented by a single space put the markdown renderer into an infinite loop and hung the tab",
+      "The Flying Windows screen saver built its icons in an effect the first render never saw, so it drew a black screen and nothing else",
+      "Maximising a window ignored the resolution setting, so at 360×640 a maximised window was nearly twice the screen",
+      "A window dragged above the top edge kept a negative position and could never be reached again",
+      "The pet gauge and the resource meter were the two tray popups that clicking elsewhere would not close",
+      "A saved pet whose species this build did not recognise took the whole desktop down to a white screen",
+      "Minesweeper's flood fill revealed flagged squares and left the mine counter permanently wrong",
+      "Tetris responded to the arrow keys before you pressed Start, so you could lose a game you had not begun",
+      "Snake and Tetris were swallowing letters typed into other windows",
+      "Sending a guestbook message could white-screen the desktop when the server returned no row",
+      "Restoring a session gave every window the same stacking order, which broke Alt+Tab",
+      "/api/obsidian accepted a vault name from the query string, which let it be pointed at any host at all"
+    ]
+  },
+  {
+    "head": "Internet Explorer",
+    "date": "2026-07-30",
+    "why": "Every site used to open in its own bare iframe, no chrome, no way back. One real browser window with actual history means following a link never strands you outside the desktop.",
+    "notes": [
+      "Every site on the desktop now opens in one Internet Explorer window instead of a plain frame",
+      "Added Back and Forward, working from a real history stack",
+      "Added Stop, which cancels the load and shows the \"Action canceled\" page",
+      "Added Refresh and Home",
+      "The address bar is editable — type a URL or a search and press Enter",
+      "Added a Favorites drop-down listing every site on this desktop"
+    ]
+  },
+  {
+    "head": "Utility",
+    "date": "2026-07-30",
+    "why": "Task Manager, Patch Notes and Reset Storage needed a home that wasn't the desktop itself — Windows 95's own Utility folder, under Hard Disk (D:), was the obvious slot.",
+    "notes": [
+      "Added Task Manager to Hard Disk (D:) > Utility",
+      "Added Patch Notes to Hard Disk (D:) > Utility",
+      "Added Reset Storage to Hard Disk (D:) > Utility"
+    ]
+  },
+  {
+    "head": "Start Menu",
+    "date": "2026-07-30",
+    "why": "LinkedIn was already one of the contact icons on the Contact page — worth surfacing from Start too, the same way a resume link is.",
+    "notes": [
+      "Added LinkedIn under Start > Resume"
+    ]
+  },
+  {
+    "head": "Notepad",
+    "date": "2026-07-29",
+    "why": "A silent \"Untitled.txt\" download the moment you clicked Save didn't feel like Notepad. Asking for a name, and keeping the file in My Documents so it's still there next visit, does.",
+    "notes": [
+      "Save As now asks for a file name instead of silently downloading Untitled.txt",
+      "Files can be saved to My Documents on the C: drive, and opened again later",
+      "Files can also be downloaded to your own computer"
+    ]
+  },
+  {
+    "head": "MSN Messenger",
+    "date": "2026-07-29",
+    "why": "The guestbook was already dressed as MSN Messenger. The nudge — and its sound — is the one detail of that client almost everyone who used it in 2003 still remembers.",
+    "notes": [
+      "Added the nudge button, with its sound",
+      "Reworked the chat window toolbar"
+    ]
+  },
+  {
+    "head": "Programs",
+    "date": "2026-07-29",
+    "why": "Windows 95 apps didn't only live on the desktop — the Programs folder, Start menu and Hard Disk (C:) are how a real install actually organised them, so games and utilities are reachable the same three ways here.",
+    "notes": [
+      "Added the Programs folder, with Paint, Notepad, Solitaire, Pinball and the rest",
+      "Programs are reachable from the desktop, the Start menu, Hard Disk (C:) and Run"
+    ]
+  },
+  {
+    "head": "My Computer",
+    "date": "2026-07-29",
+    "why": "A flat window listing every drive read as a shortcut list, not a computer. Back, Up one level and a real address bar make it browsable the way My Computer actually was.",
+    "notes": [
+      "My Computer now browses a filesystem in one window: Back, Up one level and an address drop-down",
+      "Added Hard Disk (C:), Hard Disk (D:) and CD-ROM",
+      "Added the Pictures folder, which opens photos in the picture viewer"
+    ]
+  },
+  {
+    "head": "Desktop",
+    "date": "2026-07-28",
+    "why": "Icons snapping back to the same grid on every reload broke the one thing that was supposed to sell the idea: that this is your desktop, not a screenshot of one. Remembering where you dragged things, and a right-click menu, are what make it feel owned rather than borrowed.",
+    "notes": [
+      "Icons can be dragged, and their positions are remembered",
+      "Added the right-click context menu, including New Folder",
+      "Files can be dragged into the Recycle Bin, and restored from it"
+    ]
+  },
+  {
+    "head": "3D Experience",
+    "date": "2026-07-26",
+    "why": "Wanted one moment where the site's own bit — 'this is all a simulation' — actually pays off, rather than staying a joke in the copy. The desktop receding into a CRT in a real room is that moment, built on Henry Heffernan's original 3D room (credited in Credits).",
+    "notes": [
+      "Added Step Outside — the desktop recedes into a CRT monitor in a 3D room",
+      "Added camera controls to the 3D scene"
+    ]
+  },
+  {
+    "head": "Showcase",
+    "date": "2026-07-22",
+    "why": "The papers section and the experience timeline were the oldest, least-touched parts of the site — overdue for the same care the rest of the desktop was getting.",
+    "notes": [
+      "Reworked the papers and publications section",
+      "Updated the experience timeline"
+    ]
+  }
 ]

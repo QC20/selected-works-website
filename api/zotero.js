@@ -195,6 +195,12 @@ module.exports = async function handler(req, res) {
             references,
         });
     } catch (error) {
-        return res.status(502).json({ error: error.message });
+        // A fixed string, like every other handler here. `error.message` can
+        // carry the first 120 characters of whatever the upstream returned,
+        // which is unfiltered third-party diagnostics on a public endpoint.
+        console.error('[api/zotero]', error && error.message);
+        return res
+            .status(502)
+            .json({ error: 'Could not reach the Zotero library.' });
     }
 };

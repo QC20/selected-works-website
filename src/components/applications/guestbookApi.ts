@@ -91,8 +91,25 @@ export async function postMessage(
         body: JSON.stringify({ name, message }),
     });
     if (!res.ok) throw new Error(`Send failed (${res.status})`);
-    const rows = (await res.json()) as GuestMessage[];
-    return rows[0];
+    // `return=representation` gives the inserted row back *only* when the
+    // table's select policy also lets this key read it. The guestbook's
+    // policies are deliberately split — anyone may insert, reads are
+    // restricted — so an empty array here is a normal outcome rather than an
+    // error, and `rows[0]` was then pushed into the message list as
+    // `undefined` and read during the next render. One Send, white screen.
+    const rows = (await res.json()) as unknown;
+    const row = Array.isArray(rows) ? (rows[0] as GuestMessage | undefined) : undefined;
+    if (row && typeof row === 'object' && typeof row.message === 'string') {
+        return row;
+    }
+    // Nothing came back, so echo what we know was sent. The poll a few
+    // seconds later replaces it with the server's own copy.
+    return {
+        id: `local-${Date.now()}`,
+        name,
+        message,
+        created_at: new Date().toISOString(),
+    } as GuestMessage;
 }
 
 // ---- Tiny profanity guard (keeps it civil without a dependency) -------------

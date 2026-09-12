@@ -42,6 +42,14 @@ export interface WindowProps {
     children?: ReactNode;
 }
 
+/**
+ * How much of a window's title bar must stay on screen horizontally. Windows
+ * 95 let you push a window most of the way off the side and that is worth
+ * keeping — it is how you park one. What it did not let you do is push it off
+ * entirely, which is what the clamp in `stopDrag` preserves.
+ */
+const TITLE_BAR_KEEP = 90;
+
 const Window: React.FC<WindowProps> = (props) => {
     // Title-bar colour follows Display Properties → Appearance.
     const theme = useTheme();
@@ -89,11 +97,41 @@ const Window: React.FC<WindowProps> = (props) => {
     const [isDragging, setIsDragging] = useState(false);
     const [isResizing, setIsResizing] = useState(false);
 
+    /*
+     * Drag and resize both attach their handlers to `window`, because the
+     * pointer routinely leaves the element being dragged. Both used to remove
+     * them only from inside their own `pointerup` — so a window that unmounted
+     * mid-gesture (closed from the taskbar, uninstalled from the Store, or a
+     * `pointerup` swallowed by an iframe) left two live listeners writing
+     * `.style` to a detached node and calling `setState` on a dead component,
+     * for the rest of the session.
+     *
+     * The handlers are fresh closures on every render, so a `removeEventListener`
+     * in a cleanup would be passed a different function than the one that was
+     * added and would remove nothing. Hence the ref: whatever was actually
+     * attached is what gets detached.
+     */
+    const activeListeners = useRef<[string, EventListener][]>([]);
+
+    const attachGesture = (move: EventListener, up: EventListener) => {
+        window.addEventListener('pointermove', move, false);
+        window.addEventListener('pointerup', up, false);
+        activeListeners.current.push(['pointermove', move], ['pointerup', up]);
+    };
+
+    const detachGesture = () => {
+        activeListeners.current.forEach(([type, fn]) =>
+            window.removeEventListener(type, fn, false)
+        );
+        activeListeners.current = [];
+    };
+
+    useEffect(() => detachGesture, []);
+
     const startResize = (event: any) => {
         event.preventDefault();
         setIsResizing(true);
-        window.addEventListener('pointermove', onResize, false);
-        window.addEventListener('pointerup', stopResize, false);
+        attachGesture(onResize, stopResize);
     };
 
     const onResize = ({ clientX, clientY }: any) => {
@@ -109,11 +147,16 @@ const Window: React.FC<WindowProps> = (props) => {
 
     const stopResize = () => {
         setIsResizing(false);
-        setWidth(resizeRef.current.style.width);
-        setHeight(resizeRef.current.style.height);
+        // `style.width` is the string "623px", and `width` is typed and used
+        // as a number — it feeds the drag clamp's arithmetic and `preMaxSize`.
+        // Assigning the string straight in turned the first of those into NaN
+        // for the rest of the window's life.
+        const nextWidth = parseFloat(resizeRef.current.style.width);
+        const nextHeight = parseFloat(resizeRef.current.style.height);
+        if (Number.isFinite(nextWidth)) setWidth(nextWidth);
+        if (Number.isFinite(nextHeight)) setHeight(nextHeight);
         resizeRef.current.style.opacity = 0;
-        window.removeEventListener('pointermove', onResize, false);
-        window.removeEventListener('pointerup', stopResize, false);
+        detachGesture();
     };
 
     const startDrag = (event: any) => {
@@ -124,8 +167,7 @@ const Window: React.FC<WindowProps> = (props) => {
             dragStartX: clientX,
             dragStartY: clientY,
         };
-        window.addEventListener('pointermove', onDrag, false);
-        window.addEventListener('pointerup', stopDrag, false);
+        attachGesture(onDrag, stopDrag);
     };
 
     const onDrag = ({ clientX, clientY }: any) => {
@@ -138,10 +180,16 @@ const Window: React.FC<WindowProps> = (props) => {
         setIsDragging(false);
         // dragRef.current.style.opacity = 0;
         const { x, y } = getXYFromDragProps(clientX, clientY);
-        setTop(y);
-        setLeft(x);
-        window.removeEventListener('pointermove', onDrag, false);
-        window.removeEventListener('pointerup', stopDrag, false);
+        // Clamped the same way the initial box is (see `initTop`/`initLeft`).
+        // Without this a window dragged above the top edge keeps a negative
+        // `top`, which puts its title bar — and therefore its own drag handle,
+        // its close button and its maximize button — permanently outside the
+        // viewport. There is no way back from that except the taskbar.
+        const vw = window.innerWidth / getResolutionScale();
+        const vh = window.innerHeight / getResolutionScale();
+        setTop(Math.max(0, Math.min(y, vh - 60)));
+        setLeft(Math.max(TITLE_BAR_KEEP - width, Math.min(x, vw - TITLE_BAR_KEEP)));
+        detachGesture();
     };
 
     const getXYFromDragProps = (
@@ -200,8 +248,13 @@ const Window: React.FC<WindowProps> = (props) => {
                 top,
                 left,
             });
-            setWidth(window.innerWidth);
-            setHeight(window.innerHeight - TASKBAR_HEIGHT);
+            // Divided by the resolution scale like every other measurement
+            // in this file. `TASKBAR_HEIGHT` is already a desktop pixel, so
+            // mixing it with a raw `innerHeight` made a maximized window
+            // 1.9x the viewport at 360x640 and two thirds of it at 1280x1024.
+            const scale = getResolutionScale() || 1;
+            setWidth(window.innerWidth / scale);
+            setHeight(window.innerHeight / scale - TASKBAR_HEIGHT);
             setTop(0);
             setLeft(0);
             setIsMaximized(true);

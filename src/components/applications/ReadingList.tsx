@@ -3,6 +3,7 @@ import Window from '../os/Window';
 import MenuBar, { MenuBarMenu } from '../os/MenuBar';
 import Colors from '../../constants/colors';
 import { openExternal } from '../os/openExternal';
+import useMountedRef from '../../hooks/useMountedRef';
 import {
     Reference,
     ZOTERO_ENDPOINT,
@@ -48,6 +49,7 @@ const ReadingList: React.FC<ReadingListProps> = ({
     const [references, setReferences] = useState<Reference[] | null>(null);
     const [library, setLibrary] = useState('');
     const [error, setError] = useState<string | null>(null);
+    const mounted = useMountedRef();
     const [selected, setSelected] = useState<string | null>(null);
     const [filter, setFilter] = useState('');
     const [sort, setSort] = useState<SortKey>('added');
@@ -60,13 +62,16 @@ const ReadingList: React.FC<ReadingListProps> = ({
             const res = await fetch(ZOTERO_ENDPOINT);
             const data = await res.json();
             if (!res.ok) throw new Error(data.error || `Returned ${res.status}.`);
+            if (!mounted.current) return;
             setReferences(data.references || []);
             setLibrary(data.library || 'Library');
         } catch (e) {
+            if (!mounted.current) return;
             setError(
                 e instanceof Error ? e.message : 'Could not reach Zotero.'
             );
         }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     useEffect(() => {

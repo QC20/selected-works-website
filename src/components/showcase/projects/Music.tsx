@@ -142,15 +142,23 @@ const MusicProjects: React.FC<MusicProjectsProps> = () => {
   const isTouchDevice = getIsTouchDevice();
 
   useEffect(() => {
+    // `event.data` is whatever anyone posted to this window — the embedded
+    // iframe, a browser extension, webpack-dev-server's HMR socket — so it is
+    // routinely null or a bare string, and `event.data.type` threw on every
+    // one of those. Optional chaining, the way ProgramFrame.tsx already does
+    // it. (`preventDefault` on a MessageEvent does nothing, so the arrow keys
+    // were never actually being swallowed; the guard is kept only so the
+    // shape of the message is still validated somewhere.)
     const handleKeyDown = (event: MessageEvent) => {
+      const data = event.data as { type?: string; key?: string } | null;
       if (
-        event.data.type === "keydown" &&
-        (event.data.key === "ArrowUp" ||
-          event.data.key === "ArrowDown" ||
-          event.data.key === "ArrowLeft" ||
-          event.data.key === "ArrowRight")
+        data?.type === "keydown" &&
+        (data.key === "ArrowUp" ||
+          data.key === "ArrowDown" ||
+          data.key === "ArrowLeft" ||
+          data.key === "ArrowRight")
       ) {
-        event.preventDefault();
+        /* Nothing to cancel here — see the note above. */
       }
     };
 

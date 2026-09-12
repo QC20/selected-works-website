@@ -331,3 +331,132 @@ body {
         opacity: 0;
     }
 }
+
+/* -------------------------------------------------------------------------
+ * The pet's wardrobe and its newer moods
+ * ----------------------------------------------------------------------
+ * Everything the desktop pet wears is built out of divs in `PetAccessory.tsx`
+ * rather than drawn, so the two accessories that move need their keyframes
+ * here. Both are deliberately cheap — a rotation and an opacity step — and
+ * both stop dead under `prefers-reduced-motion` along with the rest of the
+ * ambient motion on this machine.
+ * ---------------------------------------------------------------------- */
+
+/* The beanie's propeller. Fast enough to blur, slow enough to see. */
+.pet-propeller {
+    animation: petPropeller 0.42s linear infinite;
+    transform-origin: 50% 50%;
+}
+
+@keyframes petPropeller {
+    from {
+        transform: rotate(0deg) scaleY(1);
+    }
+    50% {
+        transform: rotate(180deg) scaleY(0.35);
+    }
+    to {
+        transform: rotate(360deg) scaleY(1);
+    }
+}
+
+/* The dial-up antenna's link light. Two steps, no fade — a 1995 LED did not
+   have a fade, and the hard blink is most of what sells it. */
+.pet-led {
+    animation: petLed 1.1s steps(1, end) infinite;
+}
+
+@keyframes petLed {
+    0%,
+    55% {
+        opacity: 1;
+        box-shadow: 0 0 3px rgba(255, 77, 61, 0.9);
+    }
+    56%,
+    100% {
+        opacity: 0.25;
+        box-shadow: none;
+    }
+}
+
+/* The tiny CRT's phosphor glow, on the same slow cycle as the real one in
+   the Television window. */
+.pet-crt-screen {
+    animation: petCrtGlow 3.4s ease-in-out infinite;
+}
+
+@keyframes petCrtGlow {
+    0%,
+    100% {
+        background: #1d3f2a;
+    }
+    50% {
+        background: #2a5c3c;
+    }
+}
+
+/* The achievement star: it lands with a bounce, then breathes for ten
+   seconds so it reads as waiting to be clicked rather than as decoration. */
+.pet-star {
+    animation: petStarDrop 0.45s cubic-bezier(0.2, 1.6, 0.4, 1),
+        petStarPulse 1.5s ease-in-out 0.45s infinite;
+}
+
+@keyframes petStarDrop {
+    0% {
+        transform: translateY(-14px) scale(0.2) rotate(-90deg);
+        opacity: 0;
+    }
+    100% {
+        transform: translateY(0) scale(1) rotate(0deg);
+        opacity: 1;
+    }
+}
+
+@keyframes petStarPulse {
+    0%,
+    100% {
+        transform: scale(1);
+    }
+    50% {
+        transform: scale(1.18);
+    }
+}
+
+/* A worried creature sweats. One drop, falling off the side of the head. */
+.pet-particle-sweat {
+    color: #4a9fd8;
+    font-size: 9px;
+    bottom: 70%;
+    animation-name: petSweat;
+    animation-duration: 1s;
+}
+
+@keyframes petSweat {
+    0% {
+        transform: translate(calc(-50% + var(--pet-dx, 0px)), -2px) scale(0.5);
+        opacity: 0;
+    }
+    30% {
+        opacity: 1;
+        transform: translate(calc(-50% + var(--pet-dx, 0px)), 2px) scale(1);
+    }
+    100% {
+        transform: translate(calc(-50% + var(--pet-dx, 0px) + 6px), 18px)
+            scale(0.8);
+        opacity: 0;
+    }
+}
+
+/* Somebody who asked their OS to stop things moving does not want a
+   propeller spinning on a taskbar for the entire visit. The pet's deliberate
+   reactions still animate (see the note at the top of DesktopPet.tsx); these
+   three are ambient and loop forever, which is the category that has to go. */
+@media (prefers-reduced-motion: reduce) {
+    .pet-propeller,
+    .pet-led,
+    .pet-crt-screen,
+    .pet-star {
+        animation: none !important;
+    }
+}

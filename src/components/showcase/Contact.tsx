@@ -85,13 +85,17 @@ const Contact: React.FC<ContactProps> = (props) => {
     [isFormValid, isLoading]
   );
 
+  // One timer at a time, cleared on the next message and on unmount. Without
+  // the cleanup, every message scheduled its own: a second message at t=3.9s
+  // was wiped at t=4.0s by the *first* message's timer, and navigating away
+  // from Contact inside four seconds set state on a dead component.
   useEffect(() => {
-    if (formMessage.length > 0) {
-      setTimeout(() => {
-        setFormMessage("");
-        setFormMessageColor("");
-      }, 4000);
-    }
+    if (formMessage.length === 0) return;
+    const timer = window.setTimeout(() => {
+      setFormMessage("");
+      setFormMessageColor("");
+    }, 4000);
+    return () => window.clearTimeout(timer);
   }, [formMessage]);
 
   return (

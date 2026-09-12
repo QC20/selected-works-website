@@ -762,8 +762,7 @@ const MyComputer: React.FC<MyComputerProps> = ({
         };
 
         const onUp = (ev: PointerEvent) => {
-            window.removeEventListener('pointermove', onMove);
-            window.removeEventListener('pointerup', onUp);
+            releaseCarryListeners();
             const moved = carryRef.current?.moved;
             carryRef.current = null;
             setCarrying(null);
@@ -787,7 +786,26 @@ const MyComputer: React.FC<MyComputerProps> = ({
 
         window.addEventListener('pointermove', onMove);
         window.addEventListener('pointerup', onUp);
+        // Tracked so closing the window mid-drag — which is exactly what
+        // dragging a file *out* of it tends to lead to — doesn't leave two
+        // live listeners calling `setCarrying` for the rest of the session.
+        carryListeners.current.push(
+            ['pointermove', onMove as EventListener],
+            ['pointerup', onUp as EventListener]
+        );
     };
+
+    /** Whatever pointer listeners the current carry attached to `window`. */
+    const carryListeners = useRef<[string, EventListener][]>([]);
+
+    const releaseCarryListeners = useCallback(() => {
+        carryListeners.current.forEach(([type, fn]) =>
+            window.removeEventListener(type, fn)
+        );
+        carryListeners.current = [];
+    }, []);
+
+    useEffect(() => releaseCarryListeners, [releaseCarryListeners]);
 
     /** Delete, on the selected document: into the Recycle Bin, not gone. */
     const binSelected = () => {

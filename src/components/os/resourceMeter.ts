@@ -99,6 +99,7 @@ const sample = (): void => {
         openWindows: openWindowCount,
         uptimeSeconds: Math.floor(performance.now() / 1000),
     };
+    bankHistory();
     listeners.forEach((fn) => fn(current));
 };
 
@@ -171,9 +172,19 @@ const HISTORY_LEN = 60;
 export const memoryHistory: number[] = [];
 export const fpsHistory: number[] = [];
 
-listeners.add((s) => {
-    memoryHistory.push(s.memoryFreePercent);
+/*
+ * Banked by `sample()` alone, once a second.
+ *
+ * This used to hang off `listeners`, which is notified by *two* independent
+ * producers a second — `sample()` for memory and `onFrame()` for the frame
+ * rate. Every second therefore pushed two entries, and in each pair one of
+ * the two numbers was a stale carry-over from the other producer's
+ * `{...current}`. The System Monitor's sixty-point graph covered thirty
+ * seconds rather than sixty and drew both traces as duplicated stair-steps.
+ */
+export function bankHistory(): void {
+    memoryHistory.push(current.memoryFreePercent);
     if (memoryHistory.length > HISTORY_LEN) memoryHistory.shift();
-    fpsHistory.push(s.fps);
+    fpsHistory.push(current.fps);
     if (fpsHistory.length > HISTORY_LEN) fpsHistory.shift();
-});
+}

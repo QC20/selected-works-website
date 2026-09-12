@@ -58,6 +58,15 @@ function publishUrl(slug) {
         : `https://publish.obsidian.md/${clean}`;
 }
 
+/** Only Obsidian's own publish infrastructure. See the note at its call site. */
+function isObsidianHost(host) {
+    return (
+        typeof host === 'string' &&
+        /^[A-Za-z0-9.-]+$/.test(host) &&
+        (host === 'obsidian.md' || host.endsWith('.obsidian.md'))
+    );
+}
+
 async function getText(url) {
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
@@ -90,7 +99,24 @@ module.exports = async function handler(req, res) {
         'public, s-maxage=86400, max-age=3600, stale-while-revalidate=604800'
     );
 
-    const slug = String((req.query && req.query.slug) || SLUG);
+    /*
+     * The slug is *not* taken from the query string.
+     *
+     * It used to be — `req.query.slug || SLUG` — and that one fallback turned
+     * a read-only lookup into a server-side request forgery. `publishUrl`
+     * only checks the shape, and anything containing a dot is treated as a
+     * custom domain, so `?slug=169.254.169.254` had this function fetch a
+     * cloud metadata endpoint. Worse, `info.host` below is read out of the
+     * *fetched page*, so a page under someone else's control could redirect
+     * the second fetch anywhere, and `options.siteName` from that response is
+     * echoed back in the 200 body — a complete read-and-exfiltrate loop.
+     *
+     * Nothing on the front end ever passed a slug (see `Vault.tsx`, which
+     * fetches `/api/obsidian` bare), so the parameter bought nothing and cost
+     * the guarantee written at the top of this file. The vault is configured
+     * by deployment, through `OBSIDIAN_SLUG`, and by nothing else.
+     */
+    const slug = SLUG;
     const url = publishUrl(slug);
     if (!url) {
         return res.status(400).json({
@@ -110,7 +136,14 @@ module.exports = async function handler(req, res) {
 
         const info = JSON.parse(match[1]);
         if (!info.uid) throw new Error('siteInfo carried no uid');
-        const host = info.host || 'publish-01.obsidian.md';
+        // `info.host` comes out of a page fetched over the network, so it is
+        // input rather than configuration however trustworthy the source is.
+        // Obsidian Publish serves its API from its own domain; anything else
+        // is either a change on their side worth noticing or somebody else's
+        // server, and both cases want the documented default.
+        const host = isObsidianHost(info.host)
+            ? info.host
+            : 'publish-01.obsidian.md';
 
         // The site's own settings: its name, and which note is the front page.
         let options = {};

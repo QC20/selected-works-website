@@ -176,14 +176,18 @@ const ShutdownSequence: React.FC<ShutdownSequenceProps> = ({
         let delayExtra = 0;
         if (i < text.length) {
             if (text[i] === '|') {
-                let dumpText = '';
-                for (let j = i + 1; j < text.length; j++) {
-                    if (text[j] === '|') {
-                        i = j + 1;
-                        break;
-                    }
-                    dumpText += text[j];
+                // An unmatched `|` used to leave `i` where it was and recurse
+                // with identical arguments — a synchronous infinite recursion
+                // and a blown stack. Every message currently has an even
+                // number of pipes, so it was not reachable; adding a stray one
+                // to any of them would have hung the tab.
+                const close = text.indexOf('|', i + 1);
+                if (close === -1) {
+                    typeText(i + 1, curText, text, setText, callback, refOverride);
+                    return;
                 }
+                const dumpText = text.slice(i + 1, close);
+                i = close + 1;
                 setText(curText + dumpText);
                 typeText(
                     i,
@@ -195,16 +199,21 @@ const ShutdownSequence: React.FC<ShutdownSequenceProps> = ({
                 );
                 return;
             }
+            // `>` opens a delay, as in `>2000<` — but `>` is also a
+            // character somebody might want to print, and SHUTDOWN_6's
+            // `>:(` face is exactly that. The old version took any `>` as a
+            // delay, scanned forward to the *next* `<` (which belonged to the
+            // following delay token), and got `parseInt(">2000") === NaN`,
+            // which silently became a zero-length pause and ate the bracket.
+            // A delay is now only a delay if what follows is digits and a
+            // closing `<`; anything else is a character like any other.
             if (text[i] === '>') {
-                let delayTime = '';
-                for (let j = i + 1; j < text.length; j++) {
-                    if (text[j] === '<') {
-                        i = j + 1;
-                        break;
-                    }
-                    delayTime += text[j];
+                const close = text.indexOf('<', i + 1);
+                const body = close === -1 ? '' : text.slice(i + 1, close);
+                if (close !== -1 && /^\d+$/.test(body)) {
+                    i = close + 1;
+                    delayExtra = parseInt(body, 10);
                 }
-                delayExtra = parseInt(delayTime);
             }
 
             setTimeout(() => {

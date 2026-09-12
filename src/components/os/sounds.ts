@@ -332,6 +332,24 @@ export function playPetLift(): void {
     tone({ frequency: 320, endFrequency: 620, duration: 0.11, type: 'sine', gain: 0.035 });
 }
 
+/**
+ * An achievement. Four notes rather than three, and the last one held twice
+ * as long as the rest — the difference between "well done" and "that was a
+ * thing that happened", which is the difference between this and
+ * `playPetHappy` above.
+ */
+export function playPetUnlock(): void {
+    [659, 784, 988, 1319].forEach((f, i) => {
+        tone({
+            frequency: f,
+            duration: i === 3 ? 0.22 : 0.075,
+            type: 'triangle',
+            gain: 0.05,
+            delay: i * 0.075,
+        });
+    });
+}
+
 /** Something small and edible has appeared on the taskbar. */
 export function playPetTreat(): void {
     tone({ frequency: 1200, duration: 0.04, type: 'square', gain: 0.03 });

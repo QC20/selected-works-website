@@ -31,6 +31,13 @@ export const GAMES: Game[] = [
         blurb: "id Software's 1993 shooter, running in the browser.",
     },
     {
+        key: 'faceValue',
+        name: 'Face Value',
+        icon: 'perceptionLabIcon',
+        size: 180,
+        blurb: 'Finds a face in a wall, then makes sure you see it too.',
+    },
+    {
         key: 'jonordle',
         name: 'Jonordle',
         icon: 'scrabbleIcon',

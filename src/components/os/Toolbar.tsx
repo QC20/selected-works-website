@@ -25,6 +25,7 @@ import { openExternal } from './openExternal';
 import { PROGRAMS_CONTENTS } from '../applications/ProgramsFolder';
 import { GAMES } from '../applications/games';
 import { getVisitCount } from './visitorCountApi';
+import { clippyMoment } from './clippyMoments';
 
 /**
  * The folders at the top of the Start menu. Each opens a fly-out on hover
@@ -240,7 +241,26 @@ const Toolbar: React.FC<ToolbarProps> = ({
         setConnectionOpen(false);
         setCalendarOpen(false);
         setVisitsOpen(false);
+        // The pet gauge and the resource meter were missing from this list,
+        // which made them the two popups the outside-click dismisser could
+        // not close and the two that would happily stack under another one.
+        setPetOpen(false);
+        setResourceOpen(false);
     }, []);
+
+    /**
+     * The adopted animal, or undefined.
+     *
+     * `pets.ts` restores its state with `{...DEFAULT_STATE, ...parsed}` and
+     * does not validate `species`, so a `pet.v1` entry written by an older
+     * build — or edited by hand — can name an animal this one has never
+     * heard of. Three `PET_LIST.find(...)!` assertions used to sit in the
+     * JSX below, and any of them would have thrown during render and taken
+     * the entire desktop down to a white screen with no way back in.
+     */
+    const trayPet = petState.species
+        ? PET_LIST.find((p) => p.id === petState.species)
+        : undefined;
 
     /** Every tray icon: click, close whatever else was open, toggle itself. */
     const trayToggle = useCallback(
@@ -751,10 +771,10 @@ const Toolbar: React.FC<ToolbarProps> = ({
                         }}
                     />
                     <BatteryPanel open={batteryOpen} state={battery} />
-                    {petState.species && (
+                    {trayPet && (
                         <PetPanel
                             open={petOpen}
-                            pet={PET_LIST.find((p) => p.id === petState.species)!}
+                            pet={trayPet}
                             mood={computeMood(petState)}
                             level={contentment(petState)}
                             onOpenApp={() => {
@@ -866,12 +886,10 @@ const Toolbar: React.FC<ToolbarProps> = ({
                     )}
 
                     {/* Only once a pet has actually been adopted — see Pet.tsx. */}
-                    {petState.species && (
+                    {trayPet && (
                         <div
                             style={styles.trayIconWrap}
-                            title={`${
-                                PET_LIST.find((p) => p.id === petState.species)!.name
-                            } is ${
+                            title={`${trayPet.name} is ${
                                 { excited: 'excited', content: 'content', hungry: 'getting hungry', starving: 'very hungry' }[
                                     computeMood(petState)
                                 ]
@@ -879,10 +897,7 @@ const Toolbar: React.FC<ToolbarProps> = ({
                             data-open={petOpen}
                             onPointerDown={trayToggle(setPetOpen)}
                         >
-                            <PetGauge
-                                pet={PET_LIST.find((p) => p.id === petState.species)!}
-                                mood={computeMood(petState)}
-                            />
+                            <PetGauge pet={trayPet} mood={computeMood(petState)} />
                         </div>
                     )}
 
@@ -918,6 +933,7 @@ const Toolbar: React.FC<ToolbarProps> = ({
                             } else {
                                 playClick();
                                 toggleMuted();
+                                clippyMoment('muted');
                             }
                         }}
                     >

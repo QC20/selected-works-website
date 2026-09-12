@@ -70,7 +70,29 @@ export const countIsShared = (): boolean => shared;
  * hint as to why. A number that is honestly labelled "this browser" is better
  * than six dashes.
  */
+/**
+ * The request currently in flight, if any.
+ *
+ * The session cache only helps once a response has come back. Two callers
+ * racing before then — the tray's mount fetch and a restored Statistics
+ * window, which is an ordinary reload — both POSTed `increment_site_visits`
+ * and bumped the shared total by two for one visit.
+ */
+let inFlight: Promise<number | null> | null = null;
+
 export async function getVisitCount(): Promise<number | null> {
+    const cached = readSessionCache();
+    if (cached !== null) return cached;
+    if (inFlight) return inFlight;
+    inFlight = countOnce();
+    try {
+        return await inFlight;
+    } finally {
+        inFlight = null;
+    }
+}
+
+async function countOnce(): Promise<number | null> {
     const cached = readSessionCache();
     if (cached !== null) return cached;
 

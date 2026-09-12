@@ -348,7 +348,13 @@ export function renderMarkdown(
             continue;
         }
 
-        const heading = line.match(/^(#{1,6})\s+(.*)$/);
+        // `^\s*` rather than `^`, to match the paragraph guard further
+        // down. The two used to disagree, and a heading indented by a single
+        // space fell between them: no block handler claimed it, and the
+        // paragraph loop refused it on the first iteration, so `i` never
+        // advanced and `renderMarkdown` never returned. One space in one
+        // Vault note was enough to hang the tab.
+        const heading = line.match(/^\s*(#{1,6})\s+(.*)$/);
         if (heading) {
             const level = heading[1].length;
             out.push(
@@ -494,6 +500,16 @@ export function renderMarkdown(
             lines[i].trim() &&
             !/^\s*(#{1,6}\s|>|```|([-*+]|\d+[.)])\s)/.test(lines[i])
         ) {
+            buf.push(lines[i++]);
+        }
+        // Belt and braces. If the guard above rejected the very first line —
+        // which can only happen when a block handler and the guard disagree
+        // about what starts a block — the loop has consumed nothing and the
+        // outer `while` would spin forever. Taking the line as a paragraph
+        // is the wrong rendering; hanging the tab is worse, and this makes
+        // the outer loop structurally incapable of it whatever anyone adds
+        // to either pattern later.
+        if (!buf.length) {
             buf.push(lines[i++]);
         }
         out.push(

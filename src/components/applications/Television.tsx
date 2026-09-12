@@ -226,6 +226,22 @@ const Television: React.FC<TelevisionProps> = ({
      * several of these, and only the last one is allowed to reach setState.
      */
     const tuneToken = useRef(0);
+    /**
+     * Every pending "stop showing snow" timer.
+     *
+     * `tuneToken` already stops a *stale* tune from writing, but it cannot
+     * stop a timer from firing after the window has closed — and changing
+     * channel and closing the TV inside 620ms is an entirely ordinary thing
+     * to do.
+     */
+    const tuneTimers = useRef<number[]>([]);
+    useEffect(
+        () => () => {
+            tuneTimers.current.forEach(window.clearTimeout);
+            tuneTimers.current = [];
+        },
+        []
+    );
 
     const tune = useCallback(
         async (target: Channel) => {
@@ -239,9 +255,11 @@ const Television: React.FC<TelevisionProps> = ({
                 setEpisodes([]);
                 // Still hold the snow for a beat — the test card should feel
                 // tuned-to, not switched-to.
-                window.setTimeout(() => {
-                    if (tuneToken.current === token) setTuning(false);
-                }, TUNE_MS);
+                tuneTimers.current.push(
+                    window.setTimeout(() => {
+                        if (tuneToken.current === token) setTuning(false);
+                    }, TUNE_MS)
+                );
                 return;
             }
 
@@ -278,9 +296,11 @@ const Television: React.FC<TelevisionProps> = ({
                 setMediaUrl(url);
             }
 
-            window.setTimeout(() => {
-                if (tuneToken.current === token) setTuning(false);
-            }, TUNE_MS);
+            tuneTimers.current.push(
+                window.setTimeout(() => {
+                    if (tuneToken.current === token) setTuning(false);
+                }, TUNE_MS)
+            );
         },
         []
     );
@@ -325,9 +345,11 @@ const Television: React.FC<TelevisionProps> = ({
         if (tuneToken.current !== token) return;
         setAiring({ ...airing, episode: next, offsetSeconds: 0 });
         setMediaUrl(url);
-        window.setTimeout(() => {
-            if (tuneToken.current === token) setTuning(false);
-        }, TUNE_MS);
+        tuneTimers.current.push(
+                window.setTimeout(() => {
+                    if (tuneToken.current === token) setTuning(false);
+                }, TUNE_MS)
+            );
     }, [airing, episodes]);
 
     useEffect(() => {
