@@ -36,6 +36,20 @@ import {
     unlockedAccessories,
     useAchievementState,
 } from './petAchievements';
+import {
+    ATTENTION_RANGE,
+    Attention,
+    JUMP_SY,
+    JUMP_Y,
+    PRESS,
+    WALK_BOB,
+    approach,
+    easeIn,
+    easeOut,
+    sineOut,
+    squashX,
+    track,
+} from './petMotion';
 import { getResolutionScale } from './resolution';
 import {
     playClick,
@@ -161,7 +175,15 @@ type PetActivity =
     | 'peeking';
 
 /** Small extra bits of business layered on top of an idle stance. */
-type PetPose = 'none' | 'blink' | 'stretch' | 'scratch' | 'sit' | 'perk';
+type PetPose =
+    | 'none'
+    | 'blink'
+    | 'stretch'
+    | 'scratch'
+    | 'sit'
+    | 'perk'
+    /** Somebody is typing. See `typingUntilRef`. */
+    | 'watch';
 
 /** The sprite's height at 100%. Big enough to read as a character rather
  *  than a cursor artefact, which is the whole reason the art was drawn at
@@ -364,6 +386,41 @@ const DesktopPet: React.FC<{ suspended?: boolean }> = ({ suspended = false }) =>
 
     // Pointer position, tracked only while it is over the taskbar strip.
     const pointerXRef = useRef<number | null>(null);
+    /** The pointer anywhere on screen, in desktop px measured from the
+     *  bottom-left — what the creature turns to look at. */
+    const lookRef = useRef<{ x: number; y: number } | null>(null);
+    /** The lean actually being rendered, eased toward the target each frame. */
+    const attentionRef = useRef<Attention>({ x: 0, y: 0 });
+    /**
+     * Until when the creature should look like it is watching you work.
+     *
+     * The one habit worth taking from Claude Code's own terminal mascot and
+     * from VS Code's: it animates while the *machine* is doing something and
+     * goes still when it stops, rather than only ever responding to being
+     * poked. A creature that reacts to you is a toy; one that reacts to what
+     * is happening is company.
+     *
+     * Typing is the version of that which is both cheap and actually visible
+     * on this desktop — Notepad, the guestbook, Jonordle, Run, the address
+     * bar. Deliberately a *pose* rather than an activity, so it layers over
+     * an ordinary amble instead of interrupting one, and deliberately small:
+     * something that reacted loudly to every keystroke would be the single
+     * most irritating thing on the machine.
+     */
+    const typingUntilRef = useRef(0);
+    /**
+     * The hat, lagging behind the head.
+     *
+     * A light spring: the body's angular velocity drives it, its own
+     * stiffness pulls it back to level, and damping stops it ringing. This is
+     * the one place the wardrobe gets to be more than a decal — Codrops'
+     * flag-waver does the same thing in reverse, moving the *hand* against the
+     * flag's swing to keep the wrist attached.
+     */
+    const hatAngleRef = useRef(0);
+    const hatVelRef = useRef(0);
+    const lastRotRef = useRef(0);
+    const hatElRef = useRef<HTMLDivElement | null>(null);
 
     const petRef = useRef<PetDef | undefined>(pet);
     petRef.current = pet;
@@ -730,8 +787,28 @@ const DesktopPet: React.FC<{ suspended?: boolean }> = ({ suspended = false }) =>
             const overTaskbar =
                 e.clientY > window.innerHeight - (TASKBAR_HEIGHT + 6) * scale;
             pointerXRef.current = overTaskbar ? e.clientX / scale : null;
+
+            // Chasing only happens along the bar, but *looking* happens
+            // wherever the pointer is — so this one is tracked unconditionally
+            // and in both axes. See the attention note in `petMotion.ts`.
+            lookRef.current = {
+                x: e.clientX / scale,
+                y: (window.innerHeight - e.clientY) / scale,
+            };
         };
         window.addEventListener('pointermove', onPointerMove, { passive: true });
+
+        const onKey = (e: KeyboardEvent) => {
+            const el = e.target as HTMLElement | null;
+            if (!el) return;
+            const tag = el.tagName;
+            const typing =
+                tag === 'INPUT' ||
+                tag === 'TEXTAREA' ||
+                el.isContentEditable === true;
+            if (typing) typingUntilRef.current = performance.now() + 1500;
+        };
+        window.addEventListener('keydown', onKey, { passive: true, capture: true });
 
         let raf = 0;
         let last = performance.now();
@@ -1063,8 +1140,24 @@ const DesktopPet: React.FC<{ suspended?: boolean }> = ({ suspended = false }) =>
             if (poseRef.current !== 'none' && now > poseUntilRef.current) {
                 poseRef.current = 'none';
             }
+            // Watching you type outranks the idle fidgets — a creature that
+            // stops to scratch itself halfway through noticing something is
+            // not noticing anything.
+            const watching =
+                !reduced &&
+                now < typingUntilRef.current &&
+                (activityRef.current === 'idle' ||
+                    activityRef.current === 'walking');
+            if (watching) {
+                poseRef.current = 'watch';
+                poseUntilRef.current = typingUntilRef.current;
+                lastMoveRef.current = now;
+            } else if (poseRef.current === 'watch') {
+                poseRef.current = 'none';
+            }
             if (
                 !reduced &&
+                !watching &&
                 activityRef.current === 'idle' &&
                 poseRef.current === 'none' &&
                 now > nextPoseRef.current
@@ -1131,6 +1224,44 @@ const DesktopPet: React.FC<{ suspended?: boolean }> = ({ suspended = false }) =>
                 el.style.left = `${Math.round(xRef.current - size / 2)}px`;
                 el.style.bottom = `${Math.round(GROUND + yRef.current)}px`;
             }
+            /* --- what it is looking at ------------------------------
+             * Only while it has nothing more pressing to do. A creature that
+             * keeps turning to face the pointer *while* being thrown across
+             * the screen, or while asleep, is not attentive — it is broken.
+             */
+            const a2 = activityRef.current;
+            const canLook =
+                !reduced &&
+                (a2 === 'idle' || a2 === 'walking' || a2 === 'chasing');
+            let targetX = 0;
+            let targetY = 0;
+            if (canLook && lookRef.current) {
+                const dx = lookRef.current.x - xRef.current;
+                const dy =
+                    lookRef.current.y - (GROUND + yRef.current + size * 0.6);
+                // Falls off with distance: something across the room is not
+                // being looked at, it is merely in the same room.
+                const reach = Math.max(
+                    0,
+                    1 - Math.abs(dx) / (ATTENTION_RANGE * 3.2)
+                );
+                targetX =
+                    Math.max(-1, Math.min(1, dx / ATTENTION_RANGE)) * reach;
+                targetY =
+                    Math.max(-1, Math.min(1, dy / (ATTENTION_RANGE * 0.7))) *
+                    reach;
+            }
+            attentionRef.current = {
+                x: approach(attentionRef.current.x, targetX, dt, 0.09),
+                y: approach(attentionRef.current.y, targetY, dt, 0.07),
+            };
+
+            const phaseMs = Math.max(1, phaseLengthRef.current);
+            const phase = Math.min(
+                1,
+                Math.max(0, (now - phaseFromRef.current) / phaseMs)
+            );
+
             const body = bodyRef.current;
             if (body) {
                 const t = transformFor({
@@ -1143,9 +1274,64 @@ const DesktopPet: React.FC<{ suspended?: boolean }> = ({ suspended = false }) =>
                     squash: squashRef.current,
                     wall: wallRef.current,
                     reduced: !!reduced,
+                    phase,
+                    phaseMs,
+                    attention: attentionRef.current,
                 });
                 body.style.transform = t.transform;
                 body.style.transformOrigin = t.origin;
+
+                /* --- the hat, one beat behind -----------------------------
+                 * Driven by how fast the head just turned, pulled back to
+                 * level by its own stiffness, and damped so it settles rather
+                 * than ringing. Clamped hard: a hat that swings further than
+                 * this stops looking like inertia and starts looking like it
+                 * has come off.
+                 */
+                // Tracked unconditionally, *outside* the `if (hat)` below.
+                // Left inside it, the reference went stale the whole time
+                // nothing was being worn — so the frame a hat appeared (or
+                // the `cool` reaction dropped sunglasses on mid-spin) the
+                // spring was handed the difference between the current
+                // rotation and one from some arbitrary earlier moment, and
+                // the hat snapped to its stop and rang.
+                const drive = Math.max(-30, Math.min(30, t.rot - lastRotRef.current));
+                lastRotRef.current = t.rot;
+
+                const hat = hatElRef.current;
+                if (hat) {
+                    if (reduced) {
+                        hatAngleRef.current = 0;
+                        hatVelRef.current = 0;
+                    } else {
+                        // Integrated against real elapsed time rather than
+                        // per frame, so the spring is as stiff on a 144Hz
+                        // display as on a 60Hz one. Capped so that coming
+                        // back to a tab that stalled for a second does not
+                        // resolve as one enormous step.
+                        const step = Math.min(2.5, dt * 60);
+                        hatVelRef.current +=
+                            (-hatAngleRef.current * 0.16 -
+                                hatVelRef.current * 0.22) *
+                                step -
+                            drive * 0.42;
+                        hatAngleRef.current = Math.max(
+                            -17,
+                            Math.min(
+                                17,
+                                hatAngleRef.current + hatVelRef.current * step
+                            )
+                        );
+                    }
+                    hat.style.transform = `rotate(${hatAngleRef.current.toFixed(
+                        2
+                    )}deg)`;
+                } else if (hatAngleRef.current || hatVelRef.current) {
+                    // Nothing worn: park the spring so whatever goes on next
+                    // starts level instead of mid-swing.
+                    hatAngleRef.current = 0;
+                    hatVelRef.current = 0;
+                }
             }
             // The contact shadow stays on the bar while the creature does
             // not, which is what makes a hop read as a hop and a throw read
@@ -1186,6 +1372,7 @@ const DesktopPet: React.FC<{ suspended?: boolean }> = ({ suspended = false }) =>
         return () => {
             window.cancelAnimationFrame(raf);
             window.removeEventListener('pointermove', onPointerMove);
+            window.removeEventListener('keydown', onKey, { capture: true });
         };
     }, [pet, suspended, react, burst, say, setActivityBoth, hiddenY]);
 
@@ -1742,12 +1929,26 @@ const DesktopPet: React.FC<{ suspended?: boolean }> = ({ suspended = false }) =>
                             hungry ? 'feed' : 'poke'
                         }, double-click for a trick, drag to pick up, right-click for more`}
                     />
+                    {/* The wardrobe hangs in its own box so the hat spring
+                        has something to rotate that is not the animal. The
+                        pivot sits at the bottom centre — where the hat meets
+                        the head — so it swings rather than orbits. */}
                     {worn && (
-                        <PetAccessory
-                            id={worn}
-                            unit={sprite}
-                            anatomy={pet.anatomy}
-                        />
+                        <div
+                            ref={hatElRef}
+                            style={{
+                                ...styles.hatLayer,
+                                transformOrigin: `50% ${Math.round(
+                                    pet.anatomy.hat * sprite
+                                )}px`,
+                            }}
+                        >
+                            <PetAccessory
+                                id={worn}
+                                unit={sprite}
+                                anatomy={pet.anatomy}
+                            />
+                        </div>
                     )}
                 </div>
             </div>
@@ -1893,26 +2094,48 @@ interface TransformInput {
     squash: number;
     wall: 0 | 1 | -1;
     reduced: boolean;
+    /** Progress through the current timed reaction, 0..1. */
+    phase: number;
+    /** How long that reaction runs for, in ms — sets how many hops fit. */
+    phaseMs: number;
+    /** Where the creature is currently looking. See `petMotion.ts`. */
+    attention: Attention;
 }
 
 function transformFor(input: TransformInput): {
     transform: string;
     origin: string;
+    /** The body's rotation this frame — what drives the hat's inertia. */
+    rot: number;
 } {
-    const { activity, reaction, pose, facing, now, spin, squash, wall, reduced } =
-        input;
+    const {
+        activity,
+        reaction,
+        pose,
+        facing,
+        now,
+        spin,
+        squash,
+        wall,
+        reduced,
+        phase,
+        phaseMs,
+        attention,
+    } = input;
     let ty = 0;
     let tx = 0;
     let rot = 0;
     let sx = 1;
     let sy = 1;
     let origin = '50% 100%';
+    /** Only the ambient stances lean; a thrown creature does not sightsee. */
+    let attentionLeans = false;
 
     if (
         reduced &&
         (activity === 'idle' || activity === 'walking' || activity === 'chasing')
     ) {
-        return { transform: `scaleX(${facing})`, origin };
+        return { transform: `scaleX(${facing})`, origin, rot: 0 };
     }
 
     switch (activity) {
@@ -1920,11 +2143,18 @@ function transformFor(input: TransformInput): {
         case 'chasing':
         case 'foraging':
         case 'toWall': {
-            const speed = activity === 'walking' ? 190 : 120;
-            const step = Math.sin(now / speed);
-            ty = -Math.abs(step) * 3.5;
-            rot = step * 4;
-            sy = 1 + Math.abs(step) * 0.03;
+            // One stride per `speed` ms. The bob is keyframed rather than a
+            // sine so the body rises slowly off the back leg and drops
+            // quickly onto the next contact — symmetric bobbing is what
+            // makes a walk read as floating. See WALK_BOB.
+            const speed = activity === 'walking' ? 760 : 480;
+            const stride = ((now % speed) + speed) % speed / speed;
+            ty = track(stride, WALK_BOB);
+            // The roll still wants to be a sine: it is a sway, not a footfall.
+            rot = Math.sin(stride * Math.PI * 2) * 3.6;
+            sy = 1 + (-ty / 3.4) * 0.035;
+            sx = squashX(sy, 0.4);
+            attentionLeans = activity === 'walking' || activity === 'chasing';
             break;
         }
 
@@ -1976,20 +2206,29 @@ function transformFor(input: TransformInput): {
         case 'reacting':
             switch (reaction) {
                 case 'press': {
-                    // Leans forward, presses down, comes back. Sine over the
-                    // whole phase so the return is as smooth as the press.
-                    const t = Math.sin(now / 150);
-                    tx = facing * Math.abs(t) * 5;
-                    ty = Math.abs(t) * 3;
-                    rot = facing * Math.abs(t) * 14;
-                    sy = 1 - Math.abs(t) * 0.06;
+                    // A press is a fast approach, a *hold* while the button is
+                    // down, and a slower release — the same shape as the
+                    // effort frames in Claude's dumbbell animation. Driven by
+                    // a sine it was a creature rocking; the hold is what makes
+                    // it a creature pressing something. There is also a small
+                    // lean back first, because nothing pushes without winding
+                    // up. See PRESS.
+                    const d = track(phase, PRESS);
+                    tx = facing * d * 5.5;
+                    ty = Math.max(0, d) * 3;
+                    rot = facing * d * 15;
+                    sy = 1 - Math.max(0, d) * 0.07;
+                    sx = squashX(sy, 0.5);
                     break;
                 }
                 case 'heart': {
-                    const hop = Math.abs(Math.sin(now / 140));
-                    ty = -hop * 10;
-                    sy = 1 + hop * 0.07;
-                    sx = 1 - hop * 0.05;
+                    // The same jump rig as `happy`, a touch lower and slower —
+                    // affection rather than excitement.
+                    const hops = Math.max(1, Math.round(phaseMs / 620));
+                    const hop = (phase * hops) % 1;
+                    ty = track(hop, JUMP_Y) * 0.82;
+                    sy = track(hop, JUMP_SY);
+                    sx = squashX(sy);
                     break;
                 }
                 case 'cool': {
@@ -2038,21 +2277,47 @@ function transformFor(input: TransformInput): {
             break;
 
         case 'happy': {
-            // Two quick hops.
-            const hop = Math.abs(Math.sin(now / 110));
-            ty = -hop * 12;
-            sy = 1 + hop * 0.06;
-            sx = 1 - hop * 0.04;
-            rot = Math.sin(now / 110) * 6;
+            /*
+             * A jump with anticipation, an asymmetric arc and a landing.
+             *
+             * The old version was `Math.abs(Math.sin(now / 110))`, which is a
+             * hop in the sense that the sprite goes up and comes down. It has
+             * no crouch, its rise and fall take exactly as long as each other,
+             * and it never holds still. See the note at the top of
+             * `petMotion.ts` — this is the single biggest difference between
+             * the creature now and the creature before.
+             *
+             * How many hops fit is derived from the reaction's own length, so
+             * a 320ms keyboard nudge gets one and a 1100ms pat gets two,
+             * without either of them being cut off mid-air.
+             */
+            const hops = Math.max(1, Math.round(phaseMs / 560));
+            const hop = (phase * hops) % 1;
+            ty = track(hop, JUMP_Y);
+            sy = track(hop, JUMP_SY);
+            sx = squashX(sy);
+            // A little tilt into the launch and out of the landing, following
+            // the vertical rather than running on its own clock.
+            rot = -ty * 0.34 * facing;
             break;
         }
 
         case 'eating': {
-            // Head down, small fast nod.
-            ty = 2;
-            rot = 6 * facing + Math.sin(now / 70) * 5;
-            sy = 0.94;
-            sx = 1.04;
+            // Down to the food, a burst of fast nodding, then back up. The
+            // dive and the lift are eased and the nodding only happens in
+            // between — it used to nod for the entire phase, including while
+            // arriving, which made the whole thing read as a shiver.
+            const dive = track(phase, [
+                { at: 0, v: 0 },
+                { at: 0.18, v: 1, ease: easeIn },
+                { at: 0.82, v: 1 },
+                { at: 1, v: 0, ease: easeOut },
+            ]);
+            const nodding = phase > 0.18 && phase < 0.82 ? 1 : 0;
+            ty = 2 * dive;
+            rot = (6 * facing + Math.sin(now / 62) * 5 * nodding) * dive;
+            sy = 1 - 0.06 * dive;
+            sx = squashX(sy, 0.7);
             break;
         }
 
@@ -2097,9 +2362,12 @@ function transformFor(input: TransformInput): {
 
         default: {
             // Idle: breathing, plus whatever small business is running.
+            // Breathing is deliberately *not* keyframed — a resting animal is
+            // the one thing that genuinely is a smooth sine.
             const breath = Math.sin(now / 850);
             sy = 1 + breath * 0.02;
             sx = 1 - breath * 0.015;
+            attentionLeans = true;
 
             if (pose === 'blink') {
                 sy *= 0.9;
@@ -2118,6 +2386,12 @@ function transformFor(input: TransformInput): {
             } else if (pose === 'perk') {
                 sy *= 1.06;
                 ty = -4;
+            } else if (pose === 'watch') {
+                // Up on its toes, leaning in, with a small alert bob that is
+                // faster than breathing and much shallower than a hop.
+                sy *= 1.05;
+                ty = -2 - Math.abs(Math.sin(now / 240)) * 1.6;
+                rot += 2.5 * facing;
             }
             break;
         }
@@ -2129,6 +2403,26 @@ function transformFor(input: TransformInput): {
         sx *= 1 + squash * 0.3;
     }
 
+    /* --- attention -------------------------------------------------------
+     * Applied on top of whatever the creature is doing rather than as a state
+     * of its own, so it survives a walk cycle and a blink. The lean is small
+     * on purpose: three pixels and six degrees is enough to read as "looking
+     * at you" and not enough to look like it is falling over.
+     */
+    if (attentionLeans) {
+        tx += attention.x * 3.4;
+        // Deliberately *not* multiplied by `facing`. The transform reads
+        // `translate() rotate() scale()`, and CSS applies those right to left
+        // — so the scale flips the sprite first and the rotation is applied
+        // in world space afterwards. Folding `facing` in here tilted the
+        // creature away from the pointer whenever it happened to be facing
+        // left, which looked like it was recoiling.
+        rot += attention.x * 6;
+        // Looking up straightens it; looking down rounds its back.
+        ty -= Math.max(0, attention.y) * 1.8;
+        sy += Math.max(0, attention.y) * 0.022;
+    }
+
     return {
         transform: `translate(${tx.toFixed(2)}px, ${ty.toFixed(
             2
@@ -2136,6 +2430,7 @@ function transformFor(input: TransformInput): {
             3
         )}, ${sy.toFixed(3)})`,
         origin,
+        rot,
     };
 }
 
@@ -2175,6 +2470,16 @@ const styles: StyleSheetCSS = {
         pointerEvents: 'auto',
         userSelect: 'none',
         touchAction: 'none',
+    },
+    /** Sits exactly over the sprite; only its transform ever differs. */
+    hatLayer: {
+        position: 'absolute',
+        left: 0,
+        top: 0,
+        right: 0,
+        bottom: 0,
+        pointerEvents: 'none',
+        willChange: 'transform',
     },
     bubble: {
         position: 'absolute',

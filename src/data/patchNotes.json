@@ -1,5 +1,23 @@
 [
   {
+    "head": "The pet moves properly now",
+    "date": "2026-09-25",
+    "why": "Everything the creature did was a sine wave. Anthropic's own Claude mascot animations were reverse-engineered on Codrops in May, and OpenAI's Codex CLI pets ship as a documented sprite atlas — between them they make it very clear what a sine wave is missing. Real motion hesitates before it commits, accelerates downhill, overshoots on arrival, and holds still on the poses that carry the meaning.",
+    "notes": [
+      "Jumps now have anticipation: a crouch, held for a beat, before the launch",
+      "The arc is asymmetric — the rise takes roughly twice as long as the fall, and eases the opposite way, because that is what gravity does",
+      "There is a hold at the apex, and a squash and overshoot on landing",
+      "Squash and stretch now conserve volume, so a flattening creature no longer appears to lose mass",
+      "The walk cycle rises slowly off the back leg and drops quickly onto the next contact, instead of bobbing symmetrically",
+      "Pressing the Start button holds at the bottom while the button is down, the way a press actually works",
+      "Eating dives, nods, and lifts, rather than shivering for the whole animation",
+      "The creature leans and tips its head toward your pointer, and eases into it rather than snapping",
+      "Whatever it is wearing now lags behind its head and swings on landing, then settles",
+      "It watches you while you type",
+      "All of the above still stops dead under prefers-reduced-motion"
+    ]
+  },
+  {
     "head": "The pet",
     "date": "2026-09-11",
     "why": "Microsoft put an experimental pet above the chat box in VS Code 1.137 and ran a naming contest for it, and four of its ideas were good enough to take: a repertoire instead of a single reaction, achievements you can wear, somewhere to be other than the one line it walks along, and keyboard control. The wall-climbing is from tonybaloney's vscode-pets, which has had cats scaling the editor's left edge for years.",
