@@ -1,5 +1,30 @@
 [
   {
+    "head": "It starts much faster now",
+    "date": "2026-10-15",
+    "why": "Every one of the forty-odd programs on this desktop was in the first file the browser downloaded — Doom's loader, a DOS emulator, a three.js scene, a face detector — all queued ahead of the one thing anybody came for. The fix is ordinary code splitting, plus the part that matters more: fetching a program a moment before you ask for it rather than a moment after.",
+    "notes": [
+      "The first download is 40% smaller: 526KB to 317KB compressed",
+      "The 3D room is 580KB of three.js and was loading for everyone, including the people who never opened it. It now arrives only if you step outside",
+      "My Showcase is deliberately not deferred — it opens by itself on arrival, so making it wait would be perverse",
+      "Hovering a desktop icon starts downloading that program, so the double-click that follows usually has nothing left to wait for",
+      "Once the desktop has painted and the browser is idle, it quietly fetches the three programs you open most often on this machine — so your second visit opens them instantly",
+      "A program still arriving shows a real Windows 95 window with a progress bar rather than a blank screen, which is what the machine would have done",
+      "Measured cold: first paint 460ms, first contentful paint 632ms, fully loaded 745ms"
+    ]
+  },
+  {
+    "head": "Dependency hygiene",
+    "date": "2026-10-15",
+    "why": "GitHub reported 127 security advisories against this site, which sounds alarming and was almost entirely noise — the build tools were declared as if they shipped to visitors.",
+    "notes": [
+      "Build and test tooling (react-scripts, TypeScript, Jest, the testing libraries, the type definitions) moved from dependencies to devDependencies, where it belongs. None of it was ever sent to a browser",
+      "Advisories against what visitors actually receive: 127 down to 2",
+      "Patched the ones that genuinely shipped — a nanoid infinite-loop and several React Router open-redirect issues",
+      "The two that remain need a breaking React Router major and are not reachable here: the router only ever receives hardcoded route names, never anything a visitor can influence"
+    ]
+  },
+  {
     "head": "The pet decides differently",
     "date": "2026-10-15",
     "why": "The creature's choice of what to do next was an if-ladder whose second branch had a real probability of 0.45 x 0.5 written down nowhere. That works for three options and collapses at five. Shimeji separates when a behaviour is possible from how often it is chosen, and keeps the whole thing as data; this does the same.",

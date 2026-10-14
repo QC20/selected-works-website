@@ -2,51 +2,17 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
 import Colors from '../../constants/colors';
 import ShowcaseExplorer from '../applications/ShowcaseExplorer';
-import Doom from '../applications/Doom';
-import OregonTrail from '../applications/OregonTrail';
 import ShutdownSequence from './ShutdownSequence';
 import ShutdownDialog, { ShutdownChoice } from './ShutdownDialog';
 import LogonScreen from './LogonScreen';
 
 import Toolbar from './Toolbar';
 import DesktopShortcut, { DesktopShortcutProps } from './DesktopShortcut';
-import Scrabble from '../applications/Scrabble';
 import Jonordle from '../jonordle/Jonordle';
 import { IconName } from '../../assets/icons';
-import Credits from '../applications/Credits';
-import floatingSphere from '../applications/floatingSphere';
-import Guestbook from '../applications/Guestbook';
-import Experience3D from '../experience/Experience3D';
-import Mail from '../applications/Mail';
-import About from '../applications/About';
-import RecycleBin from '../applications/RecycleBin';
-import Settings from '../applications/Settings';
-import Run from '../applications/Run';
-import GitHubViewer from '../applications/GitHubViewer';
-import ProgramsFolder from '../applications/ProgramsFolder';
-import Minesweeper from '../applications/Minesweeper';
+
 import WebFrame, { NavRequest } from '../applications/WebFrame';
-import ResumeFile from '../applications/ResumeFile';
-import MyComputer from '../applications/MyComputer';
 import StockWatch, { StockRequest } from '../applications/StockWatch';
-import TaskManager from '../applications/TaskManager';
-import PatchNotes from '../applications/PatchNotes';
-import Now from '../applications/Now';
-import HowItsBuilt from '../applications/HowItsBuilt';
-import ResetStorage from '../applications/ResetStorage';
-import NetworkInfo from '../applications/NetworkInfo';
-import PowerMeter from '../applications/PowerMeter';
-import WeatherStation from '../applications/WeatherStation';
-import Television from '../applications/Television';
-import Statistics from '../applications/Statistics';
-import Pet from '../applications/Pet';
-import Stereogram from '../applications/Stereogram';
-import PerceptionLab from '../applications/PerceptionLab';
-import FaceValue from '../applications/FaceValue';
-import Vault from '../applications/Vault';
-import ReadingList from '../applications/ReadingList';
-import SystemMonitor from '../applications/SystemMonitor';
-import ProgramFrame from '../applications/ProgramFrame';
 import { WIN98_PROGRAMS, win98ProgramByKey } from '../applications/win98Programs';
 import { useTheme } from './theme';
 import {
@@ -72,7 +38,6 @@ import {
     snap,
 } from './iconPositions';
 import FileIcon from './FileIcon';
-import PictureViewer from '../applications/PictureViewer';
 import { siteByKey } from './websites';
 import { DesktopFile, updateFile, useDesktopFiles } from './desktopFiles';
 import {
@@ -85,8 +50,6 @@ import {
     takeDocumentToDesktop,
 } from './documentFiles';
 import { Win98File } from './win98fs';
-import Store from '../applications/Store';
-import SystemProperties from '../applications/SystemProperties';
 import ContextMenu, { ContextMenuItem } from './ContextMenu';
 import {
     ArrangeOrder,
@@ -104,8 +67,6 @@ import {
 } from './installedApps';
 import Screensaver, { useScreensaverSettings } from './Screensaver';
 import { useTvPlaying } from './tvState';
-import Snake from '../applications/Snake';
-import Tetris from '../applications/Tetris';
 import Clippy from './Clippy';
 import StartBalloon from './StartBalloon';
 import { trackEvent } from './analyticsApi';
@@ -126,10 +87,71 @@ import { PROGRAM_ALIASES, registerProgramEntries } from './searchIndex';
 import { registerOpenApp } from './appBridge';
 import { clippySay, randomClippy } from './Clippy';
 import { clippyMoment, clippyNoteArrival } from './clippyMoments';
-import Secret from '../applications/Secret';
 import { useKonamiCode } from './konami';
 import KonamiBurst from './KonamiBurst';
 import { playChime } from './sounds';
+import { lazyApp, preload, preloadWhenIdle } from './lazyApp';
+import WindowLoading from './WindowLoading';
+
+/**
+ * The 3D room, which is all of three.js.
+ *
+ * Six hundred kilobytes for a feature most visitors never open, and it was
+ * sitting in the first file the browser downloaded. It already defers its own
+ * *rendering* until the first time it is opened (see the `render` state in
+ * `Experience3D.tsx`); this defers the module to match.
+ */
+const Experience3D = lazyApp(() => import('../experience/Experience3D'));
+
+/* -------------------------------------------------------------------------
+ * The programs, loaded on demand
+ * ----------------------------------------------------------------------
+ * Each of these is its own chunk, fetched the first time somebody opens it
+ * (or, far more often, a moment earlier — see `preload`). My Showcase is
+ * imported normally above, because it opens by itself on arrival and
+ * deferring the one thing the site is for would be perverse.
+ * ---------------------------------------------------------------------- */
+const About = lazyApp(() => import('../applications/About'));
+const Credits = lazyApp(() => import('../applications/Credits'));
+const Doom = lazyApp(() => import('../applications/Doom'));
+const FaceValue = lazyApp(() => import('../applications/FaceValue'));
+const GitHubViewer = lazyApp(() => import('../applications/GitHubViewer'));
+const Guestbook = lazyApp(() => import('../applications/Guestbook'));
+const HowItsBuilt = lazyApp(() => import('../applications/HowItsBuilt'));
+const Mail = lazyApp(() => import('../applications/Mail'));
+const Minesweeper = lazyApp(() => import('../applications/Minesweeper'));
+const MyComputer = lazyApp(() => import('../applications/MyComputer'));
+const NetworkInfo = lazyApp(() => import('../applications/NetworkInfo'));
+const Now = lazyApp(() => import('../applications/Now'));
+const OregonTrail = lazyApp(() => import('../applications/OregonTrail'));
+const PatchNotes = lazyApp(() => import('../applications/PatchNotes'));
+const PerceptionLab = lazyApp(() => import('../applications/PerceptionLab'));
+const Pet = lazyApp(() => import('../applications/Pet'));
+const PictureViewer = lazyApp(() => import('../applications/PictureViewer'));
+const PowerMeter = lazyApp(() => import('../applications/PowerMeter'));
+const ProgramFrame = lazyApp(() => import('../applications/ProgramFrame'));
+const ProgramsFolder = lazyApp(() => import('../applications/ProgramsFolder'));
+const ReadingList = lazyApp(() => import('../applications/ReadingList'));
+const RecycleBin = lazyApp(() => import('../applications/RecycleBin'));
+const ResetStorage = lazyApp(() => import('../applications/ResetStorage'));
+const ResumeFile = lazyApp(() => import('../applications/ResumeFile'));
+const Run = lazyApp(() => import('../applications/Run'));
+const Scrabble = lazyApp(() => import('../applications/Scrabble'));
+const Secret = lazyApp(() => import('../applications/Secret'));
+const Settings = lazyApp(() => import('../applications/Settings'));
+const Snake = lazyApp(() => import('../applications/Snake'));
+const Statistics = lazyApp(() => import('../applications/Statistics'));
+const Stereogram = lazyApp(() => import('../applications/Stereogram'));
+const Store = lazyApp(() => import('../applications/Store'));
+const SystemMonitor = lazyApp(() => import('../applications/SystemMonitor'));
+const SystemProperties = lazyApp(() => import('../applications/SystemProperties'));
+const TaskManager = lazyApp(() => import('../applications/TaskManager'));
+const Television = lazyApp(() => import('../applications/Television'));
+const Tetris = lazyApp(() => import('../applications/Tetris'));
+const Vault = lazyApp(() => import('../applications/Vault'));
+const WeatherStation = lazyApp(() => import('../applications/WeatherStation'));
+const floatingSphere = lazyApp(() => import('../applications/floatingSphere'));
+
 
 // Apps whose icon launches a full-screen takeover (the 3D experience) rather
 // than opening a draggable window. Keyed by their APPLICATIONS key.
@@ -835,6 +857,34 @@ const Desktop: React.FC<DesktopProps> = (props) => {
         y: number;
         items: ContextMenuItem[];
     } | null>(null);
+
+    /** True from the first time the 3D room is opened. See its render below. */
+    const [experienceMounted, setExperienceMounted] = useState(false);
+    useEffect(() => {
+        if (experienceOpen) setExperienceMounted(true);
+    }, [experienceOpen]);
+
+    /**
+     * Warm the programs this particular visitor actually uses.
+     *
+     * Once the desktop has painted and the browser is idle, quietly fetch the
+     * chunks for the three programs opened most often on this machine — so the
+     * second visit opens them instantly. A first-time visitor has no history,
+     * so they get the two things most people reach for first instead.
+     */
+    useEffect(() => {
+        const stats = getUsageStats();
+        const favourites = Object.entries(stats.apps)
+            .sort((a, b) => b[1] - a[1])
+            .slice(0, 3)
+            .map(([key]) => key);
+        const keys = favourites.length
+            ? favourites
+            : ['myComputer', 'programs'];
+        preloadWhenIdle(
+            keys.map((k) => APPLICATIONS[k]?.component).filter(Boolean)
+        );
+    }, []);
 
     // One per tab, same rule the hit counter uses — see usageStats.ts.
     useEffect(() => {
@@ -2050,6 +2100,19 @@ const Desktop: React.FC<DesktopProps> = (props) => {
                             windows[key].minimized && styles.minimized
                         )}
                     >
+                        {/* Each program is its own chunk now, so there is a
+                            moment where the component does not exist yet. The
+                            boundary is here, around one window, rather than
+                            around the desktop: a program still arriving must
+                            never blank out the machine it is opening on. */}
+                        <React.Suspense
+                            fallback={
+                                <WindowLoading
+                                    name={windows[key].name}
+                                    icon={windows[key].icon}
+                                />
+                            }
+                        >
                         {React.cloneElement(element, {
                             key,
                             onInteract: () => onWindowInteract(key),
@@ -2083,6 +2146,7 @@ const Desktop: React.FC<DesktopProps> = (props) => {
                                   }
                                 : {}),
                         })}
+                        </React.Suspense>
                     </div>
                 );
             })}
@@ -2108,6 +2172,14 @@ const Desktop: React.FC<DesktopProps> = (props) => {
                                 innerRef={isBin ? binShortcutRef : undefined}
                                 shortcutName={shortcut.shortcutName}
                                 onOpen={shortcut.onOpen}
+                                // Hovering is intent. Starting the download
+                                // here means the double-click that follows
+                                // usually has nothing left to wait for.
+                                onIntent={() =>
+                                    preload(
+                                        APPLICATIONS[shortcut.appKey]?.component
+                                    )
+                                }
                                 onMoved={(dx, dy, screen) =>
                                     onShortcutDropped(
                                         shortcut,
@@ -2216,11 +2288,18 @@ const Desktop: React.FC<DesktopProps> = (props) => {
                 />
               </div>
             </motion.div>
-            <Experience3D
-                open={experienceOpen}
-                onExit={() => setExperienceOpen(false)}
-                accentColor={Colors.turquoise}
-            />
+            {/* Mounted from the first time it is opened and kept mounted
+                afterwards, so the exit animation still has something to run
+                on. Until then its chunk is never requested. */}
+            {experienceMounted && (
+                <React.Suspense fallback={null}>
+                    <Experience3D
+                        open={experienceOpen}
+                        onExit={() => setExperienceOpen(false)}
+                        accentColor={Colors.turquoise}
+                    />
+                </React.Suspense>
+            )}
             <Screensaver
                 kind={screensaver.kind}
                 delayMinutes={screensaver.delayMinutes}

@@ -10,6 +10,14 @@ export interface DesktopShortcutProps {
     invertText?: boolean;
     onOpen: () => void;
     /**
+     * Fired when the pointer first arrives over the icon.
+     *
+     * The desktop uses it to start downloading the program's code before the
+     * double-click happens — see `lazyApp.ts`. Deliberately not called on
+     * every move, only on entry.
+     */
+    onIntent?: () => void;
+    /**
      * Fires when a drag finishes: how far the icon travelled, in desktop
      * coords, plus where the pointer was let go, in screen coords — the caller
      * needs the latter to tell "moved a bit to the left" from "dropped on the
@@ -47,6 +55,7 @@ const DesktopShortcut: React.FC<DesktopShortcutProps> = ({
     onContextMenu,
     innerRef,
     keyboardFocused,
+    onIntent,
 }) => {
     const [isSelected, setIsSelected] = useState(false);
     // Keyboard focus reads exactly like a mouse selection — same border, same
@@ -231,6 +240,7 @@ const DesktopShortcut: React.FC<DesktopShortcutProps> = ({
                 }
             )}
             onPointerDown={handlePointerDown}
+            onPointerEnter={onIntent}
             onContextMenu={(e) => {
                 if (!onContextMenu) return;
                 e.preventDefault();
