@@ -96,6 +96,10 @@ export interface PetDef {
     dizzyLines: string[];
     /** Reached the top of a screen edge. */
     climbLines: string[];
+    /** Climbed up onto the title bar of an open window. */
+    ledgeLines: string[];
+    /** Stepped off the edge of one on purpose. */
+    hopOffLines: string[];
     /** Asleep up there, hanging off the wall. */
     wallNapLines: string[];
     /** Sent off to hide, and called back again. */
@@ -207,6 +211,15 @@ export const PETS: Record<PetSpecies, PetDef> = {
             'Modem has got up the side of the screen somehow. Nobody taught him that.',
             'Modem is at the top of the wall, extremely proud, entirely stuck.',
         ],
+        ledgeLines: [
+            'Modem is on top of that window now. He is extremely pleased about it.',
+            'Modem has climbed onto the title bar and has no plan beyond this point.',
+            'Modem is standing on your window. He would like it noted.',
+        ],
+        hopOffLines: [
+            'Modem steps off the edge without checking first. He lands fine. He always does.',
+            'Modem launches himself off the window with total confidence.',
+        ],
         wallNapLines: [
             'Modem has fallen asleep halfway up a wall. He does this.',
         ],
@@ -302,6 +315,15 @@ export const PETS: Record<PetSpecies, PetDef> = {
         climbLines: [
             'Glitch has flowed up the side of the screen. Gravity was more of a suggestion.',
             'Glitch is at the top of the wall, dripping upward, entirely content.',
+        ],
+        ledgeLines: [
+            'Glitch has flowed up onto the window frame and settled there.',
+            'Glitch is sitting on the title bar, very slightly out of alignment with it.',
+            'Glitch has occupied the top edge of that window.',
+        ],
+        hopOffLines: [
+            'Glitch pours off the edge and reassembles on the way down.',
+            'Glitch lets go. Gravity is one of the rules it has agreed to follow.',
         ],
         wallNapLines: [
             'Glitch has gone dormant against the wall. It is still very slightly moving.',
@@ -399,6 +421,15 @@ export const PETS: Record<PetSpecies, PetDef> = {
             'Static is at the top of the screen and has no plan for getting down.',
             'Static went up the wall in one movement, as if the wall were the floor.',
         ],
+        ledgeLines: [
+            'Static is on top of the window. Of course she is.',
+            'Static has found the highest flat surface available and claimed it.',
+            'Static is sitting on your title bar and is not moving for anybody.',
+        ],
+        hopOffLines: [
+            'Static steps off the edge with enormous dignity.',
+            'Static drops off the window as though she meant to the entire time.',
+        ],
         wallNapLines: [
             'Static is asleep on the wall. This is now a place cats sleep.',
         ],
@@ -494,6 +525,15 @@ export const PETS: Record<PetSpecies, PetDef> = {
         climbLines: [
             'Pixel has swum up the side of the screen. There is no water there.',
             'Pixel is at the top of the wall. The bowl came too.',
+        ],
+        ledgeLines: [
+            'Pixel has swum up onto the window frame, bowl and all.',
+            'Pixel is perched on the title bar. The physics here are not worth examining.',
+            'Pixel has taken up residence on top of that window.',
+        ],
+        hopOffLines: [
+            'Pixel slides off the edge and drifts down, entirely unbothered.',
+            'Pixel leaves the window the only way it knows how: downward.',
         ],
         wallNapLines: [
             'Pixel is asleep against the wall, drifting very slightly.',

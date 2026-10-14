@@ -1,5 +1,24 @@
 [
   {
+    "head": "The pet moves in",
+    "date": "2026-10-14",
+    "why": "Studied Shimeji, the Japanese desktop-mascot engine from 2009 and still the most elaborate thing of its kind anyone has built. Its behaviour table is gated on expressions like mascot.environment.activeIE.topBorder, and the behaviours behind that gate are the famous ones: walk along a window's edge, sit on it, climb its side, drop off it. The mascot does not live on your desktop, it lives on your windows. This desktop has had real windows the whole time.",
+    "notes": [
+      "The pet now climbs the side of any open window and walks along its title bar",
+      "It sits on the end of a window with its legs over the edge, and steps off when it has had enough",
+      "Drag a window it is standing on and it rides along; close that window and it falls",
+      "Throw it at a window and it lands on the title bar — windows are solid from above, so it can be caught mid-fall",
+      "Windows are read straight from the layout rather than from a copy, so a maximized, dragged, resized or restored window is simply wherever it actually is",
+      "A title bar too close to the top of the screen is not perchable, because a creature standing on one would have its head off-screen",
+      "Eight new idle behaviours — lying down, grooming, sniffing, digging, yawning, pondering, dancing and chasing its own tail",
+      "The idle repertoire is now a weighted table rather than a chain of random thresholds, so a blink is common and tail-chasing is rare",
+      "Between eleven at night and five in the morning it gives up on staying awake in about half the usual time",
+      "The pet chooser is a proper two-pane Windows 95 selection dialog: a list, a preview with each animal's trick, toy and voice, and OK/Cancel",
+      "Changing pet no longer deletes the one you have before you have chosen a replacement — Cancel genuinely cancels",
+      "The pet window is tabbed (Pet / Achievements / Wardrobe) instead of one long scroll"
+    ]
+  },
+  {
     "head": "The pet moves properly now",
     "date": "2026-09-25",
     "why": "Everything the creature did was a sine wave. Anthropic's own Claude mascot animations were reverse-engineered on Codrops in May, and OpenAI's Codex CLI pets ship as a documented sprite atlas — between them they make it very clear what a sine wave is missing. Real motion hesitates before it commits, accelerates downhill, overshoots on arrival, and holds still on the poses that carry the meaning.",

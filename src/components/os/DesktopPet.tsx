@@ -50,6 +50,15 @@ import {
     squashX,
     track,
 } from './petMotion';
+import {
+    GROUND,
+    Ledge,
+    groundLedge,
+    onLedge as xOverLedge,
+    reachableLedges,
+    refreshLedge,
+    surveyLedges,
+} from './petWorld';
 import { getResolutionScale } from './resolution';
 import {
     playClick,
@@ -168,6 +177,11 @@ type PetActivity =
     | 'climbing'
     | 'wallHang'
     | 'wallNap'
+    /* the windows — see `petWorld.ts` */
+    | 'toLedge'
+    | 'climbLedge'
+    | 'onLedge'
+    | 'ledgeSit'
     /* direct manipulation and absence */
     | 'held'
     | 'falling'
@@ -175,6 +189,15 @@ type PetActivity =
     | 'peeking';
 
 /** Small extra bits of business layered on top of an idle stance. */
+/**
+ * Small business layered on top of standing still.
+ *
+ * Shimeji's idle repertoire is the reason it still reads as alive after
+ * twenty minutes: `Sprawl`, `Creep`, `SitAndSpinHead`, `SitWhileDanglingLegs`,
+ * `LieDown` — a dozen things to do while doing nothing, picked by weight, some
+ * chaining into others. Four fidgets was not enough to carry the long stretches
+ * where nobody is touching the creature, which is most of its life.
+ */
 type PetPose =
     | 'none'
     | 'blink'
@@ -183,7 +206,16 @@ type PetPose =
     | 'sit'
     | 'perk'
     /** Somebody is typing. See `typingUntilRef`. */
-    | 'watch';
+    | 'watch'
+    /* --- the long tail ------------------------------------------------- */
+    | 'lie'
+    | 'groom'
+    | 'dig'
+    | 'yawn'
+    | 'tailChase'
+    | 'sniff'
+    | 'dance'
+    | 'ponder';
 
 /** The sprite's height at 100%. Big enough to read as a character rather
  *  than a cursor artefact, which is the whole reason the art was drawn at
@@ -198,6 +230,14 @@ const FETCH_SPEED = 165;
 /** Going to a wall is purposeful — faster than an amble, slower than a chase. */
 const WALL_APPROACH_SPEED = 70;
 const CLIMB_SPEED = 58;
+/**
+ * Scaling the side of a window, which is a much longer haul than the screen
+ * edge: windows open near the top of the desktop and the creature lives at the
+ * bottom, so a title bar is typically 800px up. At the screen-edge speed that
+ * is a fourteen-second climb, which nobody is going to watch. At this speed it
+ * is about four, which reads as a scramble.
+ */
+const LEDGE_CLIMB_SPEED = 215;
 /** How near the pointer counts as "caught". */
 const CATCH_DISTANCE = 22;
 /** How near the toy or a treat counts as reached. */
@@ -205,14 +245,28 @@ const REACH_DISTANCE = 18;
 /** Idle this long with no pointer nearby and the pet nods off. */
 const SLEEP_AFTER_MS = 22_000;
 
+/**
+ * How long before it nods off, allowing for the hour.
+ *
+ * Between eleven at night and five in the morning the creature gives up on
+ * staying awake in about half the usual time. It is a cheap effect — one
+ * comparison against the system clock — and it is the sort of thing that only
+ * pays off for the visitor who comes back at a different time of day and
+ * notices that the animal is keeping different hours than it was. The site
+ * already has a Clippy remark about the small hours; this is the same idea
+ * expressed as behaviour rather than dialogue.
+ */
+function sleepAfterMs(): number {
+    const hour = new Date().getHours();
+    const small = hour >= 23 || hour < 5;
+    return small ? SLEEP_AFTER_MS * 0.55 : SLEEP_AFTER_MS;
+}
+
 /** Right-hand limit: the tray is roughly this wide, and the pet must never
  *  wander under it. Measured from the right edge of the window. */
 const TRAY_RESERVE = 250;
 /** Left-hand limit: clear of the Start button. */
 const START_RESERVE = 96;
-
-/** How high above the bottom of the screen the creature's feet rest. */
-const GROUND = TASKBAR_HEIGHT - 6;
 
 /** Thrown-pet physics. Tuned by feel: heavy enough to arc rather than float,
  *  bouncy enough that a hard throw is worth doing twice. */
@@ -312,6 +366,8 @@ const DesktopPet: React.FC<{ suspended?: boolean }> = ({ suspended = false }) =>
     const idleUntilRef = useRef(0);
     const poseRef = useRef<PetPose>('none');
     const poseUntilRef = useRef(0);
+    /** When the current pose began, so keyframed ones know their progress. */
+    const poseFromRef = useRef(0);
     const nextPoseRef = useRef(performance.now() + 4000);
     /** "Sit. Stay." — suppresses wandering without switching the pet off. */
     const stayRef = useRef(false);
@@ -325,6 +381,22 @@ const DesktopPet: React.FC<{ suspended?: boolean }> = ({ suspended = false }) =>
     const climbTargetRef = useRef(0);
     /** Not before this — stops it living on the wall permanently. */
     const nextClimbRef = useRef(performance.now() + 45_000);
+
+    /**
+     * The window ledge the creature is on, or on its way to.
+     *
+     * Held as the object from `petWorld` rather than as coordinates, because
+     * it carries the element: re-measuring that one rect every frame is what
+     * lets the creature ride a window you are dragging, and what tells it the
+     * floor has gone when you close one underneath it.
+     */
+    const ledgeRef = useRef<Ledge | null>(null);
+    /** Which end of the ledge it is scaling, while `toLedge`/`climbLedge`. */
+    const ledgeSideRef = useRef<1 | -1>(1);
+    /** Where along the ledge it is ambling to, while `onLedge`. */
+    const ledgeTargetRef = useRef(0);
+    /** Rate limit, same reasoning as `nextClimbRef`. */
+    const nextLedgeRef = useRef(performance.now() + 11_000);
 
     // --- being away --------------------------------------------------------
     /** While `gone`: when to pop up and peek, and from which side. */
@@ -869,6 +941,7 @@ const DesktopPet: React.FC<{ suspended?: boolean }> = ({ suspended = false }) =>
                     nextPeekRef.current = now + 5000 + Math.random() * 7000;
                 }
             } else if (act === 'falling') {
+                const prevY = yRef.current;
                 vyRef.current -= GRAVITY * dt;
                 xRef.current += vxRef.current * dt;
                 yRef.current += vyRef.current * dt;
@@ -904,6 +977,38 @@ const DesktopPet: React.FC<{ suspended?: boolean }> = ({ suspended = false }) =>
                         notePetMoment('respawned');
                         if (p) say(randomLine(p.respawnLines));
                     }
+                } else if (vyRef.current < 0 && landingLedge(
+                    xRef.current, yRef.current, prevY, size
+                )) {
+                    /* Caught by a window on the way down.
+                     *
+                     * Checked as a *crossing* rather than a containment test:
+                     * a fast fall covers more than a window's thickness in one
+                     * frame, so asking "is it inside the ledge now" misses
+                     * entirely. Asking "did it pass through the surface since
+                     * last frame, while moving downward" does not. Windows are
+                     * only solid from above, which is both the cheap option
+                     * and the correct one — a creature thrown upward should
+                     * pass a title bar, not bonk its head on it.
+                     */
+                    const caught = landingLedge(
+                        xRef.current, yRef.current, prevY, size
+                    ) as Ledge;
+                    const impact = Math.abs(vyRef.current);
+                    ledgeRef.current = caught;
+                    yRef.current = caught.y;
+                    vyRef.current = 0;
+                    vxRef.current = 0;
+                    spinRef.current = 0;
+                    squashRef.current = Math.min(1, impact / 500);
+                    playPetBump();
+                    const pad = size * 0.5;
+                    ledgeTargetRef.current =
+                        caught.left + pad +
+                        Math.random() * Math.max(1, caught.right - caught.left - pad * 2);
+                    react('happy', 420);
+                    setActivityBoth('onLedge');
+                    lastMoveRef.current = now;
                 } else if (yRef.current <= 0) {
                     const impact = Math.abs(vyRef.current);
                     yRef.current = 0;
@@ -1071,11 +1176,141 @@ const DesktopPet: React.FC<{ suspended?: boolean }> = ({ suspended = false }) =>
                 } else if (act === 'wallNap' && now > phaseUntilRef.current) {
                     dropOffWall();
                 }
+            } else if (
+                act === 'toLedge' ||
+                act === 'climbLedge' ||
+                act === 'onLedge' ||
+                act === 'ledgeSit'
+            ) {
+                /* --- life on the windows ---------------------------------
+                 * Re-measured every frame rather than remembered. A window
+                 * you drag carries the creature with it, a window you resize
+                 * changes the length of its walk, and a window you close out
+                 * from under it drops it — all for free, because the ledge is
+                 * read from the layout rather than from a copy of it.
+                 */
+                const live = ledgeRef.current
+                    ? refreshLedge(ledgeRef.current)
+                    : null;
+                if (!live) {
+                    // The floor went away. So does the creature.
+                    ledgeRef.current = null;
+                    vxRef.current = 0;
+                    vyRef.current = 0;
+                    phaseUntilRef.current = 0;
+                    setActivityBoth('falling');
+                } else {
+                    const prev = ledgeRef.current as Ledge;
+                    // Ride it: hold position *relative to the ledge* so a
+                    // window dragged sideways takes the creature along
+                    // instead of sliding out from under it.
+                    if (act === 'onLedge' || act === 'ledgeSit') {
+                        xRef.current += live.left - prev.left;
+                        ledgeTargetRef.current += live.left - prev.left;
+                    }
+                    ledgeRef.current = live;
+
+                    const pad = size * 0.5;
+                    const lo = live.left + pad;
+                    const hi = Math.max(lo, live.right - pad);
+
+                    if (act === 'toLedge') {
+                        // Walk to whichever vertical edge of the window it
+                        // decided to scale.
+                        const edge =
+                            ledgeSideRef.current === -1 ? live.left : live.right;
+                        const dist = edge - xRef.current;
+                        facingRef.current = (Math.sign(dist) || 1) as 1 | -1;
+                        if (Math.abs(dist) < 4) {
+                            xRef.current = edge;
+                            setActivityBoth('climbLedge');
+                        } else {
+                            xRef.current +=
+                                Math.sign(dist) * WALL_APPROACH_SPEED * dt;
+                        }
+                        lastMoveRef.current = now;
+                    } else if (act === 'climbLedge') {
+                        yRef.current += LEDGE_CLIMB_SPEED * dt;
+                        // The edge may have moved while it was climbing.
+                        xRef.current =
+                            ledgeSideRef.current === -1 ? live.left : live.right;
+                        lastMoveRef.current = now;
+                        if (yRef.current >= live.y) {
+                            yRef.current = live.y;
+                            // Step onto the surface rather than balancing on
+                            // the corner.
+                            xRef.current =
+                                ledgeSideRef.current === -1 ? lo : hi;
+                            ledgeTargetRef.current =
+                                lo + Math.random() * Math.max(1, hi - lo);
+                            setActivityBoth('onLedge');
+                            notePetMoment('climbed');
+                            const p = petRef.current;
+                            if (p) say(randomLine(p.ledgeLines));
+                        }
+                    } else {
+                        // Standing on it. Pinned to the surface so a window
+                        // dragged upward lifts the creature too.
+                        yRef.current = live.y;
+                        xRef.current = Math.max(lo, Math.min(hi, xRef.current));
+
+                        if (act === 'ledgeSit') {
+                            if (now > phaseUntilRef.current) {
+                                ledgeTargetRef.current =
+                                    lo + Math.random() * Math.max(1, hi - lo);
+                                setActivityBoth('onLedge');
+                            }
+                        } else {
+                            const dist = ledgeTargetRef.current - xRef.current;
+                            if (Math.abs(dist) < 3) {
+                                // Arrived. Sit, set off again, or step off the
+                                // end — weighted so that most of the time it
+                                // simply carries on pottering about up there.
+                                const roll = Math.random();
+                                if (roll < 0.3) {
+                                    // Sit on whichever end is nearer, legs
+                                    // over the edge.
+                                    const nearLeft =
+                                        Math.abs(xRef.current - lo) <
+                                        Math.abs(xRef.current - hi);
+                                    xRef.current = nearLeft ? lo : hi;
+                                    facingRef.current = (nearLeft ? -1 : 1) as
+                                        | 1
+                                        | -1;
+                                    setActivityBoth('ledgeSit');
+                                    phaseUntilRef.current =
+                                        now + 4000 + Math.random() * 7000;
+                                    notePetMoment('napped');
+                                } else if (roll < 0.42) {
+                                    // Off the edge, deliberately.
+                                    const p = petRef.current;
+                                    ledgeRef.current = null;
+                                    vxRef.current = facingRef.current * 70;
+                                    vyRef.current = 60;
+                                    phaseUntilRef.current = 0;
+                                    setActivityBoth('falling');
+                                    if (p) say(randomLine(p.hopOffLines));
+                                } else {
+                                    ledgeTargetRef.current =
+                                        lo + Math.random() * Math.max(1, hi - lo);
+                                }
+                            } else {
+                                const dir = (Math.sign(dist) || 1) as 1 | -1;
+                                facingRef.current = dir;
+                                xRef.current += dir * WALK_SPEED * dt;
+                                lastMoveRef.current = now;
+                                stepsRef.current += Math.abs(
+                                    dir * WALK_SPEED * dt
+                                );
+                            }
+                        }
+                    }
+                }
             } else if (reduced || stayRef.current) {
                 // Motion off, or told to stay: hold position, but still
                 // wake and sleep so the creature isn't inertly identical
                 // forever.
-                if (act !== 'sleeping' && now - lastMoveRef.current > SLEEP_AFTER_MS) {
+                if (act !== 'sleeping' && now - lastMoveRef.current > sleepAfterMs()) {
                     setActivityBoth('sleeping');
                 } else if (act !== 'sleeping') {
                     setActivityBoth('idle');
@@ -1112,7 +1347,7 @@ const DesktopPet: React.FC<{ suspended?: boolean }> = ({ suspended = false }) =>
                     }
                 } else {
                     // idle or sleeping
-                    if (now - lastMoveRef.current > SLEEP_AFTER_MS) {
+                    if (now - lastMoveRef.current > sleepAfterMs()) {
                         if (act !== 'sleeping') notePetMoment('napped');
                         setActivityBoth('sleeping');
                     } else if (now > idleUntilRef.current) {
@@ -1120,7 +1355,30 @@ const DesktopPet: React.FC<{ suspended?: boolean }> = ({ suspended = false }) =>
                         // bar, it goes and climbs something. Rate-limited
                         // hard: the wall is a surprise, and a surprise that
                         // happens every thirty seconds is a routine.
-                        if (now > nextClimbRef.current && Math.random() < 0.5) {
+                        const ledges =
+                            now > nextLedgeRef.current
+                                ? reachableLedges(xRef.current, yRef.current)
+                                : [];
+                        if (ledges.length && Math.random() < 0.55) {
+                            // There is an open window within reach. Going to
+                            // stand on it is far more interesting than another
+                            // lap of the taskbar, so it wins most of the time
+                            // it is possible at all — but it is rate-limited,
+                            // because a creature that is *always* on a window
+                            // is a creature that lives on windows rather than
+                            // one that climbs them.
+                            const pick =
+                                ledges[Math.floor(Math.random() * ledges.length)];
+                            ledgeRef.current = pick;
+                            ledgeSideRef.current =
+                                Math.abs(xRef.current - pick.left) <
+                                Math.abs(xRef.current - pick.right)
+                                    ? -1
+                                    : 1;
+                            nextLedgeRef.current =
+                                now + 28_000 + Math.random() * 40_000;
+                            setActivityBoth('toLedge');
+                        } else if (now > nextClimbRef.current && Math.random() < 0.5) {
                             wallRef.current = Math.random() < 0.5 ? -1 : 1;
                             climbTargetRef.current =
                                 ceiling * (0.45 + Math.random() * 0.4);
@@ -1149,6 +1407,7 @@ const DesktopPet: React.FC<{ suspended?: boolean }> = ({ suspended = false }) =>
                 (activityRef.current === 'idle' ||
                     activityRef.current === 'walking');
             if (watching) {
+                if (poseRef.current !== 'watch') poseFromRef.current = now;
                 poseRef.current = 'watch';
                 poseUntilRef.current = typingUntilRef.current;
                 lastMoveRef.current = now;
@@ -1164,6 +1423,7 @@ const DesktopPet: React.FC<{ suspended?: boolean }> = ({ suspended = false }) =>
             ) {
                 const [pose, ms] = pickPose();
                 poseRef.current = pose;
+                poseFromRef.current = now;
                 poseUntilRef.current = now + ms;
                 nextPoseRef.current = now + ms + 2600 + Math.random() * 5000;
                 if (pose === 'stretch' || pose === 'scratch') {
@@ -1277,6 +1537,14 @@ const DesktopPet: React.FC<{ suspended?: boolean }> = ({ suspended = false }) =>
                     phase,
                     phaseMs,
                     attention: attentionRef.current,
+                    posePhase: Math.min(
+                        1,
+                        Math.max(
+                            0,
+                            (now - poseFromRef.current) /
+                                Math.max(1, poseUntilRef.current - poseFromRef.current)
+                        )
+                    ),
                 });
                 body.style.transform = t.transform;
                 body.style.transformOrigin = t.origin;
@@ -1990,6 +2258,32 @@ const layerHeight = (): number => {
     return window.innerHeight / (scale || 1);
 };
 
+/**
+ * The window ledge a falling creature just passed through, if any.
+ *
+ * `prevY` is where it was last frame and `y` is where it is now; a landing is
+ * a downward crossing of a ledge's surface while horizontally over it. The
+ * small tolerance on the surface stops a creature that is already standing on
+ * a ledge from re-landing on it every frame.
+ */
+function landingLedge(
+    x: number,
+    y: number,
+    prevY: number,
+    sprite: number
+): Ledge | null {
+    const all = surveyLedges();
+    let best: Ledge | null = null;
+    for (const l of all) {
+        if (l.y <= 0) continue; // the taskbar has its own branch
+        if (prevY < l.y - 1) continue; // was already below it
+        if (y > l.y) continue; // has not reached it yet
+        if (!xOverLedge(l, x, -sprite * 0.25)) continue;
+        if (!best || l.y > best.y) best = l; // the highest one it met first
+    }
+    return best;
+}
+
 /** Where the creature will choose to walk of its own accord. */
 const walkBounds = (sprite: number): { min: number; max: number } => {
     const width = layerWidth();
@@ -2076,12 +2370,44 @@ function paintProjectile(
  * having to redraw anything.
  */
 
+/**
+ * The idle repertoire, as a weighted table.
+ *
+ * Shimeji picks behaviours by `Frequency` out of a gated pool rather than by
+ * an if-ladder of `Math.random()` thresholds, and the difference matters once
+ * there are more than about four of them: weights can be read and retuned at a
+ * glance, and adding one does not mean recalculating every threshold after it.
+ *
+ * The weights are roughly "how often would an animal actually do this". A
+ * blink is constant; chasing your own tail is not.
+ */
+const POSE_TABLE: { pose: PetPose; weight: number; ms: [number, number] }[] = [
+    { pose: 'blink', weight: 30, ms: [160, 220] },
+    { pose: 'sniff', weight: 16, ms: [900, 1600] },
+    { pose: 'stretch', weight: 14, ms: [800, 1100] },
+    { pose: 'scratch', weight: 13, ms: [700, 1100] },
+    { pose: 'sit', weight: 12, ms: [2000, 4000] },
+    { pose: 'groom', weight: 11, ms: [1400, 2600] },
+    { pose: 'yawn', weight: 9, ms: [1100, 1400] },
+    { pose: 'ponder', weight: 8, ms: [1800, 3200] },
+    { pose: 'lie', weight: 7, ms: [3500, 7000] },
+    { pose: 'dig', weight: 5, ms: [1100, 1900] },
+    { pose: 'dance', weight: 4, ms: [2200, 3400] },
+    { pose: 'tailChase', weight: 3, ms: [1300, 2000] },
+];
+
+const POSE_TOTAL = POSE_TABLE.reduce((n, p) => n + p.weight, 0);
+
 function pickPose(): [PetPose, number] {
-    const roll = Math.random();
-    if (roll < 0.34) return ['blink', 180];
-    if (roll < 0.58) return ['stretch', 900];
-    if (roll < 0.78) return ['scratch', 800];
-    return ['sit', 2400];
+    let roll = Math.random() * POSE_TOTAL;
+    for (const entry of POSE_TABLE) {
+        roll -= entry.weight;
+        if (roll <= 0) {
+            const [lo, hi] = entry.ms;
+            return [entry.pose, lo + Math.random() * (hi - lo)];
+        }
+    }
+    return ['blink', 180];
 }
 
 interface TransformInput {
@@ -2100,6 +2426,8 @@ interface TransformInput {
     phaseMs: number;
     /** Where the creature is currently looking. See `petMotion.ts`. */
     attention: Attention;
+    /** Progress through the current idle pose, 0..1. */
+    posePhase: number;
 }
 
 function transformFor(input: TransformInput): {
@@ -2121,6 +2449,7 @@ function transformFor(input: TransformInput): {
         phase,
         phaseMs,
         attention,
+        posePhase,
     } = input;
     let ty = 0;
     let tx = 0;
@@ -2142,7 +2471,9 @@ function transformFor(input: TransformInput): {
         case 'walking':
         case 'chasing':
         case 'foraging':
-        case 'toWall': {
+        case 'toWall':
+        case 'toLedge':
+        case 'onLedge': {
             // One stride per `speed` ms. The bob is keyframed rather than a
             // sine so the body rises slowly off the back leg and drops
             // quickly onto the next contact — symmetric bobbing is what
@@ -2154,7 +2485,10 @@ function transformFor(input: TransformInput): {
             rot = Math.sin(stride * Math.PI * 2) * 3.6;
             sy = 1 + (-ty / 3.4) * 0.035;
             sx = squashX(sy, 0.4);
-            attentionLeans = activity === 'walking' || activity === 'chasing';
+            attentionLeans =
+                activity === 'walking' ||
+                activity === 'chasing' ||
+                activity === 'onLedge';
             break;
         }
 
@@ -2173,11 +2507,33 @@ function transformFor(input: TransformInput): {
          * A quarter turn towards the edge it is on, so the creature reads as
          * clinging rather than as floating next to the screen border. The
          * scramble is a small vertical judder on the climb only. */
-        case 'climbing': {
+        case 'climbing':
+        case 'climbLedge': {
             const scramble = Math.sin(now / 90) * 2;
-            rot = wall === -1 ? 78 : -78;
+            // Up a screen edge the side comes from `wall`; up the side of a
+            // window it comes from which way the creature turned to reach it.
+            const side = activity === 'climbing' ? wall : facing;
+            rot = side === -1 ? 78 : -78;
             ty = scramble;
             sy = 1.02;
+            break;
+        }
+
+        case 'ledgeSit': {
+            /* Sitting on a title bar with its legs over the side.
+             *
+             * The lean is *outward*, over the drop, which is the whole reason
+             * this is a separate pose from the ordinary sit: a creature
+             * perched on an edge leans over it, and that is what tells you it
+             * is on an edge rather than merely somewhere high up. The sway is
+             * slow and shallow — it is comfortable up there.
+             */
+            const sway = Math.sin(now / 1100);
+            rot = facing * 7 + sway * 2.2;
+            ty = 3;
+            sy = 0.9 + sway * 0.012;
+            sx = squashX(sy, 0.5);
+            attentionLeans = true;
             break;
         }
 
@@ -2386,6 +2742,59 @@ function transformFor(input: TransformInput): {
             } else if (pose === 'perk') {
                 sy *= 1.06;
                 ty = -4;
+            } else if (pose === 'lie') {
+                // Flat out on its side. The longest of the idle poses and the
+                // most obviously "off duty".
+                sy *= 0.62;
+                sx *= 1.3;
+                ty = 7;
+                rot = 9 * facing;
+            } else if (pose === 'groom') {
+                // Head down, working at something, in small fast circles.
+                ty = 2;
+                rot = 9 * facing + Math.sin(now / 68) * 6;
+                sy *= 0.93;
+            } else if (pose === 'sniff') {
+                // Nose down, casting slowly side to side.
+                ty = 2.5;
+                rot = 5 * facing + Math.sin(now / 185) * 5.5;
+                sy *= 0.95;
+            } else if (pose === 'dig') {
+                // Quick front-footed scrabbling, leaning into it.
+                ty = 1 + Math.abs(Math.sin(now / 52)) * 3;
+                rot = 13 * facing;
+                sx *= 1.05;
+                sy *= 0.95;
+            } else if (pose === 'yawn') {
+                // Keyframed rather than cyclic: a yawn is a one-shot with a
+                // held peak, which is exactly what a sine cannot do.
+                const open = track(posePhase, [
+                    { at: 0, v: 0 },
+                    { at: 0.28, v: 1, ease: easeOut },
+                    { at: 0.52, v: 1 },
+                    { at: 1, v: 0, ease: easeIn },
+                ]);
+                sy *= 1 + open * 0.16;
+                sx *= 1 - open * 0.06;
+                ty = -open * 3;
+                rot = -open * 7 * facing;
+            } else if (pose === 'tailChase') {
+                // Round and round. Low, fast, and faintly undignified.
+                rot = (now / 2.1) % 360;
+                origin = '50% 55%';
+                sy *= 0.95;
+                sx *= 1.03;
+            } else if (pose === 'dance') {
+                // Two-step: a sway on the slow clock, a bounce on the fast one.
+                const bounce = Math.abs(Math.sin(now / 175));
+                ty = -bounce * 5;
+                rot = Math.sin(now / 350) * 13;
+                sy *= 1 + bounce * 0.05;
+                sx = squashX(sy, 0.5);
+            } else if (pose === 'ponder') {
+                // Head cocked, almost still. The one that reads as thinking.
+                rot = 11 * facing + Math.sin(now / 1400) * 2.5;
+                ty = -1;
             } else if (pose === 'watch') {
                 // Up on its toes, leaning in, with a small alert bob that is
                 // faster than breathing and much shallower than a hop.

@@ -50,6 +50,9 @@ export interface WindowProps {
  */
 const TITLE_BAR_KEEP = 90;
 
+/** Counter behind each window's `data-pet-ledge` id. */
+let ledgeSeq = 0;
+
 const Window: React.FC<WindowProps> = (props) => {
     // Title-bar colour follows Display Properties → Appearance.
     const theme = useTheme();
@@ -93,6 +96,9 @@ const Window: React.FC<WindowProps> = (props) => {
         top,
         left,
     });
+
+    /** Stable for this window's lifetime; identifies its ledge to the pet. */
+    const ledgeId = useRef(`win-${(ledgeSeq += 1)}`);
 
     const [isDragging, setIsDragging] = useState(false);
     const [isResizing, setIsResizing] = useState(false);
@@ -295,6 +301,15 @@ const Window: React.FC<WindowProps> = (props) => {
                     left,
                 })}
                 ref={windowRef}
+                /*
+                 * The desktop pet reads the position of every element carrying
+                 * this attribute and treats the top edge as somewhere it can
+                 * stand — see `petWorld.ts`. Marked here rather than published
+                 * into a store so it cannot drift: a maximized window, one
+                 * mid-drag and one restored from a session are all simply
+                 * wherever the layout says they are.
+                 */
+                data-pet-ledge={ledgeId.current}
             >
                 <div style={styles.windowBorderOuter}>
                     <div style={styles.windowBorderInner}>

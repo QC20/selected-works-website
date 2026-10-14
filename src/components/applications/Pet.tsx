@@ -1,7 +1,8 @@
-import React from 'react';
+import React, { useState } from 'react';
 import Window from '../os/Window';
 import Colors from '../../constants/colors';
 import { Icon } from '../general';
+import { playClick } from '../os/sounds';
 import {
     PET_LIST,
     PetDef,
@@ -92,37 +93,135 @@ const humanAge = (from: number): string => {
     return `${days} day${days === 1 ? '' : 's'}`;
 };
 
-const Chooser: React.FC<{ onAdopt: (species: PetDef['id']) => void }> = ({
-    onAdopt,
-}) => (
-    <div style={styles.chooserRoot}>
-        <p style={styles.chooserIntro}>
-            Four animals have taken up residence on this machine. Pick one —
-            you can always change your mind later.
-        </p>
-        <div style={styles.chooserGrid}>
-            {PET_LIST.map((pet) => (
-                <div key={pet.id} style={styles.card}>
-                    <Icon icon={pet.icon} size={48} />
-                    <span style={styles.cardName}>{pet.name}</span>
-                    <p style={styles.cardTagline}>{pet.tagline}</p>
+/**
+ * Picking an animal.
+ * ------------------
+ * This used to be four cards in a grid, each with its own "Adopt" button, and
+ * it had two problems. It told you almost nothing about the animals — a name
+ * and one line of tagline each — and the only route back to it wiped your
+ * current pet the instant you clicked, so "let me just see what the others are
+ * like" cost you the one you had and there was no way to change your mind.
+ *
+ * So it is a proper Windows 95 chooser now: a list on the left, a preview on
+ * the right, and OK/Cancel at the bottom. It is the shape Display Properties
+ * and Font selection use, it lets you click through all four and read about
+ * them before committing to anything, and Cancel genuinely cancels — the
+ * animal you already had is still there, because nothing is written until you
+ * press OK.
+ *
+ * Nothing is lost by switching, either: the wardrobe and the achievements are
+ * the *visitor's*, not the animal's, so they survive a change of pet.
+ */
+const Chooser: React.FC<{
+    current: PetDef['id'] | null;
+    onAdopt: (species: PetDef['id']) => void;
+    onCancel: (() => void) | null;
+}> = ({ current, onAdopt, onCancel }) => {
+    const [picked, setPicked] = useState<PetDef['id']>(
+        current ?? PET_LIST[0].id
+    );
+    const pet = PET_LIST.find((p) => p.id === picked) ?? PET_LIST[0];
+
+    return (
+        <div style={styles.chooserRoot}>
+            <p style={styles.chooserIntro}>
+                {onCancel
+                    ? 'Four animals live on this machine. Anything you have unlocked stays with you if you switch.'
+                    : 'Four animals have taken up residence on this machine. Pick one — you can change your mind later.'}
+            </p>
+
+            <div style={styles.chooserPanes}>
+                <div style={styles.listBox} role="listbox">
+                    {PET_LIST.map((p) => {
+                        const on = p.id === picked;
+                        return (
+                            <div
+                                key={p.id}
+                                role="option"
+                                aria-selected={on}
+                                tabIndex={0}
+                                style={{
+                                    ...styles.listRow,
+                                    ...(on ? styles.listRowOn : null),
+                                }}
+                                onClick={() => {
+                                    playClick();
+                                    setPicked(p.id);
+                                }}
+                                onDoubleClick={() => onAdopt(p.id)}
+                                onKeyDown={(e) => {
+                                    if (e.key === 'Enter' || e.key === ' ') {
+                                        e.preventDefault();
+                                        setPicked(p.id);
+                                    }
+                                }}
+                            >
+                                <Icon icon={p.icon} size={20} />
+                                <span style={styles.listName}>{p.name}</span>
+                                {p.id === current && (
+                                    <span style={styles.listCurrent}>yours</span>
+                                )}
+                            </div>
+                        );
+                    })}
+                </div>
+
+                <div style={styles.preview}>
+                    <div style={styles.previewHead}>
+                        <Icon icon={pet.icon} size={56} />
+                        <div style={styles.previewHeadText}>
+                            <span style={styles.previewName}>{pet.name}</span>
+                            <span style={styles.previewTag}>{pet.tagline}</span>
+                        </div>
+                    </div>
+                    <div style={styles.facts}>
+                        <Row label="Trick" value={pet.trickName} />
+                        <Row label="Chases" value={pet.toyName} />
+                        <Row label="Eats" value={pet.treatName} />
+                    </div>
+                    {/* One of its own idle lines, so you can hear the voice
+                        before you commit to living with it. */}
+                    <p style={styles.previewQuote}>{pet.idleLines[0]}</p>
+                </div>
+            </div>
+
+            <div style={styles.dialogButtons}>
+                <button
+                    type="button"
+                    style={{
+                        ...styles.actionButton,
+                        ...styles.dialogButton,
+                        ...styles.defaultButton,
+                    }}
+                    onClick={() => {
+                        playClick();
+                        onAdopt(pet.id);
+                    }}
+                >
+                    {pet.id === current ? 'Keep ' + pet.name : 'Adopt ' + pet.name}
+                </button>
+                {onCancel && (
                     <button
                         type="button"
-                        style={styles.adoptButton}
-                        onClick={() => onAdopt(pet.id)}
+                        style={{ ...styles.actionButton, ...styles.dialogButton }}
+                        onClick={() => {
+                            playClick();
+                            onCancel();
+                        }}
                     >
-                        Adopt {pet.name}
+                        Cancel
                     </button>
-                </div>
-            ))}
+                )}
+            </div>
         </div>
-    </div>
-);
+    );
+};
 
 const Dashboard: React.FC<{
     pet: PetDef;
     state: ReturnType<typeof usePetState>;
-}> = ({ pet, state }) => {
+    onChangePet: () => void;
+}> = ({ pet, state, onChangePet }) => {
     const mood = computeMood(state);
     const level = contentment(state);
 
@@ -219,9 +318,6 @@ const Dashboard: React.FC<{
                 )}
             </fieldset>
 
-            <Achievements />
-            <Wardrobe pet={pet} />
-
             {state.hidden && (
                 <button
                     type="button"
@@ -236,9 +332,9 @@ const Dashboard: React.FC<{
                 <button
                     type="button"
                     style={styles.switchButton}
-                    onClick={() => resetPetChoice()}
+                    onClick={onChangePet}
                 >
-                    Choose a different pet…
+                    Change pet…
                 </button>
                 {!state.hidden && (
                     <button
@@ -433,32 +529,116 @@ const Row: React.FC<{ label: string; value: string }> = ({ label, value }) => (
 
 export interface PetProps extends WindowAppProps {}
 
+type Tab = 'pet' | 'awards' | 'wardrobe';
+
+const TABS: { id: Tab; label: string }[] = [
+    { id: 'pet', label: 'Pet' },
+    { id: 'awards', label: 'Achievements' },
+    { id: 'wardrobe', label: 'Wardrobe' },
+];
+
 const Pet: React.FC<PetProps> = ({ onInteract, onClose, onMinimize }) => {
     const state = usePetState();
+    const achievements = useAchievementState();
     const pet = state.species ? PET_LIST.find((p) => p.id === state.species) : null;
+
+    /**
+     * Three panels behind a tab strip rather than one long scroll.
+     *
+     * The dashboard had grown to five stacked fieldsets — contentment, play,
+     * statistics, twelve achievements and a wardrobe — which is a lot of
+     * scrolling to reach the hat you wanted. Tabs are also simply what a
+     * Windows 95 properties dialog does with exactly this problem.
+     */
+    const [tab, setTab] = useState<Tab>('pet');
+    /** Open over the dashboard, so the current pet survives a browse. */
+    const [choosing, setChoosing] = useState(false);
+
+    const earned = achievements.unlocked.length;
+    const showChooser = !pet || choosing;
 
     return (
         <Window
             top={100}
             left={220}
-            // Wider and taller than it was, because the dashboard now
-            // carries a twelve-row achievement list and a wardrobe under the
-            // original three panels. At 360 the achievement blurbs wrapped to
-            // four lines each and the whole thing read as a wall.
-            width={pet ? 408 : 540}
-            height={pet ? 640 : 520}
-            windowTitle={pet ? `${pet.name} - Pet` : 'Adopt a Pet'}
+            /*
+             * One size for both panels. `Window` reads `width`/`height` into
+             * `useState` when it mounts and never looks at them again, so the
+             * window this app opened at is the window it keeps — asking for
+             * 560x468 while choosing and 408x620 afterwards silently left the
+             * dashboard in a box 150px too short to show its own buttons.
+             */
+            width={532}
+            height={604}
+            windowTitle={
+                showChooser
+                    ? pet
+                        ? 'Change Pet'
+                        : 'Adopt a Pet'
+                    : `${pet!.name} - Pet`
+            }
             windowBarIcon={pet ? pet.icon : 'petModemIcon'}
             closeWindow={onClose}
             onInteract={onInteract}
             minimizeWindow={onMinimize}
-            bottomLeftText={pet ? `Living in the tray` : 'Nobody home yet'}
+            bottomLeftText={
+                showChooser
+                    ? 'Double-click an animal to adopt it'
+                    : `${earned}/12 achievements`
+            }
         >
             <div style={styles.root}>
-                {pet ? (
-                    <Dashboard pet={pet} state={state} />
+                {showChooser ? (
+                    <Chooser
+                        current={state.species}
+                        onAdopt={(species) => {
+                            if (species !== state.species) adoptPet(species);
+                            setChoosing(false);
+                        }}
+                        onCancel={pet ? () => setChoosing(false) : null}
+                    />
                 ) : (
-                    <Chooser onAdopt={(species) => adoptPet(species)} />
+                    <>
+                        <div style={styles.tabStrip} role="tablist">
+                            {TABS.map((t) => {
+                                const on = t.id === tab;
+                                return (
+                                    <button
+                                        key={t.id}
+                                        type="button"
+                                        role="tab"
+                                        aria-selected={on}
+                                        style={{
+                                            ...styles.tab,
+                                            ...(on ? styles.tabOn : null),
+                                        }}
+                                        onClick={() => {
+                                            playClick();
+                                            setTab(t.id);
+                                        }}
+                                    >
+                                        {t.label}
+                                        {t.id === 'awards' && earned > 0 && (
+                                            <span style={styles.tabCount}>
+                                                {earned}
+                                            </span>
+                                        )}
+                                    </button>
+                                );
+                            })}
+                        </div>
+                        <div style={styles.tabBody}>
+                            {tab === 'pet' && (
+                                <Dashboard
+                                    pet={pet!}
+                                    state={state}
+                                    onChangePet={() => setChoosing(true)}
+                                />
+                            )}
+                            {tab === 'awards' && <Achievements />}
+                            {tab === 'wardrobe' && <Wardrobe pet={pet!} />}
+                        </div>
+                    </>
                 )}
             </div>
         </Window>
@@ -477,7 +657,147 @@ const styles: StyleSheetCSS = {
     },
 
     // ---- chooser ----
-    chooserRoot: { display: 'flex', flexDirection: 'column', gap: 12 },
+    // `flex: 1` so the panes grow into the window rather than leaving a
+    // third of it empty under the buttons.
+    chooserRoot: {
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 12,
+        flex: 1,
+        minHeight: 0,
+    },
+    // ---- chooser: a two-pane Win95 selection dialog ----
+    chooserPanes: { flexDirection: 'row', gap: 10, flex: 1, minHeight: 0 },
+    /** Sunken white list, the way every Win95 list box is drawn. */
+    listBox: {
+        width: 168,
+        flexShrink: 0,
+        flexDirection: 'column',
+        background: Colors.white,
+        border: `1px solid ${Colors.darkGray}`,
+        borderRightColor: Colors.white,
+        borderBottomColor: Colors.white,
+        boxShadow: `inset 1px 1px 0 ${Colors.black}`,
+        padding: 2,
+        overflowY: 'auto',
+    },
+    listRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 7,
+        padding: '4px 5px',
+        cursor: 'pointer',
+        fontFamily: 'MSSerif',
+        fontSize: 11,
+        color: Colors.black,
+    },
+    listRowOn: { background: '#000080', color: Colors.white },
+    listName: { flex: 1, fontFamily: 'MSSerif', fontSize: 11, color: 'inherit' },
+    listCurrent: {
+        fontFamily: 'MSSerif',
+        fontSize: 9,
+        opacity: 0.75,
+        color: 'inherit',
+    },
+    preview: {
+        flex: 1,
+        minWidth: 0,
+        flexDirection: 'column',
+        gap: 8,
+        padding: 9,
+        border: `1px solid ${Colors.darkGray}`,
+        borderRightColor: Colors.white,
+        borderBottomColor: Colors.white,
+    },
+    previewHead: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+    previewHeadText: { flexDirection: 'column', gap: 3, minWidth: 0, flex: 1 },
+    previewName: {
+        fontFamily: 'MSSerif',
+        fontSize: 13,
+        fontWeight: 'bold',
+        color: Colors.black,
+    },
+    previewTag: {
+        fontFamily: 'MSSerif',
+        fontSize: 11,
+        lineHeight: 1.4,
+        color: '#333',
+    },
+    facts: { flexDirection: 'column', gap: 2 },
+    previewQuote: {
+        margin: 0,
+        marginTop: 'auto',
+        padding: 6,
+        background: '#ffffe1',
+        border: `1px solid ${Colors.darkGray}`,
+        fontFamily: 'MSSerif',
+        fontSize: 10,
+        lineHeight: 1.45,
+        fontStyle: 'italic',
+        color: Colors.black,
+    },
+    dialogButtons: {
+        flexDirection: 'row',
+        justifyContent: 'flex-end',
+        gap: 7,
+        paddingTop: 2,
+        flexShrink: 0,
+    },
+    /** `actionButton` carries `flex: 1` so the dashboard's rows share width
+     *  evenly; in a dialog footer that makes a lone OK button span the whole
+     *  window. Overridden rather than split into two styles. */
+    dialogButton: { flex: 'none', minWidth: 104 },
+    /** The focused default, drawn with the extra Win95 outline. */
+    defaultButton: { fontWeight: 'bold', outline: `1px solid ${Colors.black}` },
+
+    // ---- tabs ----
+    tabStrip: {
+        flexDirection: 'row',
+        gap: 2,
+        paddingLeft: 2,
+        marginBottom: -1,
+        flexShrink: 0,
+    },
+    tab: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 5,
+        padding: '4px 11px 5px',
+        background: Colors.lightGray,
+        border: `1px solid ${Colors.white}`,
+        borderRightColor: Colors.darkGray,
+        borderBottom: 'none',
+        borderRadius: '3px 3px 0 0',
+        fontFamily: 'MSSerif',
+        fontSize: 11,
+        color: Colors.black,
+        cursor: 'pointer',
+        position: 'relative',
+    },
+    /** The selected tab sits a pixel proud and merges with the body below. */
+    tabOn: {
+        fontWeight: 'bold',
+        paddingTop: 6,
+        marginTop: -2,
+        zIndex: 1,
+    },
+    tabCount: {
+        fontFamily: 'MSSerif',
+        fontSize: 9,
+        padding: '0 3px',
+        background: '#000080',
+        color: Colors.white,
+    },
+    tabBody: {
+        flex: 1,
+        minHeight: 0,
+        flexDirection: 'column',
+        overflowY: 'auto',
+        padding: 9,
+        border: `1px solid ${Colors.white}`,
+        borderRightColor: Colors.darkGray,
+        borderBottomColor: Colors.darkGray,
+    },
     chooserIntro: {
         fontFamily: 'MSSerif',
         fontSize: 11,
