@@ -1,8 +1,12 @@
 {
   "framework": "create-react-app",
   "buildCommand": "npm run build",
+  "installCommand": "npm install --include=dev",
   "outputDirectory": "build",
   "rewrites": [
-    { "source": "/((?!api/).*)", "destination": "/index.html" }
+    {
+      "source": "/((?!api/).*)",
+      "destination": "/index.html"
+    }
   ]
 }

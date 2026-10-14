@@ -11,6 +11,16 @@ import useInitialWindowSize from '../../hooks/useInitialWindowSize';
 import { markShowcaseVisited } from '../os/showcaseVisited';
 import { trackEvent } from '../os/analyticsApi';
 import { notePage } from '../os/usageStats';
+/*
+ * The one route that is *not* split.
+ *
+ * My Showcase opens by itself the moment the desktop loads, and it opens on
+ * "/" — so Home is on the critical path for every single visit. Splitting it
+ * bought nothing (it is eighty lines) and cost a second round trip before the
+ * first thing anybody reads appeared, behind a "Loading" line. Everything
+ * below it is still lazy, because those are pages you choose to go to.
+ */
+import Home from '../showcase/Home';
 
 /**
  * Records every page actually visited, for Clippy's showcase-open tips (see
@@ -43,7 +53,6 @@ const VisitTracker: React.FC = () => {
  * until it's about to scroll into view — the two techniques solve different
  * halves of the same problem and neither replaces the other.
  */
-const Home = lazy(() => import('../showcase/Home'));
 const About = lazy(() => import('../showcase/About'));
 const Experience = lazy(() => import('../showcase/Experience'));
 const Projects = lazy(() => import('../showcase/Projects'));
