@@ -212,6 +212,36 @@ export function reachableLedges(
     });
 }
 
+/**
+ * Ledges the creature could *leap* to from the one it is standing on.
+ *
+ * Climbing means walking to a window's edge and scaling it from the floor.
+ * Jumping is the other thing Shimeji does, and the one that makes a desktop
+ * with several windows open read as terrain rather than as a set of perches:
+ * `JumpFromLeftEdgeOfIE`, `DashIeCeilingRightEdgeFromJump`.
+ *
+ * The band is deliberately narrow. A leap only reads as a leap if it is
+ * plausible — a short gap and a modest change in height. Anything further is a
+ * climb, and anything higher is a stunt.
+ */
+export function jumpableLedges(from: Ledge, x: number): Ledge[] {
+    return surveyLedges().filter((l) => {
+        if (l.key === from.key) return false;
+        const rise = l.y - from.y;
+        if (rise > 150 || rise < -260) return false;
+        // Measured edge to edge: the gap it would actually have to clear.
+        const gap =
+            l.left > from.right
+                ? l.left - from.right
+                : from.left > l.right
+                ? from.left - l.right
+                : 0;
+        if (gap > 230) return false;
+        // And it must be a leap, not a step sideways onto the same shelf.
+        return Math.abs(l.y - from.y) > 6 || gap > 24;
+    });
+}
+
 /** True when `x` is over this ledge's surface, with a small tolerance. */
 export const onLedge = (l: Ledge, x: number, pad = 0): boolean =>
     x >= l.left - pad && x <= l.right + pad;

@@ -50,10 +50,12 @@ import {
     squashX,
     track,
 } from './petMotion';
+import { BehaviourId, PetEnv, pickBehaviour } from './petBehaviour';
 import {
     GROUND,
     Ledge,
     groundLedge,
+    jumpableLedges,
     onLedge as xOverLedge,
     reachableLedges,
     refreshLedge,
@@ -397,6 +399,24 @@ const DesktopPet: React.FC<{ suspended?: boolean }> = ({ suspended = false }) =>
     const ledgeTargetRef = useRef(0);
     /** Rate limit, same reasoning as `nextClimbRef`. */
     const nextLedgeRef = useRef(performance.now() + 11_000);
+    /** What it last finished, so `<NextBehavior>` chaining has an antecedent. */
+    const lastBehaviourRef = useRef<BehaviourId | null>(null);
+    /**
+     * When it will wake up by itself.
+     *
+     * Sleeping used to be a one-way door. The condition for falling asleep is
+     * "nothing has moved me for a while", and since a sleeping creature does
+     * not move, it stayed true forever — so a visitor who opened the desktop
+     * and read My Showcase without ever passing the pointer over the taskbar
+     * got an animal that nodded off once and was still there, in the same
+     * spot, when they left. Verified: two behaviour decisions in sixty
+     * seconds, and the second one never carried out.
+     *
+     * Shimeji does not have this problem because sleep is an ordinary
+     * behaviour with a duration rather than a terminal state, which is what
+     * this makes it.
+     */
+    const wakeAtRef = useRef(0);
 
     // --- being away --------------------------------------------------------
     /** While `gone`: when to pop up and peek, and from which side. */
@@ -909,6 +929,180 @@ const DesktopPet: React.FC<{ suspended?: boolean }> = ({ suspended = false }) =>
                 setHasToy(false);
             }
 
+            /**
+             * Carries out a behaviour the table chose.
+             *
+             * The split is Shimeji's: `petBehaviour.ts` is data describing
+             * when each habit applies and how often it wins, and this is the
+             * engine that knows what any of them actually means. Nothing here
+             * decides anything.
+             */
+            function enterBehaviour(id: BehaviourId): void {
+                lastBehaviourRef.current = id;
+                switch (id) {
+                    case 'walkFloor':
+                        targetRef.current =
+                            min + Math.random() * Math.max(1, max - min);
+                        setActivityBoth('walking');
+                        break;
+
+                    case 'sitFloor':
+                        poseRef.current = 'sit';
+                        poseFromRef.current = now;
+                        poseUntilRef.current =
+                            now + 2600 + Math.random() * 4200;
+                        idleUntilRef.current = poseUntilRef.current;
+                        // Deliberately sitting is being awake. Without this the
+                        // sit counts towards nodding off, and a creature that
+                        // sits down twice in a row drops straight into a nap.
+                        lastMoveRef.current = now;
+                        setActivityBoth('idle');
+                        break;
+
+                    case 'climbScreenWall':
+                        wallRef.current = Math.random() < 0.5 ? -1 : 1;
+                        climbTargetRef.current =
+                            ceiling * (0.45 + Math.random() * 0.4);
+                        nextClimbRef.current =
+                            now + 90_000 + Math.random() * 90_000;
+                        setActivityBoth('toWall');
+                        break;
+
+                    case 'climbToLedge': {
+                        const options = reachableLedges(
+                            xRef.current,
+                            yRef.current
+                        );
+                        if (!options.length) {
+                            enterBehaviour('walkFloor');
+                            return;
+                        }
+                        const pick =
+                            options[Math.floor(Math.random() * options.length)];
+                        ledgeRef.current = pick;
+                        ledgeSideRef.current =
+                            Math.abs(xRef.current - pick.left) <
+                            Math.abs(xRef.current - pick.right)
+                                ? -1
+                                : 1;
+                        nextLedgeRef.current =
+                            now + 28_000 + Math.random() * 40_000;
+                        setActivityBoth('toLedge');
+                        break;
+                    }
+
+                    case 'walkLedge': {
+                        const l = ledgeRef.current;
+                        if (!l) {
+                            enterBehaviour('walkFloor');
+                            return;
+                        }
+                        const pad = size * 0.5;
+                        const lo = l.left + pad;
+                        const hi = Math.max(lo, l.right - pad);
+                        ledgeTargetRef.current =
+                            lo + Math.random() * Math.max(1, hi - lo);
+                        setActivityBoth('onLedge');
+                        break;
+                    }
+
+                    case 'sitLedgeEdge': {
+                        const l = ledgeRef.current;
+                        if (!l) {
+                            enterBehaviour('walkFloor');
+                            return;
+                        }
+                        const pad = size * 0.5;
+                        const lo = l.left + pad;
+                        const hi = Math.max(lo, l.right - pad);
+                        const nearLeft =
+                            Math.abs(xRef.current - lo) <
+                            Math.abs(xRef.current - hi);
+                        xRef.current = nearLeft ? lo : hi;
+                        facingRef.current = (nearLeft ? -1 : 1) as 1 | -1;
+                        setActivityBoth('ledgeSit');
+                        phaseUntilRef.current =
+                            now + 4000 + Math.random() * 7000;
+                        notePetMoment('napped');
+                        break;
+                    }
+
+                    case 'leapToLedge': {
+                        /*
+                         * The jump between windows, and the reason the table
+                         * was worth building: it is one row there and a
+                         * ballistic launch here, because everything else it
+                         * needs already existed. The arc is ordinary
+                         * projectile motion and the arrival is handled by
+                         * `landingLedge`, which has been catching thrown pets
+                         * on title bars since windows became solid.
+                         */
+                        const from = ledgeRef.current;
+                        const options = from
+                            ? jumpableLedges(from, xRef.current)
+                            : [];
+                        if (!from || !options.length) {
+                            enterBehaviour('walkLedge');
+                            return;
+                        }
+                        const to =
+                            options[Math.floor(Math.random() * options.length)];
+                        // Aim a little way onto the target rather than at its
+                        // very lip, so a slight undershoot still lands.
+                        const aim =
+                            xRef.current < to.left
+                                ? Math.min(to.right - size * 0.5, to.left + size)
+                                : Math.max(to.left + size * 0.5, to.right - size);
+                        const dx = aim - xRef.current;
+                        const dy = to.y - yRef.current;
+                        // Flight time from the distance, so a short hop is
+                        // quick and a long one hangs.
+                        const T = Math.max(
+                            0.42,
+                            Math.min(0.9, Math.abs(dx) / 300 + 0.4)
+                        );
+                        facingRef.current = (Math.sign(dx) || 1) as 1 | -1;
+                        vxRef.current = dx / T;
+                        vyRef.current = (dy + 0.5 * GRAVITY * T * T) / T;
+                        ledgeRef.current = null;
+                        phaseUntilRef.current = 0;
+                        spinRef.current = 0;
+                        playPetLift();
+                        setActivityBoth('falling');
+                        break;
+                    }
+
+                    case 'hopDown': {
+                        const p = petRef.current;
+                        ledgeRef.current = null;
+                        vxRef.current = facingRef.current * 70;
+                        vyRef.current = 60;
+                        phaseUntilRef.current = 0;
+                        setActivityBoth('falling');
+                        if (p) say(randomLine(p.hopOffLines));
+                        break;
+                    }
+                }
+            }
+
+            /** The snapshot the table's conditions are evaluated against. */
+            function readEnv(): PetEnv {
+                const standing = ledgeRef.current;
+                return {
+                    onGround: !standing,
+                    onLedge: !!standing,
+                    reachable:
+                        now > nextLedgeRef.current
+                            ? reachableLedges(xRef.current, yRef.current).length
+                            : 0,
+                    jumpable: standing
+                        ? jumpableLedges(standing, xRef.current).length
+                        : 0,
+                    canClimbWall: now > nextClimbRef.current,
+                    canTakeLedge: now > nextLedgeRef.current,
+                };
+            }
+
             // --- the creature ------------------------------------------
             if (act === 'held') {
                 // Position is written by the pointer handler; nothing to do
@@ -1244,6 +1438,7 @@ const DesktopPet: React.FC<{ suspended?: boolean }> = ({ suspended = false }) =>
                             ledgeTargetRef.current =
                                 lo + Math.random() * Math.max(1, hi - lo);
                             setActivityBoth('onLedge');
+                            lastBehaviourRef.current = 'climbToLedge';
                             notePetMoment('climbed');
                             const p = petRef.current;
                             if (p) say(randomLine(p.ledgeLines));
@@ -1263,37 +1458,16 @@ const DesktopPet: React.FC<{ suspended?: boolean }> = ({ suspended = false }) =>
                         } else {
                             const dist = ledgeTargetRef.current - xRef.current;
                             if (Math.abs(dist) < 3) {
-                                // Arrived. Sit, set off again, or step off the
-                                // end — weighted so that most of the time it
-                                // simply carries on pottering about up there.
-                                const roll = Math.random();
-                                if (roll < 0.3) {
-                                    // Sit on whichever end is nearer, legs
-                                    // over the edge.
-                                    const nearLeft =
-                                        Math.abs(xRef.current - lo) <
-                                        Math.abs(xRef.current - hi);
-                                    xRef.current = nearLeft ? lo : hi;
-                                    facingRef.current = (nearLeft ? -1 : 1) as
-                                        | 1
-                                        | -1;
-                                    setActivityBoth('ledgeSit');
-                                    phaseUntilRef.current =
-                                        now + 4000 + Math.random() * 7000;
-                                    notePetMoment('napped');
-                                } else if (roll < 0.42) {
-                                    // Off the edge, deliberately.
-                                    const p = petRef.current;
-                                    ledgeRef.current = null;
-                                    vxRef.current = facingRef.current * 70;
-                                    vyRef.current = 60;
-                                    phaseUntilRef.current = 0;
-                                    setActivityBoth('falling');
-                                    if (p) say(randomLine(p.hopOffLines));
-                                } else {
-                                    ledgeTargetRef.current =
-                                        lo + Math.random() * Math.max(1, hi - lo);
-                                }
+                                // Arrived at its wander target. What happens
+                                // next is the table's business too, which is
+                                // how leaping to another window became
+                                // possible without touching this branch.
+                                const next = pickBehaviour(
+                                    readEnv(),
+                                    lastBehaviourRef.current
+                                );
+                                if (next) enterBehaviour(next);
+                                else enterBehaviour('walkLedge');
                             } else {
                                 const dir = (Math.sign(dist) || 1) as 1 | -1;
                                 facingRef.current = dir;
@@ -1347,49 +1521,33 @@ const DesktopPet: React.FC<{ suspended?: boolean }> = ({ suspended = false }) =>
                     }
                 } else {
                     // idle or sleeping
-                    if (now - lastMoveRef.current > sleepAfterMs()) {
-                        if (act !== 'sleeping') notePetMoment('napped');
+                    if (act === 'sleeping' && now > wakeAtRef.current) {
+                        // Slept it off. Waking resets the idle clock, which is
+                        // the thing that was missing: without it the sleep
+                        // condition below is true again on the very next frame.
+                        lastMoveRef.current = now;
+                        idleUntilRef.current = now + 600 + Math.random() * 1200;
+                        poseRef.current = 'none';
+                        setActivityBoth('idle');
+                    } else if (
+                        act !== 'sleeping' &&
+                        now - lastMoveRef.current > sleepAfterMs()
+                    ) {
+                        notePetMoment('napped');
+                        // A nap, not a coma.
+                        wakeAtRef.current = now + 24_000 + Math.random() * 46_000;
                         setActivityBoth('sleeping');
-                    } else if (now > idleUntilRef.current) {
-                        // Every so often, instead of another amble along the
-                        // bar, it goes and climbs something. Rate-limited
-                        // hard: the wall is a surprise, and a surprise that
-                        // happens every thirty seconds is a routine.
-                        const ledges =
-                            now > nextLedgeRef.current
-                                ? reachableLedges(xRef.current, yRef.current)
-                                : [];
-                        if (ledges.length && Math.random() < 0.55) {
-                            // There is an open window within reach. Going to
-                            // stand on it is far more interesting than another
-                            // lap of the taskbar, so it wins most of the time
-                            // it is possible at all — but it is rate-limited,
-                            // because a creature that is *always* on a window
-                            // is a creature that lives on windows rather than
-                            // one that climbs them.
-                            const pick =
-                                ledges[Math.floor(Math.random() * ledges.length)];
-                            ledgeRef.current = pick;
-                            ledgeSideRef.current =
-                                Math.abs(xRef.current - pick.left) <
-                                Math.abs(xRef.current - pick.right)
-                                    ? -1
-                                    : 1;
-                            nextLedgeRef.current =
-                                now + 28_000 + Math.random() * 40_000;
-                            setActivityBoth('toLedge');
-                        } else if (now > nextClimbRef.current && Math.random() < 0.5) {
-                            wallRef.current = Math.random() < 0.5 ? -1 : 1;
-                            climbTargetRef.current =
-                                ceiling * (0.45 + Math.random() * 0.4);
-                            nextClimbRef.current =
-                                now + 90_000 + Math.random() * 90_000;
-                            setActivityBoth('toWall');
-                        } else {
-                            targetRef.current =
-                                min + Math.random() * Math.max(1, max - min);
-                            setActivityBoth('walking');
-                        }
+                    } else if (act !== 'sleeping' && now > idleUntilRef.current) {
+                        // Hand the decision to the table. See
+                        // `petBehaviour.ts` — this used to be an if-ladder
+                        // whose second branch had a real probability of
+                        // 0.45 x 0.5 that was written down nowhere.
+                        const next = pickBehaviour(
+                            readEnv(),
+                            lastBehaviourRef.current
+                        );
+                        if (next) enterBehaviour(next);
+                        else enterBehaviour('walkFloor');
                     }
                 }
             }

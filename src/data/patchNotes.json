@@ -1,5 +1,17 @@
 [
   {
+    "head": "The pet decides differently",
+    "date": "2026-10-15",
+    "why": "The creature's choice of what to do next was an if-ladder whose second branch had a real probability of 0.45 x 0.5 written down nowhere. That works for three options and collapses at five. Shimeji separates when a behaviour is possible from how often it is chosen, and keeps the whole thing as data; this does the same.",
+    "notes": [
+      "What the pet does next now comes from a weighted table of habits rather than a chain of random thresholds",
+      "Behaviours declare what tends to follow them, so sitting leads to getting up and landing somewhere new leads to looking around it",
+      "It leaps between windows — one row in the table, because the landing was already handled by whatever catches a thrown pet on a title bar",
+      "Fixed: the pet could fall asleep permanently. The test for nodding off was 'nothing has moved me recently', and a sleeping creature never moves, so anyone who read My Showcase without passing the cursor over the taskbar got an animal that slept where it fell until they left. Sleep is now a nap with a duration",
+      "Fixed: sitting down counted towards nodding off, so sitting twice in a row dropped it straight into a nap"
+    ]
+  },
+  {
     "head": "The pet moves in",
     "date": "2026-10-14",
     "why": "Studied Shimeji, the Japanese desktop-mascot engine from 2009 and still the most elaborate thing of its kind anyone has built. Its behaviour table is gated on expressions like mascot.environment.activeIE.topBorder, and the behaviours behind that gate are the famous ones: walk along a window's edge, sit on it, climb its side, drop off it. The mascot does not live on your desktop, it lives on your windows. This desktop has had real windows the whole time.",
