@@ -39,11 +39,13 @@
       });
     };
   </script>
-  <script src="%PUBLIC_URL%/js-dos/js-dos.js"></script>
-  <link rel="stylesheet" href="%PUBLIC_URL%/js-dos/js-dos.css">
-  <script>
-    emulators.pathPrefix = "%PUBLIC_URL%/js-dos/";
-  </script>
+  <!--
+      js-dos used to be loaded here: a blocking 555KB script in the head,
+      downloaded and run before the parser reached the bundle that draws the
+      desktop, on every visit. Doom, The Oregon Trail and Scrabble are the
+      only things that use it, so it now arrives when one of them is opened
+      (or hovered) instead. See src/components/dos/jsDos.ts.
+    -->
 </head>
 
 <body>

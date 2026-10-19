@@ -3,7 +3,6 @@
 import React from 'react';
 import ResumeDownload from '../ResumeDownload';
 import Window from '../../os/Window';
-import DosPlayer from '../../dos/DosPlayer';
 import LazyImage from '../../general/LazyImage';
 import audioIcons from '../../../assets/pictures/audioIconsLoop.png';
 import voiceinteractionTask from '../../../assets/pictures/VoiceInteractionTask.png';

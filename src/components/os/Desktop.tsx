@@ -91,6 +91,7 @@ import { useKonamiCode } from './konami';
 import KonamiBurst from './KonamiBurst';
 import { playChime } from './sounds';
 import { lazyApp, preload, preloadWhenIdle } from './lazyApp';
+import { preloadJsDos } from '../dos/jsDos';
 import WindowLoading from './WindowLoading';
 
 /**
@@ -111,9 +112,26 @@ const Experience3D = lazyApp(() => import('../experience/Experience3D'));
  * imported normally above, because it opens by itself on arrival and
  * deferring the one thing the site is for would be perverse.
  * ---------------------------------------------------------------------- */
+
+/**
+ * A DOS game needs two downloads, not one: its own small chunk, and the
+ * 555KB js-dos emulator that used to be a blocking script in index.html
+ * (see `dos/jsDos.ts`). Starting both from the same loader means a hover
+ * covers the emulator too, and `preload` stays the one thing that has to be
+ * called — nothing else on the desktop needs to know that these three are
+ * special.
+ */
+const lazyDosApp = <P,>(
+    loader: () => Promise<{ default: React.ComponentType<P> }>
+) =>
+    lazyApp<P>(() => {
+        preloadJsDos();
+        return loader();
+    });
+
 const About = lazyApp(() => import('../applications/About'));
 const Credits = lazyApp(() => import('../applications/Credits'));
-const Doom = lazyApp(() => import('../applications/Doom'));
+const Doom = lazyDosApp(() => import('../applications/Doom'));
 const FaceValue = lazyApp(() => import('../applications/FaceValue'));
 const GitHubViewer = lazyApp(() => import('../applications/GitHubViewer'));
 const Guestbook = lazyApp(() => import('../applications/Guestbook'));
@@ -123,7 +141,7 @@ const Minesweeper = lazyApp(() => import('../applications/Minesweeper'));
 const MyComputer = lazyApp(() => import('../applications/MyComputer'));
 const NetworkInfo = lazyApp(() => import('../applications/NetworkInfo'));
 const Now = lazyApp(() => import('../applications/Now'));
-const OregonTrail = lazyApp(() => import('../applications/OregonTrail'));
+const OregonTrail = lazyDosApp(() => import('../applications/OregonTrail'));
 const PatchNotes = lazyApp(() => import('../applications/PatchNotes'));
 const PerceptionLab = lazyApp(() => import('../applications/PerceptionLab'));
 const Pet = lazyApp(() => import('../applications/Pet'));
@@ -136,7 +154,7 @@ const RecycleBin = lazyApp(() => import('../applications/RecycleBin'));
 const ResetStorage = lazyApp(() => import('../applications/ResetStorage'));
 const ResumeFile = lazyApp(() => import('../applications/ResumeFile'));
 const Run = lazyApp(() => import('../applications/Run'));
-const Scrabble = lazyApp(() => import('../applications/Scrabble'));
+const Scrabble = lazyDosApp(() => import('../applications/Scrabble'));
 const Secret = lazyApp(() => import('../applications/Secret'));
 const Settings = lazyApp(() => import('../applications/Settings'));
 const Snake = lazyApp(() => import('../applications/Snake'));
