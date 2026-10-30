@@ -2,10 +2,16 @@
  * What is on television.
  * ----------------------
  * The dial behind `applications/Television.tsx`. Channels are *queries*, not
- * playlists: each one names a collection on the Internet Archive, and the set
- * of programmes on it is whatever that collection holds today. That is the
- * only way to get a dial that feels bottomless — a hand-typed playlist runs
- * out, and a visitor notices the loop within about two minutes.
+ * playlists: each one names a collection on the Internet Archive, and
+ * `tools/tv-schedule.js` turns that into hours of programmes, with the file to
+ * play and its real running time, in `src/data/tvSchedule.json`. A hand-typed
+ * playlist runs out, and a visitor notices the loop within about two minutes.
+ *
+ * The queries run when that tool runs, not in the visitor's browser. Run live,
+ * the result was sorted by download count, which changes daily, so two people
+ * on the same channel could be shown different programmes; and nothing in the
+ * search result says how long a programme is, which a guide grid needs.
+ * `tvSchedule.ts` is what reads the baked file.
  *
  * Three rules this file exists to enforce, all of them learned the hard way
  * while picking the collections:
@@ -35,7 +41,7 @@
 
 /** One programme, as the Archive describes it. */
 export interface Episode {
-    /** The Archive identifier — `archive.org/embed/<id>` plays it. */
+    /** The Archive identifier — `archive.org/details/<id>` is its page. */
     id: string;
     title: string;
     year?: number;
@@ -57,7 +63,12 @@ export interface Channel {
      * deliberately the only one — see the note on removing it below.
      */
     kind?: 'testCard';
-    /** Baked-in programmes, used when the Archive can't be reached. */
+    /**
+     * Programmes the tool always tries first, ahead of the query's results.
+     * Named "fallback" from when they stood in for an unreachable Archive;
+     * now they are what keeps a channel on air if its query ever comes back
+     * empty.
+     */
     fallback?: Episode[];
 }
 
@@ -280,190 +291,8 @@ export const channelByNumber = (n: number): Channel | undefined =>
     CHANNELS.find((c) => c.number === n);
 
 /* -------------------------------------------------------------------------
- * Fetching
+ * What `tools/tv-schedule.js` needs from here
  * ---------------------------------------------------------------------- */
-
-/** How many programmes to pull per channel. Plenty for a session. */
-const ROWS = 120;
-
-/**
- * `advancedsearch.php` answers with `access-control-allow-origin: *`, which is
- * the whole reason this can run in the browser with no server of our own. If
- * that ever changes, this is the function that breaks, and the fallback lists
- * above are what keeps the television working while it is fixed.
- */
-const SEARCH = 'https://archive.org/advancedsearch.php';
-
-/** One in-memory cache per tab. Channels don't change during a visit. */
-const cache = new Map<number, Episode[]>();
-const inflight = new Map<number, Promise<Episode[]>>();
-
-const buildUrl = (query: string): string => {
-    const p = new URLSearchParams();
-    p.set('q', query);
-    p.append('fl[]', 'identifier');
-    p.append('fl[]', 'title');
-    p.append('fl[]', 'year');
-    // Downloads-descending puts the watchable, well-transferred tapes first;
-    // the Archive's default relevance ordering surfaces a lot of broken rips.
-    p.append('sort[]', 'downloads desc');
-    p.set('rows', String(ROWS));
-    p.set('output', 'json');
-    return `${SEARCH}?${p.toString()}`;
-};
-
-/**
- * The programmes on a channel, from the Archive or from the baked-in list.
- *
- * Never rejects: a channel that can't reach the network still has something to
- * play, because a television that shows an error dialog is not a television.
- */
-export async function fetchEpisodes(channel: Channel): Promise<Episode[]> {
-    if (channel.kind === 'testCard') return [];
-
-    const cached = cache.get(channel.number);
-    if (cached) return cached;
-
-    const running = inflight.get(channel.number);
-    if (running) return running;
-
-    const fallback = channel.fallback ?? [];
-
-    const job = (async (): Promise<Episode[]> => {
-        try {
-            const res = await fetch(buildUrl(channel.query!));
-            if (!res.ok) throw new Error(`archive.org ${res.status}`);
-            const body = await res.json();
-            const docs: any[] = body?.response?.docs ?? [];
-
-            const episodes: Episode[] = docs
-                .filter((d) => d?.identifier && d?.title)
-                .map((d) => ({
-                    id: String(d.identifier),
-                    title: String(d.title).trim(),
-                    year: Number(d.year) || undefined,
-                }))
-                // Second net, not the first — see DENIED above.
-                .filter((e) => !DENIED.test(e.title))
-                // Nothing after the machine's own era, whatever the query said.
-                .filter((e) => !e.year || e.year <= 1999);
-
-            const result = episodes.length ? episodes : fallback;
-            cache.set(channel.number, result);
-            return result;
-        } catch {
-            cache.set(channel.number, fallback);
-            return fallback;
-        } finally {
-            inflight.delete(channel.number);
-        }
-    })();
-
-    inflight.set(channel.number, job);
-    return job;
-}
-
-/* -------------------------------------------------------------------------
- * The schedule
- * ---------------------------------------------------------------------- */
-
-/**
- * How long a slot runs. Half an hour is what the listings used, and it is
- * short enough that flipping back to a channel later genuinely finds
- * something else on.
- */
-export const SLOT_MS = 30 * 60 * 1000;
-
-/**
- * A small deterministic hash. The point is that *what is on* is a pure
- * function of the channel and the clock — not of when you happened to tune in.
- * Two people opening the television at the same moment see the same programme
- * at the same position, the set remembers what it was showing if you close and
- * reopen it, and nothing has to be stored anywhere for either to be true.
- */
-const mix = (a: number, b: number): number => {
-    let h = (a * 0x9e3779b1) ^ (b * 0x85ebca6b);
-    h = Math.imul(h ^ (h >>> 15), 0x2c1b3c6d);
-    h = Math.imul(h ^ (h >>> 13), 0x297a2d39);
-    return (h ^ (h >>> 16)) >>> 0;
-};
-
-export interface Airing {
-    episode: Episode;
-    /** Seconds into the programme, so tuning in lands mid-flow. */
-    offsetSeconds: number;
-    /** When the current slot ends, for the "up next" countdown. */
-    endsAt: number;
-}
-
-/**
- * What is on `channel` right now, and how far in.
- *
- * The offset is wrapped at twenty minutes rather than the slot length because
- * most of this material is far shorter than half an hour; a raw slot offset
- * would drop you past the end of a four-minute cartoon almost every time.
- */
-export function scheduledFor(
-    channel: Channel,
-    episodes: Episode[],
-    at: number = Date.now()
-): Airing | null {
-    if (!episodes.length) return null;
-
-    const slot = Math.floor(at / SLOT_MS);
-    const index = mix(channel.number, slot) % episodes.length;
-    const intoSlot = Math.floor((at % SLOT_MS) / 1000);
-
-    return {
-        episode: episodes[index],
-        offsetSeconds: intoSlot % (20 * 60),
-        endsAt: (slot + 1) * SLOT_MS,
-    };
-}
-
-/** The next few slots on a channel, for the "coming up" strip. */
-export function upcoming(
-    channel: Channel,
-    episodes: Episode[],
-    count: number = 3,
-    at: number = Date.now()
-): { episode: Episode; startsAt: number }[] {
-    if (!episodes.length) return [];
-    const slot = Math.floor(at / SLOT_MS);
-    return Array.from({ length: count }, (_, i) => {
-        const s = slot + i + 1;
-        return {
-            episode: episodes[mix(channel.number, s) % episodes.length],
-            startsAt: s * SLOT_MS,
-        };
-    });
-}
-
-/* -------------------------------------------------------------------------
- * Resolving a programme to something a <video> can play
- * ---------------------------------------------------------------------- */
-
-/**
- * Why this exists rather than an `archive.org/embed/<id>` iframe.
- *
- * The embed is one line and it works, but it costs the two things the
- * television is actually for. It arrives wearing the Archive's own player —
- * a 2020s control bar, in the middle of a Windows 95 desktop — which punctures
- * the conceit the moment anyone moves the mouse. And because it is
- * cross-origin, the parent page cannot touch it: no volume, no seeking, no
- * "the programme ended, roll the next one". A volume knob that does not change
- * the volume is worse than no volume knob.
- *
- * The Archive also serves the raw derivative files, with byte-range support and
- * no player attached, so the set streams those into an ordinary `<video>`
- * instead. Everything the deck and the knobs do is then real.
- *
- * `archive.org/metadata/<id>` answers with `access-control-allow-origin: *`,
- * so the lookup runs in the browser. The file itself 302s to whichever storage
- * node holds it; a `<video>` follows that on its own, and needs no CORS header
- * because nothing here reads its pixels.
- */
-const METADATA = 'https://archive.org/metadata';
 
 /**
  * Derivative formats worth playing, best first.
@@ -474,41 +303,10 @@ const METADATA = 'https://archive.org/metadata';
  * resolution a CRT overlay is about to sit on top of, the small one is
  * indistinguishable and starts playing several seconds sooner.
  */
-const FORMATS = ['512Kb MPEG4', 'h.264', 'MPEG4', 'h.264 IA', 'WebM', 'Ogg Video'];
+export const FORMATS = ['512Kb MPEG4', 'h.264', 'MPEG4', 'h.264 IA', 'WebM', 'Ogg Video'];
 
-const mediaCache = new Map<string, string | null>();
+/** True if a title should never be scheduled. See `DENIED` above. */
+export const isDenied = (title: string): boolean => DENIED.test(title);
 
-/**
- * A playable URL for one programme, or null if the item has no video
- * derivative the browser can handle (a handful of Archive items are audio or
- * stills only, and the set should skip past those rather than sit on a black
- * screen).
- */
-export async function resolveMedia(episode: Episode): Promise<string | null> {
-    const cached = mediaCache.get(episode.id);
-    if (cached !== undefined) return cached;
-
-    try {
-        const res = await fetch(`${METADATA}/${encodeURIComponent(episode.id)}`);
-        if (!res.ok) throw new Error(`metadata ${res.status}`);
-        const body = await res.json();
-        const files: any[] = body?.files ?? [];
-
-        let chosen: string | null = null;
-        for (const format of FORMATS) {
-            const hit = files.find((f) => f?.format === format && f?.name);
-            if (hit) {
-                chosen = `https://archive.org/download/${encodeURIComponent(
-                    episode.id
-                )}/${encodeURIComponent(hit.name)}`;
-                break;
-            }
-        }
-
-        mediaCache.set(episode.id, chosen);
-        return chosen;
-    } catch {
-        mediaCache.set(episode.id, null);
-        return null;
-    }
-}
+/** Nothing after the machine's own era, whatever the query said. */
+export const LATEST_YEAR = 1999;

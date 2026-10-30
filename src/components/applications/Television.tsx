@@ -4,15 +4,9 @@ import Colors from '../../constants/colors';
 import CrtScreen from '../os/CrtScreen';
 import StaticBurst from '../os/StaticBurst';
 import { CRT_TELEVISION } from '../os/crt';
-import {
-    Airing,
-    CHANNELS,
-    Channel,
-    Episode,
-    fetchEpisodes,
-    resolveMedia,
-    scheduledFor,
-} from '../os/channels';
+import TvGuide from '../os/TvGuide';
+import { CHANNELS, Channel } from '../os/channels';
+import { detailsUrl, fileUrl, onAir, Slot } from '../os/tvSchedule';
 import { clearTvState, setTvState } from '../os/tvState';
 import { playClick } from '../os/sounds';
 
@@ -27,26 +21,32 @@ import { playClick } from '../os/sounds';
  * The illusion rests on three details, in descending order of how much they
  * matter:
  *
- *   It is already playing when you get there.  `channels.ts` decides what is
- *   on from the clock, so tuning to channel 8 drops you into the middle of a
- *   programme rather than starting one. Nothing announces this; it is just
- *   never at 00:00.
+ *   It is already playing when you get there.  `tvSchedule.ts` decides what
+ *   is on from the clock, so tuning to channel 8 drops you into the middle of
+ *   a programme rather than starting one — the same programme, at the same
+ *   second, as anyone else on channel 8. Nothing announces this; it is just
+ *   never at 00:00. Pause or skip on the deck and you fall behind the
+ *   broadcast, the LIVE light goes out, and pressing it rejoins.
  *
  *   Changing channel costs something.  A burst of snow and a clunk, then the
  *   new picture. Instant cuts feel like a playlist. The snow is also doing
- *   real work — it covers the second or so it takes to resolve the next
- *   programme's media URL, so the wait reads as the set tuning rather than as
- *   the site loading.
+ *   real work — it stays up until the new picture is actually playing, so
+ *   the buffering reads as the set tuning rather than as the site loading.
  *
  *   Every control does what it says.  The set streams the Archive's raw
  *   derivative files into an ordinary `<video>` instead of embedding the
  *   Archive's player, precisely so that VOLUME is the volume, the deck's
  *   ±15s genuinely seeks, and the end of a programme can roll the next one.
- *   See the long note in `channels.ts` for why that is worth the extra fetch.
+ *   See the note on `fileUrl` in `tvSchedule.ts`.
+ *
+ * GUIDE puts the listings on the tube; that is `os/TvGuide.tsx`.
  */
 
 /** How long the snow covers a change, at minimum. */
 const TUNE_MS = 620;
+
+/** How long the snow may cover a stream that never starts. */
+const TUNE_CAP_MS = 6000;
 
 /** Where the volume knob starts. Loud enough to hear, quiet enough to forgive. */
 const DEFAULT_VOLUME = 0.4;
@@ -190,27 +190,74 @@ const DeckButton: React.FC<{
 
 export interface TelevisionProps extends WindowAppProps {}
 
+/** The wall clock, once a second, while the set is on. */
+const useClock = (running: boolean): number => {
+    const [now, setNow] = useState(() => Date.now());
+    useEffect(() => {
+        if (!running) return;
+        setNow(Date.now());
+        const id = window.setInterval(() => setNow(Date.now()), 1000);
+        return () => window.clearInterval(id);
+    }, [running]);
+    return now;
+};
+
+/** 125 → "2:05", 3725 → "1:02:05". */
+const clockTime = (seconds: number): string => {
+    const s = Math.max(0, Math.floor(seconds));
+    const h = Math.floor(s / 3600);
+    const m = Math.floor((s % 3600) / 60);
+    const ss = String(s % 60).padStart(2, '0');
+    return h ? `${h}:${String(m).padStart(2, '0')}:${ss}` : `${m}:${ss}`;
+};
+
+const timeOfDay = (t: number): string =>
+    new Date(t).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
 const Television: React.FC<TelevisionProps> = ({
     onInteract,
     onClose,
     onMinimize,
 }) => {
     const videoRef = useRef<HTMLVideoElement | null>(null);
+    const guideButtonRef = useRef<HTMLButtonElement | null>(null);
 
     const [power, setPower] = useState(true);
     const [channelNumber, setChannelNumber] = useState(8); // Computer Chronicles
-    const [episodes, setEpisodes] = useState<Episode[]>([]);
-    const [airing, setAiring] = useState<Airing | null>(null);
+    const [slot, setSlot] = useState<Slot | null>(null);
     const [mediaUrl, setMediaUrl] = useState<string | null>(null);
+    /**
+     * Bumped on every tune and used as the `<video>`'s key, so each tune
+     * mounts a fresh element. Rejoining the same programme ("LIVE") keeps the
+     * same URL, and a reused element would never fire `loadedmetadata` again
+     * to seek to where the broadcast has got to.
+     */
+    const [tuneId, setTuneId] = useState(0);
 
     const [tuning, setTuning] = useState(false);
     const [failed, setFailed] = useState(false);
     const [playing, setPlaying] = useState(true);
     const [tone, setTone] = useState(false);
+    const [guideOpen, setGuideOpen] = useState(false);
+
+    /**
+     * The viewer has paused or skipped, so the tape is no longer where the
+     * broadcast is. While that is true the schedule does not cut them off at
+     * the end of the slot; the tape plays out and `onEnded` rejoins the
+     * broadcast. State for the LIVE light, a ref for the timers.
+     */
+    const [shifted, setShiftedState] = useState(false);
+    const shiftedRef = useRef(false);
+    const setShifted = useCallback((value: boolean) => {
+        shiftedRef.current = value;
+        setShiftedState(value);
+    }, []);
 
     const [volume, setVolume] = useState(DEFAULT_VOLUME);
     const [brightness, setBrightness] = useState(0.5);
     const [staticLevel, setStaticLevel] = useState(0.75);
+
+    const now = useClock(power);
 
     const channel: Channel =
         CHANNELS.find((c) => c.number === channelNumber) ?? CHANNELS[0];
@@ -219,13 +266,12 @@ const Television: React.FC<TelevisionProps> = ({
     /* --- tuning ------------------------------------------------------- */
 
     /**
-     * Load a channel and start it wherever the schedule says it should be.
-     *
-     * Guarded by a token rather than an AbortController because the slow part
-     * is two awaited fetches in sequence: someone spinning the dial fires
-     * several of these, and only the last one is allowed to reach setState.
+     * Which tune is current. Someone spinning the dial fires several in a
+     * row, and only the last one is allowed to lift the snow.
      */
     const tuneToken = useRef(0);
+    /** When the current tune began, so the snow lasts at least TUNE_MS. */
+    const tuneStarted = useRef(0);
     /**
      * Every pending "stop showing snow" timer.
      *
@@ -243,66 +289,52 @@ const Television: React.FC<TelevisionProps> = ({
         []
     );
 
+    /** Lift the snow, but not before it has been up for TUNE_MS. */
+    const endTuning = useCallback((token: number) => {
+        const wait = Math.max(0, TUNE_MS - (Date.now() - tuneStarted.current));
+        tuneTimers.current.push(
+            window.setTimeout(() => {
+                if (tuneToken.current === token) setTuning(false);
+            }, wait)
+        );
+    }, []);
+
+    /** Join whatever `target` is broadcasting right now. */
     const tune = useCallback(
-        async (target: Channel) => {
+        (target: Channel) => {
             const token = ++tuneToken.current;
+            tuneStarted.current = Date.now();
+            setTuneId(token);
             setTuning(true);
             setFailed(false);
-            setMediaUrl(null);
-            setAiring(null);
+            setShifted(false);
+
+            const next = target.kind === 'testCard' ? null : onAir(target);
+            setSlot(next);
+            setMediaUrl(next ? fileUrl(next.programme) : null);
 
             if (target.kind === 'testCard') {
-                setEpisodes([]);
                 // Still hold the snow for a beat — the test card should feel
                 // tuned-to, not switched-to.
-                tuneTimers.current.push(
-                    window.setTimeout(() => {
-                        if (tuneToken.current === token) setTuning(false);
-                    }, TUNE_MS)
-                );
+                endTuning(token);
                 return;
             }
-
-            const list = await fetchEpisodes(target);
-            if (tuneToken.current !== token) return;
-            setEpisodes(list);
-
-            const next = scheduledFor(target, list);
             if (!next) {
                 setFailed(true);
-                setTuning(false);
+                endTuning(token);
                 return;
             }
-            setAiring(next);
 
-            const url = await resolveMedia(next.episode);
-            if (tuneToken.current !== token) return;
-
-            if (!url) {
-                // Some Archive items have no video derivative at all. Rather
-                // than sit on black, step past to the next programme along.
-                const index = list.findIndex((e) => e.id === next.episode.id);
-                const alt = list[(index + 1) % list.length];
-                const altUrl = alt ? await resolveMedia(alt) : null;
-                if (tuneToken.current !== token) return;
-                if (!altUrl) {
-                    setFailed(true);
-                    setTuning(false);
-                    return;
-                }
-                setAiring({ ...next, episode: alt, offsetSeconds: 0 });
-                setMediaUrl(altUrl);
-            } else {
-                setMediaUrl(url);
-            }
-
+            // The snow lifts when the picture arrives (`onPlaying`), not on a
+            // timer: it is there to cover the buffering. This only stops a
+            // stalled stream from leaving it up for good.
             tuneTimers.current.push(
                 window.setTimeout(() => {
                     if (tuneToken.current === token) setTuning(false);
-                }, TUNE_MS)
+                }, TUNE_CAP_MS)
             );
         },
-        []
+        [endTuning, setShifted]
     );
 
     // Retune whenever the dial moves, and on first open.
@@ -314,16 +346,33 @@ const Television: React.FC<TelevisionProps> = ({
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [channelNumber, power, tune]);
 
+    // The broadcast moves on whether or not anyone is watching: when this
+    // programme's time is up, the next one starts. A viewer who has paused
+    // or skipped is left to finish their tape — unless it has already run
+    // out, in which case there is nothing to protect.
+    useEffect(() => {
+        if (!power || !slot) return;
+        const id = window.setTimeout(() => {
+            const video = videoRef.current;
+            if (shiftedRef.current && video && !video.ended) return;
+            tune(channel);
+        }, Math.max(0, slot.endsAt - Date.now()) + 250);
+        return () => window.clearTimeout(id);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [power, slot, tune]);
+
     /* --- playback ----------------------------------------------------- */
 
-    // Seek to the scheduled position once the file is actually ready. Setting
-    // currentTime before metadata has loaded is silently ignored.
+    // Seek to where the broadcast is once the file is actually ready —
+    // measured now, not when the dial moved, because the file took a moment
+    // to arrive. Setting currentTime before metadata has loaded is silently
+    // ignored.
     const onLoadedMetadata = useCallback(() => {
         const video = videoRef.current;
-        if (!video || !airing) return;
-        const target = airing.offsetSeconds;
-        if (target > 0 && Number.isFinite(video.duration)) {
-            video.currentTime = Math.min(target, Math.max(0, video.duration - 5));
+        if (!video || !slot) return;
+        const target = (Date.now() - slot.startsAt) / 1000;
+        if (target > 1 && Number.isFinite(video.duration)) {
+            video.currentTime = Math.min(target, Math.max(0, video.duration - 2));
         }
         video.volume = volume;
         video.play().catch(() => {
@@ -332,30 +381,25 @@ const Television: React.FC<TelevisionProps> = ({
             video.muted = true;
             video.play().catch(() => setPlaying(false));
         });
-    }, [airing, volume]);
+    }, [slot, volume]);
 
-    /** End of programme: roll the next one on the same channel. */
-    const onEnded = useCallback(async () => {
-        if (!airing || !episodes.length) return;
-        const index = episodes.findIndex((e) => e.id === airing.episode.id);
-        const next = episodes[(index + 1) % episodes.length];
-        const token = ++tuneToken.current;
-        setTuning(true);
-        const url = await resolveMedia(next);
-        if (tuneToken.current !== token) return;
-        setAiring({ ...airing, episode: next, offsetSeconds: 0 });
-        setMediaUrl(url);
-        tuneTimers.current.push(
-                window.setTimeout(() => {
-                    if (tuneToken.current === token) setTuning(false);
-                }, TUNE_MS)
-            );
-    }, [airing, episodes]);
+    /**
+     * The tape ran out. If the broadcast is still on the same programme —
+     * the baked running time can be a second longer than the file, or the
+     * viewer skipped ahead — the slot timer above will roll the next one, so
+     * wait for it rather than reloading the end of this one. Otherwise the
+     * viewer had fallen behind: rejoin the broadcast wherever it has got to.
+     */
+    const onEnded = useCallback(() => {
+        const live = onAir(channel);
+        if (live && slot && live.startsAt === slot.startsAt) return;
+        tune(channel);
+    }, [channel, slot, tune]);
 
     useEffect(() => {
         const video = videoRef.current;
         if (video) video.volume = volume;
-    }, [volume, mediaUrl]);
+    }, [volume, tuneId]);
 
     /* --- publish to the rest of the desktop --------------------------- */
 
@@ -364,11 +408,11 @@ const Television: React.FC<TelevisionProps> = ({
             on: power,
             channel: channel.number,
             channelName: channel.name,
-            programme: airing?.episode.title ?? (isTestCard ? 'Test Card' : null),
+            programme: slot?.programme.title ?? (isTestCard ? 'Test Card' : null),
             mediaUrl,
             muted: volume === 0,
         });
-    }, [power, channel, airing, mediaUrl, volume, isTestCard]);
+    }, [power, channel, slot, mediaUrl, volume, isTestCard]);
 
     // The window closing means there is no television anywhere any more —
     // the 3D room's monitor goes back to showing the site.
@@ -397,6 +441,7 @@ const Television: React.FC<TelevisionProps> = ({
         const video = videoRef.current;
         if (!video) return;
         playClick();
+        setShifted(true);
         video.currentTime = Math.max(0, video.currentTime + delta);
     };
 
@@ -410,7 +455,13 @@ const Television: React.FC<TelevisionProps> = ({
         } else {
             video.pause();
             setPlaying(false);
+            setShifted(true);
         }
+    };
+
+    const goLive = () => {
+        playClick();
+        tune(channel);
     };
 
     const togglePower = () => {
@@ -418,15 +469,45 @@ const Television: React.FC<TelevisionProps> = ({
         setPower((on) => {
             if (on) {
                 setMediaUrl(null);
-                setAiring(null);
+                setSlot(null);
+                setGuideOpen(false);
             }
             return !on;
         });
     };
 
+    const closeGuide = useCallback(() => {
+        setGuideOpen(false);
+        // Back to the button that opened it, so a keyboard user is not
+        // dropped at the top of the page.
+        window.setTimeout(() => guideButtonRef.current?.focus(), 0);
+    }, []);
+
+    const tuneFromGuide = useCallback(
+        (n: number) => {
+            playClick();
+            setChannelNumber(n);
+            closeGuide();
+        },
+        [closeGuide]
+    );
+
     const nowShowing = isTestCard
         ? 'Test Card F'
-        : airing?.episode.title ?? (tuning ? 'Tuning…' : 'No signal');
+        : slot?.programme.title ?? (tuning ? 'Tuning…' : 'No signal');
+    const upNext = slot ? onAir(channel, slot.endsAt) : null;
+    // Where the tape is, not where the broadcast is: after a pause the two
+    // differ, and this is the deck's readout. The clock re-renders the set
+    // once a second, which is what keeps it moving.
+    const video = videoRef.current;
+    const position =
+        video && !tuning && Number.isFinite(video.currentTime)
+            ? video.currentTime
+            : slot
+            ? (now - slot.startsAt) / 1000
+            : 0;
+    const length = slot?.programme.seconds ?? 0;
+    const progress = length ? Math.min(1, Math.max(0, position / length)) : 0;
 
     return (
         <Window
@@ -462,14 +543,22 @@ const Television: React.FC<TelevisionProps> = ({
 
                                 {power && !isTestCard && mediaUrl && (
                                     <video
+                                        key={tuneId}
                                         ref={videoRef}
                                         src={mediaUrl}
                                         playsInline
                                         onLoadedMetadata={onLoadedMetadata}
                                         onEnded={onEnded}
                                         onPlay={() => setPlaying(true)}
+                                        onPlaying={() => endTuning(tuneId)}
                                         onPause={() => setPlaying(false)}
-                                        onError={() => setFailed(true)}
+                                        onError={() => {
+                                            // A tape the Archive has since
+                                            // withdrawn. Dead air until the
+                                            // slot ends, as a station would.
+                                            setFailed(true);
+                                            setTuning(false);
+                                        }}
                                         style={{
                                             ...styles.video,
                                             filter: `brightness(${
@@ -490,6 +579,16 @@ const Television: React.FC<TelevisionProps> = ({
                                     </div>
                                 )}
 
+                                {power && guideOpen && (
+                                    <TvGuide
+                                        channels={CHANNELS}
+                                        current={channel.number}
+                                        now={now}
+                                        onTune={tuneFromGuide}
+                                        onClose={closeGuide}
+                                    />
+                                )}
+
                                 {/* The tube itself, over whatever is showing. */}
                                 {power && (
                                     <CrtScreen
@@ -504,7 +603,7 @@ const Television: React.FC<TelevisionProps> = ({
 
                                 {/* Corner bug, the way a channel identifies
                                     itself a few seconds after you arrive. */}
-                                {power && !tuning && (
+                                {power && !tuning && !guideOpen && (
                                     <div style={styles.bug}>
                                         <span style={styles.bugNumber}>
                                             {String(channel.number).padStart(
@@ -525,21 +624,92 @@ const Television: React.FC<TelevisionProps> = ({
                             <div style={styles.tape}>
                                 <div style={styles.reel} />
                                 <div style={styles.tapeLabel}>
-                                    <span style={styles.tapeTitle}>
-                                        {nowShowing}
-                                    </span>
-                                    <span style={styles.tapeMeta}>
-                                        {isTestCard
-                                            ? 'COLOUR BARS · 1 kHz'
-                                            : airing?.episode.year
-                                            ? `${airing.episode.year} · CH ${channel.number}`
-                                            : `CH ${channel.number}`}
-                                    </span>
+                                    <div style={styles.tapeTitleRow}>
+                                        <span style={styles.tapeTitle}>
+                                            {nowShowing}
+                                            {slot?.programme.year
+                                                ? ` (${slot.programme.year})`
+                                                : ''}
+                                        </span>
+                                        {slot && (
+                                            // The uploader is credited on the
+                                            // tape's own page, not here.
+                                            <a
+                                                href={detailsUrl(slot.programme)}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                title="This tape's page at the Internet Archive"
+                                                style={styles.archiveLink}
+                                            >
+                                                via archive.org
+                                            </a>
+                                        )}
+                                    </div>
+                                    {slot ? (
+                                        <>
+                                            <div style={styles.progressRow}>
+                                                <div
+                                                    role="progressbar"
+                                                    aria-label="Programme progress"
+                                                    aria-valuemin={0}
+                                                    aria-valuemax={Math.round(length)}
+                                                    aria-valuenow={Math.round(position)}
+                                                    aria-valuetext={`${clockTime(
+                                                        position
+                                                    )} of ${clockTime(length)}`}
+                                                    style={styles.progressTrack}
+                                                >
+                                                    <div
+                                                        style={{
+                                                            ...styles.progressFill,
+                                                            width: `${progress * 100}%`,
+                                                        }}
+                                                    />
+                                                </div>
+                                                <span style={styles.tapeTime}>
+                                                    {clockTime(position)} /{' '}
+                                                    {clockTime(length)}
+                                                </span>
+                                            </div>
+                                            <span style={styles.tapeMeta}>
+                                                {upNext
+                                                    ? `NEXT ${timeOfDay(
+                                                          upNext.startsAt
+                                                      )} · ${upNext.programme.title}`
+                                                    : `CH ${channel.number}`}
+                                            </span>
+                                        </>
+                                    ) : (
+                                        <span style={styles.tapeMeta}>
+                                            {isTestCard
+                                                ? 'COLOUR BARS · 1 kHz'
+                                                : `CH ${channel.number}`}
+                                        </span>
+                                    )}
                                 </div>
                                 <div style={styles.reel} />
                             </div>
 
                             <div style={styles.transport}>
+                                <DeckButton
+                                    title={
+                                        shifted
+                                            ? 'Rejoin the broadcast'
+                                            : 'Watching the broadcast live'
+                                    }
+                                    disabled={!power || !slot || !shifted}
+                                    onClick={goLive}
+                                >
+                                    <span
+                                        style={{
+                                            ...styles.liveDot,
+                                            ...(power && slot && !shifted
+                                                ? styles.liveDotOn
+                                                : null),
+                                        }}
+                                    />
+                                    LIVE
+                                </DeckButton>
                                 <DeckButton
                                     title="Back 15 seconds"
                                     disabled={!power || isTestCard || !mediaUrl}
@@ -616,6 +786,26 @@ const Television: React.FC<TelevisionProps> = ({
                                     ▲
                                 </DeckButton>
                             </div>
+
+                            <button
+                                type="button"
+                                ref={guideButtonRef}
+                                disabled={!power}
+                                aria-pressed={guideOpen}
+                                title="Programme guide"
+                                onClick={() => {
+                                    playClick();
+                                    if (guideOpen) closeGuide();
+                                    else setGuideOpen(true);
+                                }}
+                                style={{
+                                    ...styles.power,
+                                    ...(guideOpen ? styles.pressed : null),
+                                    ...(!power ? deckStyles.buttonDisabled : null),
+                                }}
+                            >
+                                GUIDE
+                            </button>
 
                             <Knob
                                 label="VOLUME"
@@ -716,7 +906,16 @@ const Television: React.FC<TelevisionProps> = ({
                         </div>
                         <div style={styles.guideFoot}>
                             <span style={styles.guideFootText}>
-                                Streamed from the Internet Archive
+                                Tapes from the Internet Archive, on its
+                                bandwidth.{' '}
+                                <a
+                                    href="https://archive.org/donate"
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    style={styles.guideFootLink}
+                                >
+                                    Donate
+                                </a>
                             </span>
                         </div>
                     </div>
@@ -876,8 +1075,17 @@ const styles: StyleSheetCSS = {
         border: '2px solid #6b625a',
         boxSizing: 'border-box',
     },
-    tapeLabel: { flex: 1, minWidth: 0, flexDirection: 'column', gap: 1 },
+    tapeLabel: { flex: 1, minWidth: 0, flexDirection: 'column', gap: 2 },
+    tapeTitleRow: {
+        flexDirection: 'row',
+        alignItems: 'baseline',
+        gap: 8,
+        minWidth: 0,
+    },
     tapeTitle: {
+        display: 'block',
+        flex: 1,
+        minWidth: 0,
         fontFamily: 'MSSerif',
         fontSize: 11,
         color: '#f0e6d2',
@@ -885,13 +1093,49 @@ const styles: StyleSheetCSS = {
         overflow: 'hidden',
         textOverflow: 'ellipsis',
     },
-    tapeMeta: {
+    archiveLink: {
+        flex: 'none',
         fontFamily: 'MSSerif',
         fontSize: 9,
         letterSpacing: 1,
-        color: '#8d8578',
+        color: '#c9b98f',
+    },
+    tapeMeta: {
+        display: 'block',
+        fontFamily: 'MSSerif',
+        fontSize: 9,
+        letterSpacing: 1,
+        color: '#a59c8d',
+        whiteSpace: 'nowrap',
+        overflow: 'hidden',
+        textOverflow: 'ellipsis',
+    },
+    progressRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+    progressTrack: {
+        flex: 1,
+        minWidth: 0,
+        height: 4,
+        background: '#3a352f',
+        border: '1px solid #000',
+    },
+    progressFill: { height: '100%', background: '#c81e1e' },
+    tapeTime: {
+        flex: 'none',
+        fontFamily: 'Millennium, monospace',
+        fontSize: 10,
+        color: '#f0e6d2',
     },
     transport: { flexDirection: 'row', gap: 4, flex: 'none' },
+    liveDot: {
+        display: 'inline-block',
+        width: 6,
+        height: 6,
+        marginRight: 4,
+        borderRadius: '50%',
+        background: '#5a2020',
+        flex: 'none',
+    },
+    liveDotOn: { background: '#ff3b30', boxShadow: '0 0 4px #ff3b30' },
 
     knobRow: {
         marginTop: 8,
@@ -922,6 +1166,13 @@ const styles: StyleSheetCSS = {
         borderBottomColor: Colors.darkGray,
     },
     powerOn: { color: '#101010' },
+    // A latched button: the bevel turned inside out.
+    pressed: {
+        borderColor: Colors.darkGray,
+        borderRightColor: Colors.white,
+        borderBottomColor: Colors.white,
+        background: '#c8c8c8',
+    },
     powerDot: {
         width: 7,
         height: 7,
@@ -1013,6 +1264,7 @@ const styles: StyleSheetCSS = {
         borderTop: `1px solid ${Colors.darkGray}`,
     },
     guideFootText: { fontFamily: 'MSSerif', fontSize: 9, color: '#444' },
+    guideFootLink: { color: '#000080' },
 };
 
 const testCardStyles: StyleSheetCSS = {

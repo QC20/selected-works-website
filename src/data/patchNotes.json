@@ -1,5 +1,19 @@
 [
   {
+    "head": "The television keeps a schedule",
+    "date": "2026-10-31",
+    "why": "The set always claimed to be broadcasting, but it picked a programme per half hour from a list it fetched on the spot, ordered by however many downloads each tape had that day. Two people on the same channel could be watching different things, and nothing knew how long a programme ran. Every channel is now a real running order with real lengths, worked out ahead of time, so what is on is the same for everyone at the same second.",
+    "notes": [
+      "Press GUIDE on the set and the listings come up on the tube: channels down the side, half-hours across, every programme as wide as it runs. The programme you were watching keeps playing underneath",
+      "The guide works from the keyboard: arrows to move, Enter to watch, Esc to close. It pages six hours ahead",
+      "The deck shows how far into the programme you are, how long it runs, and what is on next and when",
+      "Pause or skip and you fall behind the broadcast; the LIVE light goes out, and pressing it puts you back",
+      "When a programme ends the next scheduled one starts, rather than whatever came next in a list",
+      "Every programme links to its own page at the Internet Archive, where the person who taped it is credited",
+      "Changing channel no longer looks anything up first, and the snow stays up until the new picture is actually playing"
+    ]
+  },
+  {
     "head": "It starts much faster now",
     "date": "2026-10-15",
     "why": "Every one of the forty-odd programs on this desktop was in the first file the browser downloaded — Doom's loader, a DOS emulator, a three.js scene, a face detector — all queued ahead of the one thing anybody came for. The fix is ordinary code splitting, plus the part that matters more: fetching a program a moment before you ask for it rather than a moment after.",

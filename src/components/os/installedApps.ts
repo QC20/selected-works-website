@@ -91,7 +91,7 @@ export const STORE_APPS: StoreApp[] = [
     {
         key: 'television',
         name: 'Television',
-        blurb: 'Fifteen channels of it, streamed from the Internet Archive.',
+        blurb: 'Twenty channels of it, streamed from the Internet Archive.',
         size: 900,
         category: 'Multimedia',
         defaultInstalled: true,
