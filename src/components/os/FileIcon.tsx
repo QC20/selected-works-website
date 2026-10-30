@@ -122,11 +122,21 @@ const FileIcon: React.FC<FileIconProps> = ({
                 }
             };
 
+            // The browser took the gesture away: no pointerup is coming, and
+            // nothing was dropped. See the same handler in DesktopShortcut.
+            const onCancel = () => {
+                detachGesture();
+                dragRef.current = null;
+                setDragDelta(null);
+            };
+
             window.addEventListener('pointermove', onMove);
             window.addEventListener('pointerup', onUp);
+            window.addEventListener('pointercancel', onCancel);
             gestureRef.current.push(
                 ['pointermove', onMove as EventListener],
-                ['pointerup', onUp as EventListener]
+                ['pointerup', onUp as EventListener],
+                ['pointercancel', onCancel as EventListener]
             );
         },
         [onOpen, onSelect, onDropped]

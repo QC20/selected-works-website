@@ -192,11 +192,23 @@ const DesktopShortcut: React.FC<DesktopShortcutProps> = ({
                 }
             };
 
+            // The browser took the gesture away (a system swipe, palm
+            // rejection, a pan it decided to start). No pointerup follows, and
+            // without this the icon stayed lifted and the listeners lived on.
+            // Nothing was dropped, so nothing moves.
+            const onCancel = () => {
+                detachGesture();
+                dragRef.current = null;
+                setDragDelta(null);
+            };
+
             window.addEventListener('pointermove', onMove);
             window.addEventListener('pointerup', onUp);
+            window.addEventListener('pointercancel', onCancel);
             gestureRef.current.push(
                 ['pointermove', onMove as EventListener],
-                ['pointerup', onUp as EventListener]
+                ['pointerup', onUp as EventListener],
+                ['pointercancel', onCancel as EventListener]
             );
         },
         [handleClickShortcut, onMoved]
@@ -302,8 +314,11 @@ const styles: StyleSheetCSS = {
         alignItems: 'center',
         flexDirection: 'column',
         textAlign: 'center',
-        // Faster taps on touch (no 300ms double-tap-zoom delay).
-        touchAction: 'manipulation',
+        // Icons are dragged. With `manipulation` a finger or an Apple Pencil
+        // that moves is claimed by the browser as a pan, which cancels the
+        // pointer and ends the drag before it begins; `none` keeps the stroke
+        // ours. (Taps are still instant — the double-tap delay goes with it.)
+        touchAction: 'none',
     },
     shortcutText: {
         cursor: 'pointer',

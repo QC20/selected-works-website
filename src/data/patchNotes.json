@@ -1,5 +1,15 @@
 [
   {
+    "head": "Apple Pencil, and other styluses",
+    "date": "2026-10-31",
+    "why": "Dragging with a stylus could leave things stuck. The browser treats a moving pen or finger as a scroll unless told otherwise, and when it does it cancels the gesture without telling the page it has ended. Desktop icons asked to be scrolled, and nothing in any drag listened for the cancellation.",
+    "notes": [
+      "Desktop icons can be picked up and moved with a pen or a finger without the page trying to scroll underneath them",
+      "A drag the browser takes away — an iPad system swipe, a palm resting on the screen — now lets go where it was instead of leaving the icon, file or window lifted and following the pointer",
+      "Windows, desktop icons, My Computer files and file icons all handle this the same way"
+    ]
+  },
+  {
     "head": "The television keeps a schedule",
     "date": "2026-10-31",
     "why": "The set always claimed to be broadcasting, but it picked a programme per half hour from a list it fetched on the spot, ordered by however many downloads each tape had that day. Two people on the same channel could be watching different things, and nothing knew how long a programme ran. Every channel is now a real running order with real lengths, worked out ahead of time, so what is on is the same for everyone at the same second.",

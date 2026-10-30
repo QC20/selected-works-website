@@ -120,10 +120,35 @@ const Window: React.FC<WindowProps> = (props) => {
     const activeListeners = useRef<[string, EventListener][]>([]);
 
     const attachGesture = (move: EventListener, up: EventListener) => {
-        window.addEventListener('pointermove', move, false);
+        // A cancelled gesture (a system swipe, palm rejection) is let go where
+        // it last was: finishing it with the cancel event's own coordinates
+        // would not do, since some browsers report those as 0,0 and the window
+        // would jump to the corner.
+        const cancel = () => {
+            const last = lastPoint.current;
+            up(
+                (last
+                    ? { clientX: last.x, clientY: last.y }
+                    : { clientX: 0, clientY: 0 }) as unknown as Event
+            );
+        };
+        const track = (e: Event) => {
+            const { clientX, clientY } = e as PointerEvent;
+            lastPoint.current = { x: clientX, y: clientY };
+            move(e);
+        };
+        window.addEventListener('pointermove', track, false);
         window.addEventListener('pointerup', up, false);
-        activeListeners.current.push(['pointermove', move], ['pointerup', up]);
+        window.addEventListener('pointercancel', cancel, false);
+        activeListeners.current.push(
+            ['pointermove', track],
+            ['pointerup', up],
+            ['pointercancel', cancel]
+        );
     };
+
+    /** Where the pointer last was during the current drag or resize. */
+    const lastPoint = useRef<{ x: number; y: number } | null>(null);
 
     const detachGesture = () => {
         activeListeners.current.forEach(([type, fn]) =>
@@ -136,6 +161,7 @@ const Window: React.FC<WindowProps> = (props) => {
 
     const startResize = (event: any) => {
         event.preventDefault();
+        lastPoint.current = { x: event.clientX, y: event.clientY };
         setIsResizing(true);
         attachGesture(onResize, stopResize);
     };
@@ -167,6 +193,7 @@ const Window: React.FC<WindowProps> = (props) => {
 
     const startDrag = (event: any) => {
         const { clientX, clientY } = event;
+        lastPoint.current = { x: clientX, y: clientY };
         setIsDragging(true);
         event.preventDefault();
         dragProps.current = {

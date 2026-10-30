@@ -784,14 +784,24 @@ const MyComputer: React.FC<MyComputerProps> = ({
                 .then(() => refreshDocuments(documentDir));
         };
 
+        // The browser took the gesture away, so there is no pointerup and
+        // nothing is dropped.
+        const onCancel = () => {
+            releaseCarryListeners();
+            carryRef.current = null;
+            setCarrying(null);
+        };
+
         window.addEventListener('pointermove', onMove);
         window.addEventListener('pointerup', onUp);
+        window.addEventListener('pointercancel', onCancel);
         // Tracked so closing the window mid-drag — which is exactly what
-        // dragging a file *out* of it tends to lead to — doesn't leave two
+        // dragging a file *out* of it tends to lead to — doesn't leave
         // live listeners calling `setCarrying` for the rest of the session.
         carryListeners.current.push(
             ['pointermove', onMove as EventListener],
-            ['pointerup', onUp as EventListener]
+            ['pointerup', onUp as EventListener],
+            ['pointercancel', onCancel as EventListener]
         );
     };
 
