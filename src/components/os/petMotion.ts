@@ -42,11 +42,11 @@
  * Why a keyframe track rather than a spritesheet
  * ----------------------------------------------
  * Both of those mascots have dozens of drawn frames to hold *on*. This
- * desktop's four animals are a single 32px PNG each, so every frame of motion
- * has to come out of transforms. That turns out not to matter: a hold is just
- * two keyframes with the same value, and an asymmetric arc is just two
- * keyframes with different easings. The track below gets the timing right
- * without anybody drawing anything.
+ * desktop's animals are posed by a skeleton instead (`pet/animate.ts`), so
+ * there is no frame to hold — but a hold is just two keyframes with the same
+ * value, and an asymmetric arc is just two keyframes with different easings.
+ * The track below gets the timing right for a rig exactly as it would for a
+ * sheet, and the pet's jumps, presses and yawns are all driven by it.
  */
 
 /* -------------------------------------------------------------------------
@@ -145,9 +145,9 @@ export function track(t: number, keys: Keyframe[]): number {
  *              distance in well under half the time the rise took.
  *   0.82-1.00  land, squash, recover with a small overshoot.
  *
- * `sx` is not keyed separately: volume is conserved by deriving it from `sy`
- * (see `squashX`), which is what stops a squashing creature from also
- * appearing to lose mass.
+ * There is no horizontal squash to key: the rig in `pet/animate.ts` takes
+ * `JUMP_SY` as how deep to crouch, so the squash happens in bent legs
+ * rather than in a sprite being flattened, and the animal keeps its mass.
  */
 export const JUMP_Y: Keyframe[] = [
     { at: 0, v: 0 },
@@ -172,17 +172,6 @@ export const JUMP_SY: Keyframe[] = [
     { at: 1, v: 1, ease: backOut },
 ];
 
-/**
- * Horizontal scale from vertical, holding area roughly constant.
- *
- * A creature that squashes to 84% of its height and stays 100% wide has
- * visibly lost volume; widening it by the reciprocal is the standard fix and
- * costs one divide. Softened by `strength` because full conservation on a
- * 32px sprite scaled up reads as a rubber toy rather than an animal.
- */
-export const squashX = (sy: number, strength = 0.6): number =>
-    1 + (1 / Math.max(0.2, sy) - 1) * strength;
-
 /* -------------------------------------------------------------------------
  * A press that actually presses
  * ----------------------------------------------------------------------
@@ -200,58 +189,20 @@ export const PRESS: Keyframe[] = [
     { at: 1, v: 0 },
 ];
 
-/**
- * A walk cycle's vertical bob, weighted.
- *
- * A body rises slowly as the back leg straightens and drops quickly onto the
- * next contact. Symmetric bobbing reads as floating; this is the same total
- * travel with the fall taking about a third of the time the rise did.
- */
-export const WALK_BOB: Keyframe[] = [
-    { at: 0, v: 0 },
-    { at: 0.38, v: -3.4, ease: sineOut },
-    { at: 0.5, v: 0, ease: easeIn },
-    { at: 0.88, v: -3.4, ease: sineOut },
-    { at: 1, v: 0, ease: easeIn },
-];
-
 /* -------------------------------------------------------------------------
  * Attention
  * ----------------------------------------------------------------------
  * OpenAI's Codex pets ship sixteen distinct "look" directions in their sprite
  * atlas, and it is the thing that makes them feel awake: the creature is
- * plainly *aimed at something*. Our four animals cannot do that. Their eyes
- * are painted into a 32px PNG, and reading the actual pixels settles it —
- * Modem has a clean 2x2 dark pupil on a 2x2 white sclera and could be made to
- * glance about, but Static's eyes are solid dark blocks with nothing to move
- * against, Glitch's are a dithered checker, and Pixel is a fish. One species
- * out of four is worse than none: an effect that works on the dog and not the
- * cat reads as a bug in the cat.
- *
- * So the attention is in the posture instead of the eyes, which works on all
- * four and on anything anyone adds later. The creature leans toward what it
- * is looking at, tips its head, and — because it is being driven toward a
- * target rather than snapped to one — arrives with a little momentum.
+ * plainly *aimed at something*. The drawn animals do it properly now — the
+ * head turns on its rig and the pupils move (see `Animator` in
+ * `pet/animate.ts`) — and the helper below is what eases the turn so it
+ * arrives with a little momentum rather than snapping.
  */
 
-export interface Attention {
-    /** -1 (hard left) .. 1 (hard right). */
-    x: number;
-    /** -1 (below) .. 1 (well above). */
-    y: number;
-}
-
 /**
- * How far away the pointer still counts as worth turning towards.
- *
- * The lean reaches full strength at this distance and fades out over about
- * three times it — measured against the creature's own position, not the
- * screen, so it notices you approaching rather than switching on at a border.
- */
-export const ATTENTION_RANGE = 210;
-
-/**
- * Eases the current lean toward the target rather than setting it.
+ * Eases a value toward its target rather than setting it — the head turn,
+ * and where the pupils point.
  *
  * Framerate-independent: the coefficient is derived from `dt`, so a 144Hz
  * display and a throttled background tab converge at the same speed instead

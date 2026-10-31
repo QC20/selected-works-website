@@ -19,6 +19,14 @@ import {
     tossTreat,
     trickPet,
 } from './pets';
+import { lazyApp } from './lazyApp';
+
+/**
+ * The tray's drawing of the pet comes with the renderer, which is only
+ * downloaded once there is a pet (see `PetHost`). Until it arrives — a
+ * moment, on the first visit after adopting — the 32px icon stands in.
+ */
+const PetBadge = lazyApp(() => import('./pet/PetBadge'));
 import { ResourceSnapshot } from './resourceMeter';
 
 /**
@@ -386,14 +394,16 @@ const MOOD_WORD: Record<PetMood, string> = {
     starving: 'very hungry',
 };
 
-/** The tray icon: the pet's own icon plus a small mood dot, the same idea as
- *  the battery's charging bolt. */
+/** The tray icon: the animal itself, drawn to fit, plus a small mood dot —
+ *  the same idea as the battery's charging bolt. */
 export const PetGauge: React.FC<{ pet: PetDef; mood: PetMood }> = ({
     pet,
     mood,
 }) => (
     <div style={petStyles.gaugeWrap}>
-        <Icon icon={pet.icon} size={18} />
+        <React.Suspense fallback={<Icon icon={pet.icon} size={18} />}>
+            <PetBadge kind={pet.id} size={18} />
+        </React.Suspense>
         <span
             style={{ ...petStyles.dot, background: MOOD_DOT[mood] }}
             aria-hidden="true"
@@ -412,7 +422,9 @@ export const PetPanel: React.FC<{
     return (
         <div style={styles.panel}>
             <div style={styles.header}>
-                <Icon icon={pet.icon} size={16} />
+                <React.Suspense fallback={<Icon icon={pet.icon} size={16} />}>
+                    <PetBadge kind={pet.id} size={16} />
+                </React.Suspense>
                 <span style={styles.title}>{pet.name}</span>
             </div>
 

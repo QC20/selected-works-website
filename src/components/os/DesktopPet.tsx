@@ -1,8 +1,10 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
-import getIconByName from '../../assets/icons';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import ContextMenu, { ContextMenuItem } from './ContextMenu';
-import PetAccessory from './PetAccessory';
 import { openAppGlobal } from './appBridge';
+import { Animator, Clip } from './pet/animate';
+import { Frame } from './pet/raster';
+import { PetKind, draw, frameFor, originOf } from './pet/render';
+import { SpriteName, TOY_SPRITE, TREAT_SPRITE, sprite as pixelSprite } from './pet/sprites';
 import { TASKBAR_HEIGHT } from './metrics';
 import {
     PET_LIST,
@@ -36,20 +38,6 @@ import {
     unlockedAccessories,
     useAchievementState,
 } from './petAchievements';
-import {
-    ATTENTION_RANGE,
-    Attention,
-    JUMP_SY,
-    JUMP_Y,
-    PRESS,
-    WALK_BOB,
-    approach,
-    easeIn,
-    easeOut,
-    sineOut,
-    squashX,
-    track,
-} from './petMotion';
 import { BehaviourId, PetEnv, pickBehaviour } from './petBehaviour';
 import {
     GROUND,
@@ -67,9 +55,11 @@ import {
     playPetBump,
     playPetHappy,
     playPetLift,
+    playPetPurr,
     playPetTreat,
     playPetUnlock,
     playPetVoice,
+    playPetZap,
 } from './sounds';
 
 /**
@@ -112,8 +102,10 @@ import {
  * What you can do with it
  * -----------------------
  *   Click        one of seven reactions — or feed it, if it's hungry.
- *   Double-click ask for its trick: a spin, a roll, a slow blink.
- *   Drag         pick it up. It dangles from the pointer, anywhere on screen.
+ *   Stroke       move the pointer back and forth across it: it sits, leans
+ *                in and squints. Static builds up a charge doing this.
+ *   Double-click ask for its trick: a roll, a war dance, a slow blink.
+ *   Drag         pick it up by the scruff. It dangles, anywhere on screen.
  *   Waggle       shake it about while holding it and it gets dizzy.
  *   Throw        let go while moving and it flies, bounces off the walls,
  *                lands, and is briefly too dizzy to walk straight.
@@ -122,9 +114,17 @@ import {
  *   Right-click  the full menu: feed, pat, fetch, trick, treat, sit, nap,
  *                hats, size, achievements, or send it off to hide.
  *   Keyboard     Tab to it, then arrows / Shift+arrows / Enter.
- *   Hover        it perks up and looks at you.
- *   Leave it     it wanders, sits, stretches, scratches, climbs a wall, and
- *                eventually sleeps.
+ *   Hover        it turns its head to look at the pointer — and at you, if
+ *                the pointer comes close.
+ *   The taskbar  put the pointer on the bar and the collie herds it, the
+ *                cat stalks it and pounces, the others come over.
+ *   Leave it     it wanders, sits, grooms, climbs onto your windows, and
+ *                eventually sleeps. Hungry, it sits by its bowl.
+ *
+ * What it looks like is drawn, not pictured: `pet/render.ts` paints the
+ * animal from a skeleton every frame (see the note at the top of
+ * `pet/raster.ts`), and `pet/animate.ts` decides the pose. Everything in
+ * this file is behaviour — where the creature is and what it is doing.
  *
  * Everything else on the desktop that touches the pet — the tray flyout, the
  * Pet window, Clippy — goes through `pets.ts`'s event bus, so feeding from a
@@ -187,6 +187,8 @@ type PetActivity =
     /* direct manipulation and absence */
     | 'held'
     | 'falling'
+    /** The cat's leap at the pointer: thrown-pet physics, a hunter's pose. */
+    | 'pouncing'
     | 'gone'
     | 'peeking';
 
@@ -219,14 +221,30 @@ type PetPose =
     | 'dance'
     | 'ponder';
 
-/** The sprite's height at 100%. Big enough to read as a character rather
- *  than a cursor artefact, which is the whole reason the art was drawn at
- *  32px and is displayed larger. */
+/** The creature's nominal size at 100%, roughly nose to tail. Everything
+ *  that needs to know how big the animal is — walking bounds, how close
+ *  counts as caught, where the bowl goes — measures in these. */
 const BASE_SPRITE = 52;
 
 /** Pixels per second. Slow enough to read as an amble, not a scuttle. */
 const WALK_SPEED = 40;
 const CHASE_SPEED = 92;
+
+/**
+ * How each animal moves, relative to the numbers above.
+ *
+ * The four used to share one set of physics because they were four
+ * pictures. They are four animals now: the ermine is quicker than anything
+ * else on the bar, and the fish does not so much fall as sink — through
+ * the desktop as if it were water, slowly, and without bouncing.
+ */
+const FEEL: Record<string, { pace: number; gravity: number; drag: number; bounce: number }> = {
+    modem: { pace: 1, gravity: 1, drag: 0, bounce: 1 },
+    static: { pace: 0.95, gravity: 1, drag: 0, bounce: 0.8 },
+    glitch: { pace: 1.3, gravity: 1, drag: 0, bounce: 1 },
+    pixel: { pace: 0.8, gravity: 0.24, drag: 1.6, bounce: 0.15 },
+};
+const feelOf = (id: string | undefined) => FEEL[id ?? 'modem'] ?? FEEL.modem;
 /** Chasing a thrown toy is the one time the creature really runs. */
 const FETCH_SPEED = 165;
 /** Going to a wall is purposeful — faster than an amble, slower than a chase. */
@@ -312,12 +330,27 @@ interface Projectile {
 
 interface Particle {
     id: number;
-    kind: 'heart' | 'crumb' | 'sparkle' | 'star' | 'note' | 'sweat';
+    kind: 'heart' | 'crumb' | 'sparkle' | 'star' | 'note' | 'sweat' | 'spark' | 'bubble';
     /** Horizontal drift, in px, handed to the CSS keyframes as `--pet-dx`. */
     dx: number;
     delay: number;
-    glyph: string;
+    sprite: SpriteName;
 }
+
+/**
+ * Where y = 0 sits, in screen pixels from the bottom: the top edge of the
+ * taskbar. The old sprite had four empty rows under the paws and was sunk
+ * six pixels into the bar to compensate (that is what `GROUND` is); the
+ * drawn animals stand on their own feet, so they stand on the bar itself.
+ */
+const FOOT = GROUND + 6;
+
+/** The sprite is redrawn at most this often; it moves at full frame rate. */
+const DRAW_EVERY_MS = 1000 / 30;
+
+/** How long a stroke has to keep going to count as one, and how often it pays out. */
+const STROKE_TRAVEL = 46;
+const STROKE_PAT_EVERY_MS = 2600;
 
 let particleId = 0;
 
@@ -340,20 +373,91 @@ const DesktopPet: React.FC<{ suspended?: boolean }> = ({ suspended = false }) =>
         : undefined;
 
     const layerRef = useRef<HTMLDivElement | null>(null);
+    /** A zero-size anchor at the creature's feet; everything hangs off it. */
     const elRef = useRef<HTMLDivElement | null>(null);
-    const bodyRef = useRef<HTMLDivElement | null>(null);
     const toyElRef = useRef<HTMLDivElement | null>(null);
     const treatElRef = useRef<HTMLDivElement | null>(null);
     const shadowRef = useRef<HTMLDivElement | null>(null);
+    const bowlElRef = useRef<HTMLDivElement | null>(null);
 
-    /** The sprite's current pixel height. Read in the loop, so also a ref. */
+    /* --- the drawing ------------------------------------------------------
+     * The animal is painted into a canvas by `pet/render.ts` rather than
+     * being an <img> moved by CSS. The canvas is not clickable — its box is
+     * mostly empty air round the animal — so a separate hit box is fitted
+     * to the drawn pixels on every frame, and the bubble, particles and
+     * star hang off a little anchor that follows the head.
+     */
+    const canvasRef = useRef<HTMLCanvasElement | null>(null);
+    const hitRef = useRef<HTMLDivElement | null>(null);
+    /** Sits on the centre of the head: particles, sleep, the star. */
+    const headElRef = useRef<HTMLDivElement | null>(null);
+    /** Sits on top of the drawing, over the head: the speech bubble. */
+    const bubbleElRef = useRef<HTMLDivElement | null>(null);
+    const bubbleBoxRef = useRef<HTMLDivElement | null>(null);
+    const bubbleTailRef = useRef<HTMLSpanElement | null>(null);
+    const frameRef = useRef<Frame | null>(null);
+    const imageRef = useRef<ImageData | null>(null);
+    const animatorRef = useRef<Animator | null>(null);
+    const lastDrawRef = useRef(0);
+    /** The head and mouth as last drawn, relative to the feet, y up. */
+    const headAtRef = useRef({ x: 12, y: 26, top: 36 });
+    const mouthAtRef = useRef({ x: 18, y: 22 });
+    /** The head's angle as last drawn, in degrees — what swings the hat. */
+    const headAngleRef = useRef(0);
+    /** What it is wearing this frame; read by the loop, so a ref. */
+    const wornRef = useRef<AccessoryId | null>(null);
+
+    /** The sprite's nominal size in px. Read in the loop, so also a ref. */
     const sprite = Math.round(BASE_SPRITE * achievements.scale);
     const spriteRef = useRef(sprite);
     spriteRef.current = sprite;
+    const scaleRef = useRef(achievements.scale);
+    scaleRef.current = achievements.scale;
+
+    /* --- being stroked ----------------------------------------------------
+     * Moving the pointer back and forth across the animal, without
+     * pressing anything, is stroking it — the most natural thing anybody
+     * does to a creature on a screen, and the one thing the old pet could
+     * not notice. See `onStroke`.
+     */
+    const strokeRef = useRef({
+        last: 0,
+        lastX: 0,
+        dir: 0,
+        travel: 0,
+        flips: 0,
+        until: 0,
+        nextPat: 0,
+    });
+    /** True while `pettPet` is being called from a stroke rather than a poke. */
+    const strokingPatRef = useRef(false);
+    /** Static's static: built by stroking, discharged all at once. 0..1. */
+    const chargeRef = useRef(0);
+    /** Glitch's corruption spikes: when it last went wrong on purpose. */
+    const glitchUntilRef = useRef(0);
+    /** When the pointer last moved, so the cat can wait for it to settle. */
+    const pointerMovedAtRef = useRef(0);
+    /** Not before this — a cat that pounces every second is a toy. */
+    const nextPounceRef = useRef(0);
+    /** The collie has dropped into the crouch and is giving the pointer the eye. */
+    const herdingRef = useRef(false);
+    /** Since when — after a while it goes down, still watching, as collies do. */
+    const herdingSinceRef = useRef(0);
+    /** Small ambient business: Glitch's next tear, Pixel's next bubble. */
+    const nextAmbientRef = useRef(performance.now() + 8000);
+
+    /* --- the bowl ---------------------------------------------------------
+     * Hunger used to be a red "!" over the head. Now it is a bowl on the
+     * taskbar, and an animal that goes and sits by it and looks at you,
+     * which is what animals actually do. Feeding fills it; it is eaten
+     * from; it goes away.
+     */
+    const bowlRef = useRef<{ x: number; full: boolean; until: number } | null>(null);
+    const [bowl, setBowl] = useState<'none' | 'empty' | 'full'>('none');
 
     // --- the creature ------------------------------------------------------
     const xRef = useRef(START_RESERVE + 120); // centre, in desktop px
-    const yRef = useRef(0); // height above `GROUND`
+    const yRef = useRef(0); // height above the taskbar's top edge (`FOOT`)
     const vxRef = useRef(0);
     const vyRef = useRef(0);
     const spinRef = useRef(0); // degrees, while airborne
@@ -379,7 +483,7 @@ const DesktopPet: React.FC<{ suspended?: boolean }> = ({ suspended = false }) =>
     // --- the walls ---------------------------------------------------------
     /** Which edge is being climbed: -1 left, 1 right, 0 not on a wall. */
     const wallRef = useRef<0 | 1 | -1>(0);
-    /** How high this particular climb intends to go, above GROUND. */
+    /** How high this particular climb intends to go, above the taskbar. */
     const climbTargetRef = useRef(0);
     /** Not before this — stops it living on the wall permanently. */
     const nextClimbRef = useRef(performance.now() + 45_000);
@@ -481,8 +585,6 @@ const DesktopPet: React.FC<{ suspended?: boolean }> = ({ suspended = false }) =>
     /** The pointer anywhere on screen, in desktop px measured from the
      *  bottom-left — what the creature turns to look at. */
     const lookRef = useRef<{ x: number; y: number } | null>(null);
-    /** The lean actually being rendered, eased toward the target each frame. */
-    const attentionRef = useRef<Attention>({ x: 0, y: 0 });
     /**
      * Until when the creature should look like it is watching you work.
      *
@@ -511,8 +613,6 @@ const DesktopPet: React.FC<{ suspended?: boolean }> = ({ suspended = false }) =>
      */
     const hatAngleRef = useRef(0);
     const hatVelRef = useRef(0);
-    const lastRotRef = useRef(0);
-    const hatElRef = useRef<HTMLDivElement | null>(null);
 
     const petRef = useRef<PetDef | undefined>(pet);
     petRef.current = pet;
@@ -548,20 +648,12 @@ const DesktopPet: React.FC<{ suspended?: boolean }> = ({ suspended = false }) =>
 
     /** A short burst of whatever this moment calls for, cleaned up on a timer. */
     const burst = useCallback((kind: Particle['kind'], count: number) => {
-        const glyphs: Record<Particle['kind'], string[]> = {
-            heart: ['♥', '♥', '♡'],
-            crumb: ['•', '·', '▪'],
-            sparkle: ['✦', '✧', '+'],
-            star: ['✶', '★', '✱'],
-            note: ['♪', '♫', '♬'],
-            sweat: ['💧'],
-        };
         const made: Particle[] = Array.from({ length: count }, (_, i) => ({
             id: ++particleId,
             kind,
-            dx: (Math.random() - 0.5) * 34,
-            delay: i * 90,
-            glyph: glyphs[kind][Math.floor(Math.random() * glyphs[kind].length)],
+            dx: (Math.random() - 0.5) * 30,
+            delay: i * 110,
+            sprite: kind,
         }));
         setParticles((prev) => [...prev, ...made]);
         window.setTimeout(
@@ -577,6 +669,30 @@ const DesktopPet: React.FC<{ suspended?: boolean }> = ({ suspended = false }) =>
     const react = useCallback(
         (next: PetActivity, ms: number) => {
             const now = performance.now();
+            // Clinging to the side of the screen, a reaction is a reason to
+            // let go, not something to perform up there. It used to release
+            // the wall and play the hop in mid-air — and the first climb
+            // unlocks Wall Crawler, whose celebration is exactly such a
+            // reaction, so nearly every visitor's pet ended up strolling
+            // along nothing halfway up the screen.
+            const act = activityRef.current;
+            if (
+                wallRef.current !== 0 &&
+                (act === 'climbing' || act === 'wallHang' || act === 'wallNap')
+            ) {
+                wallRef.current = 0;
+                vxRef.current = 0;
+                vyRef.current = 0;
+                spinRef.current = 0;
+                phaseUntilRef.current = 0;
+                // Whatever performance asked for this is not going to
+                // happen, so it must not linger — `cool` would otherwise
+                // leave the sunglasses on until some later reaction ended.
+                reactionRef.current = null;
+                setReaction(null);
+                setActivityBoth('falling');
+                return;
+            }
             phaseFromRef.current = now;
             phaseLengthRef.current = ms;
             phaseUntilRef.current = now + ms;
@@ -629,11 +745,13 @@ const DesktopPet: React.FC<{ suspended?: boolean }> = ({ suspended = false }) =>
 
             switch (id) {
                 case 'heart':
-                    burst('heart', 3);
-                    playPetVoice(p.id);
+                    burst('heart', 2);
+                    if (p.id === 'static') playPetPurr();
+                    else playPetVoice(p.id);
                     break;
                 case 'sing':
-                    burst('note', 4);
+                    // The fish sings in bubbles; everybody else in notes.
+                    burst(p.id === 'pixel' ? 'bubble' : 'note', p.id === 'pixel' ? 5 : 3);
                     playPetHappy();
                     break;
                 case 'worry':
@@ -646,6 +764,7 @@ const DesktopPet: React.FC<{ suspended?: boolean }> = ({ suspended = false }) =>
                     playClick();
                     break;
                 case 'yap':
+                    if (p.id === 'pixel') burst('bubble', 3);
                     playPetVoice(p.id);
                     break;
                 default:
@@ -668,7 +787,7 @@ const DesktopPet: React.FC<{ suspended?: boolean }> = ({ suspended = false }) =>
      */
 
     /** Fully below the viewport, taskbar included. */
-    const hiddenY = useCallback(() => -(GROUND + spriteRef.current + 4), []);
+    const hiddenY = useCallback(() => -(FOOT + spriteRef.current + 4), []);
 
     const goOnTheRun = useCallback(() => {
         const p = petRef.current;
@@ -724,17 +843,40 @@ const DesktopPet: React.FC<{ suspended?: boolean }> = ({ suspended = false }) =>
             }
 
             switch (event) {
-                case 'fed':
+                case 'fed': {
+                    // Into a bowl in front of its nose, if it is standing on
+                    // the taskbar — the empty one it was sitting by, moved
+                    // the last few pixels, or a fresh one.
+                    if (!ledgeRef.current && yRef.current < 4 && wallRef.current === 0) {
+                        bowlRef.current = {
+                            x: xRef.current + facingRef.current * spriteRef.current * 0.42,
+                            full: true,
+                            until: performance.now() + 2400,
+                        };
+                        setBowl('full');
+                    }
                     react('eating', 1500);
-                    burst('crumb', 5);
+                    burst('crumb', 4);
                     playPetVoice(p.id);
                     say(randomLine(p.feedLines));
                     break;
+                }
 
                 case 'patted':
-                    // A poke on the creature itself gets the repertoire; a
-                    // deliberate "Pat" from a menu gets the plain happy hop.
-                    if (pokeRef.current) {
+                    // A stroke gets contentment: it sits, squints, and leans
+                    // into the hand. A poke on the creature itself gets the
+                    // repertoire; a deliberate "Pat" from a menu gets the
+                    // plain happy hop.
+                    if (strokingPatRef.current) {
+                        reactionRef.current = 'heart';
+                        setReaction('heart');
+                        react('reacting', 1600);
+                        notePetMoment('reaction', { id: 'heart' });
+                        burst('heart', 2);
+                        if (p.id === 'static') playPetPurr();
+                        else playPetVoice(p.id);
+                        say(randomLine(p.petLines));
+                    } else if (pokeRef.current) {
                         perform();
                     } else {
                         react('happy', 1100);
@@ -826,6 +968,9 @@ const DesktopPet: React.FC<{ suspended?: boolean }> = ({ suspended = false }) =>
 
                 case 'error':
                     // The one thing on this machine that genuinely alarms it.
+                    // Glitch, being made of the same stuff as the error,
+                    // also briefly comes apart.
+                    if (p.id === 'glitch') glitchUntilRef.current = performance.now() + 700;
                     if (activityRef.current === 'held') break;
                     perform('worry');
                     break;
@@ -854,8 +999,19 @@ const DesktopPet: React.FC<{ suspended?: boolean }> = ({ suspended = false }) =>
     useEffect(() => {
         if (!pet || suspended) return;
         return onAchievementUnlocked((unlocked) => {
-            react('happy', 1400);
-            burst('sparkle', 7);
+            // The hop only where there is something to hop from: not while
+            // clinging to a wall (the first climb unlocks Wall Crawler at
+            // the very moment it reaches the top), and not in a hand.
+            const act = activityRef.current;
+            const grounded =
+                wallRef.current === 0 &&
+                act !== 'held' &&
+                act !== 'falling' &&
+                act !== 'pouncing' &&
+                act !== 'climbing' &&
+                act !== 'climbLedge';
+            if (grounded) react('happy', 1400);
+            burst('sparkle', 5);
             playPetUnlock();
             say(`${unlocked.name} — unlocked.`);
         });
@@ -887,6 +1043,7 @@ const DesktopPet: React.FC<{ suspended?: boolean }> = ({ suspended = false }) =>
                 x: e.clientX / scale,
                 y: (window.innerHeight - e.clientY) / scale,
             };
+            pointerMovedAtRef.current = performance.now();
         };
         window.addEventListener('pointermove', onPointerMove, { passive: true });
 
@@ -904,6 +1061,151 @@ const DesktopPet: React.FC<{ suspended?: boolean }> = ({ suspended = false }) =>
 
         let raf = 0;
         let last = performance.now();
+        /** A finger needs a bigger target than a pointer does. */
+        const coarse = !!window.matchMedia?.('(pointer: coarse)')?.matches;
+        /**
+         * How often to redraw, adapting to the machine: a slow phone that
+         * takes more than a few milliseconds per paint drops from thirty
+         * drawings a second to twenty. Movement stays at full rate either
+         * way; only the sprite's cadence changes.
+         */
+        let drawEvery = DRAW_EVERY_MS;
+        let paintCost = 0;
+        /** Hunger, re-read twice a second rather than sixty times. */
+        let nextMoodCheck = 0;
+        let hungryNow = false;
+
+        /** How corrupted Glitch looks right now, 0..1. */
+        const glitchLevel = (now: number): number => {
+            if (now < glitchUntilRef.current) return 1;
+            switch (activityRef.current) {
+                case 'trick':
+                    return 1;
+                case 'dizzy':
+                    return 0.85;
+                case 'held':
+                    return 0.5;
+                case 'falling':
+                    return 0.35;
+                case 'sleeping':
+                case 'wallNap':
+                    return 0.02;
+                default:
+                    return 0.08;
+            }
+        };
+
+        /**
+         * Draws the pose into the canvas, then fits everything that hangs
+         * off the drawing to it: the hit box to the pixels, the bubble and
+         * particles to the head, the hat's swing to how fast the head moved.
+         */
+        function paint(pose: ReturnType<Animator['update']>, kind: PetKind, now: number, since: number): void {
+            const frame = frameRef.current;
+            const image = imageRef.current;
+            const canvas = canvasRef.current;
+            if (!frame || !image || !canvas) return;
+            const ctx = canvas.getContext('2d');
+            if (!ctx) return;
+
+            const drawn = draw(frame, {
+                kind,
+                pose,
+                facing: facingRef.current,
+                scale: scaleRef.current,
+                time: now,
+                accessory: wornRef.current,
+                hatSwing: hatAngleRef.current,
+                glitch: kind === 'glitch' ? glitchLevel(now) : 0,
+                charge: kind === 'static' ? chargeRef.current : 0,
+                alarm: reactionRef.current === 'worry' || reactionRef.current === 'speechless',
+            });
+            ctx.putImageData(image, 0, 0);
+
+            const [ox, oy] = originOf(frame);
+            const b = drawn.bbox;
+            const a = drawn.anchors;
+
+            // The hit box hugs what was drawn, with a little slack, and is
+            // never smaller than a fingertip.
+            const hit = hitRef.current;
+            if (hit) {
+                const minSide = coarse ? 40 : 26;
+                let w = b.x1 - b.x0 + 7;
+                let h = b.y1 - b.y0 + 7;
+                let left = b.x0 - ox - 3;
+                let top = b.y0 - oy - 3;
+                if (w < minSide) {
+                    left -= (minSide - w) / 2;
+                    w = minSide;
+                }
+                if (h < minSide) {
+                    top -= (minSide - h) / 2;
+                    h = minSide;
+                }
+                hit.style.left = `${Math.round(left)}px`;
+                hit.style.top = `${Math.round(top)}px`;
+                hit.style.width = `${Math.round(w)}px`;
+                hit.style.height = `${Math.round(h)}px`;
+            }
+
+            headAtRef.current = {
+                x: a.head[0] - ox,
+                y: oy - a.head[1],
+                top: oy - b.y0,
+            };
+            mouthAtRef.current = { x: a.mouth[0] - ox, y: oy - a.mouth[1] };
+            const head = headElRef.current;
+            if (head) {
+                head.style.left = `${Math.round(a.head[0] - ox)}px`;
+                head.style.top = `${Math.round(a.head[1] - oy)}px`;
+            }
+            const talk = bubbleElRef.current;
+            if (talk) {
+                talk.style.left = `${Math.round(a.head[0] - ox)}px`;
+                talk.style.top = `${Math.round(b.y0 - oy)}px`;
+                // Keep the balloon on screen near either edge, sliding it
+                // sideways while its tail stays pointed at whoever spoke.
+                const box = bubbleBoxRef.current;
+                const tail = bubbleTailRef.current;
+                if (box && tail) {
+                    const headX = xRef.current + (a.head[0] - ox);
+                    const half = 96;
+                    const lo = 4 + half - headX;
+                    const hi = layerWidth() - 4 - half - headX;
+                    const shift = Math.round(Math.max(lo, Math.min(hi, 0)));
+                    box.style.marginLeft = `${-half + shift}px`;
+                    tail.style.left = `${Math.max(6, Math.min(176, half - 6 - shift))}px`;
+                }
+            }
+
+            /* --- the hat, one beat behind ---------------------------------
+             * Driven by how fast the head just turned, pulled back to level
+             * by its own stiffness, and damped so it settles rather than
+             * ringing. Clamped hard: a hat that swings further than this
+             * stops looking like inertia and starts looking like it has
+             * come off.
+             */
+            const angle = (a.headAngle * 180) / Math.PI;
+            let drive = angle - headAngleRef.current;
+            if (drive > 180) drive -= 360;
+            if (drive < -180) drive += 360;
+            drive = Math.max(-30, Math.min(30, drive));
+            headAngleRef.current = angle;
+            if (!wornRef.current || reduced) {
+                hatAngleRef.current = 0;
+                hatVelRef.current = 0;
+            } else {
+                const step = Math.min(2.5, since * 60);
+                hatVelRef.current +=
+                    (-hatAngleRef.current * 0.16 - hatVelRef.current * 0.22) * step -
+                    drive * 0.42;
+                hatAngleRef.current = Math.max(
+                    -17,
+                    Math.min(17, hatAngleRef.current + hatVelRef.current * step)
+                );
+            }
+        }
 
         const tick = (now: number) => {
             const dt = Math.min(0.05, (now - last) / 1000);
@@ -912,17 +1214,19 @@ const DesktopPet: React.FC<{ suspended?: boolean }> = ({ suspended = false }) =>
             const { min, max } = walkBounds(size);
             const hard = hardBounds(size);
             const act = activityRef.current;
-            const ceiling = layerHeight() - GROUND - size;
+            const ceiling = layerHeight() - FOOT - size;
             /** Where the creature was, for the odometer. */
             const wasX = xRef.current;
+            const wasY = yRef.current;
 
             // --- the toy and the treat, which fall whether or not anyone is
             //     paying attention to them -------------------------------
             stepProjectile(toyRef.current, dt, hard, true);
             stepProjectile(treatRef.current, dt, hard, false);
             if (toyRef.current?.carried) {
-                toyRef.current.x = xRef.current + facingRef.current * 14;
-                toyRef.current.y = 10;
+                // In its mouth — wherever the mouth was last drawn.
+                toyRef.current.x = xRef.current + mouthAtRef.current.x;
+                toyRef.current.y = Math.max(0, mouthAtRef.current.y - 2);
             }
             if (toyRef.current && toyRef.current.doneAt && now > toyRef.current.doneAt) {
                 toyRef.current = null;
@@ -940,11 +1244,23 @@ const DesktopPet: React.FC<{ suspended?: boolean }> = ({ suspended = false }) =>
             function enterBehaviour(id: BehaviourId): void {
                 lastBehaviourRef.current = id;
                 switch (id) {
-                    case 'walkFloor':
-                        targetRef.current =
-                            min + Math.random() * Math.max(1, max - min);
+                    case 'walkFloor': {
+                        // A hungry animal with a bowl out mostly walks to
+                        // it, and sits beside it, and looks at you.
+                        const bw = bowlRef.current;
+                        if (hungryNow && bw && !bw.full && Math.random() < 0.7) {
+                            const side = xRef.current < bw.x ? -1 : 1;
+                            targetRef.current = Math.max(
+                                min,
+                                Math.min(max, bw.x + side * size * 0.75)
+                            );
+                        } else {
+                            targetRef.current =
+                                min + Math.random() * Math.max(1, max - min);
+                        }
                         setActivityBoth('walking');
                         break;
+                    }
 
                     case 'sitFloor':
                         poseRef.current = 'sit';
@@ -1129,14 +1445,22 @@ const DesktopPet: React.FC<{ suspended?: boolean }> = ({ suspended = false }) =>
                 );
                 yRef.current =
                     hiddenY() +
-                    Math.sin(t * Math.PI) * (GROUND + size * 0.6);
+                    Math.sin(t * Math.PI) * (FOOT + size * 0.6);
                 if (now > phaseUntilRef.current) {
                     setActivityBoth('gone');
                     nextPeekRef.current = now + 5000 + Math.random() * 7000;
                 }
-            } else if (act === 'falling') {
+            } else if (act === 'falling' || act === 'pouncing') {
                 const prevY = yRef.current;
-                vyRef.current -= GRAVITY * dt;
+                const feel = feelOf(petRef.current?.id);
+                vyRef.current -= GRAVITY * feel.gravity * dt;
+                if (feel.drag) {
+                    // Water: everything bleeds away, and a sinking fish
+                    // settles at a gentle terminal speed.
+                    const k = Math.max(0, 1 - feel.drag * dt);
+                    vxRef.current *= k;
+                    vyRef.current = Math.max(-140, vyRef.current * k);
+                }
                 xRef.current += vxRef.current * dt;
                 yRef.current += vyRef.current * dt;
                 spinRef.current += vxRef.current * dt * 0.8;
@@ -1158,12 +1482,12 @@ const DesktopPet: React.FC<{ suspended?: boolean }> = ({ suspended = false }) =>
                     // only graceful way out of "the visitor dropped it under
                     // the taskbar" and, as it happens, the nicest accident in
                     // the whole component.
-                    if (yRef.current < -(GROUND + size * 2)) {
+                    if (yRef.current < -(FOOT + size * 2)) {
                         despawningRef.current = false;
                         const p = petRef.current;
                         xRef.current =
                             min + Math.random() * Math.max(1, max - min);
-                        yRef.current = layerHeight() - GROUND;
+                        yRef.current = layerHeight() - FOOT;
                         vxRef.current = 0;
                         vyRef.current = 0;
                         spinRef.current = 0;
@@ -1206,9 +1530,9 @@ const DesktopPet: React.FC<{ suspended?: boolean }> = ({ suspended = false }) =>
                 } else if (yRef.current <= 0) {
                     const impact = Math.abs(vyRef.current);
                     yRef.current = 0;
-                    if (impact > 150) {
+                    if (impact > 150 && feelOf(petRef.current?.id).bounce > 0.5) {
                         // One bounce, then it stays down.
-                        vyRef.current = impact * FLOOR_BOUNCE;
+                        vyRef.current = impact * FLOOR_BOUNCE * feelOf(petRef.current?.id).bounce;
                         vxRef.current *= 0.6;
                         playPetBump();
                         squashRef.current = Math.min(1, impact / 900);
@@ -1231,9 +1555,16 @@ const DesktopPet: React.FC<{ suspended?: boolean }> = ({ suspended = false }) =>
                             });
                             throwFromRef.current = 0;
                         }
-                        if (impact > DIZZY_SPEED || horizontal > 300) {
+                        if (act === 'pouncing') {
+                            // Landed on nothing, as cats generally do when
+                            // the thing was a pointer. A beat of composure.
+                            react('happy', 380);
+                            if (p?.pounceLines && Math.random() < 0.35) {
+                                say(randomLine(p.pounceLines));
+                            }
+                        } else if (impact > DIZZY_SPEED || horizontal > 300) {
                             react('dizzy', 1600);
-                            burst('star', 4);
+                            burst('star', 3);
                             notePetMoment('dizzy');
                             if (p) say(randomLine(p.dizzyLines));
                         } else {
@@ -1265,12 +1596,21 @@ const DesktopPet: React.FC<{ suspended?: boolean }> = ({ suspended = false }) =>
                 act === 'dizzy' ||
                 act === 'reacting'
             ) {
-                // The reaction just finished.
+                // The reaction just finished. If it happened somewhere with
+                // nothing underneath — off a wall, or mid-climb with the
+                // window it was climbing gone — the next thing is falling,
+                // not standing about in the air.
                 spinRef.current = 0;
                 reactionRef.current = null;
                 setReaction(null);
-                idleUntilRef.current = now + 400;
-                setActivityBoth('idle');
+                if (yRef.current > 0.5 && !ledgeRef.current) {
+                    vxRef.current = 0;
+                    vyRef.current = 0;
+                    setActivityBoth('falling');
+                } else {
+                    idleUntilRef.current = now + 400;
+                    setActivityBoth('idle');
+                }
             } else if (toyRef.current && toyRef.current.carried) {
                 // Carrying it home. Driven by where the toy *is* rather than
                 // by an activity flag, so being picked up, patted or startled
@@ -1344,6 +1684,10 @@ const DesktopPet: React.FC<{ suspended?: boolean }> = ({ suspended = false }) =>
             } else if (act === 'climbing') {
                 yRef.current += CLIMB_SPEED * dt;
                 lastMoveRef.current = now;
+                // Rearing up onto the wall: the feet go to the edge itself,
+                // since it is the drawn paws that hold on, not a sprite box.
+                const wallX = wallRef.current === -1 ? 1 : layerWidth() - 1;
+                xRef.current += (wallX - xRef.current) * Math.min(1, dt * 10);
                 if (yRef.current >= Math.min(climbTargetRef.current, ceiling)) {
                     yRef.current = Math.min(climbTargetRef.current, ceiling);
                     const p = petRef.current;
@@ -1428,6 +1772,11 @@ const DesktopPet: React.FC<{ suspended?: boolean }> = ({ suspended = false }) =>
                         // The edge may have moved while it was climbing.
                         xRef.current =
                             ledgeSideRef.current === -1 ? live.left : live.right;
+                        // Paws on the window, body outside it. It may have
+                        // walked to this edge from underneath the window, in
+                        // which case it was facing away; the old face sprite
+                        // hid that, a body with legs does not.
+                        facingRef.current = (ledgeSideRef.current === -1 ? 1 : -1) as 1 | -1;
                         lastMoveRef.current = now;
                         if (yRef.current >= live.y) {
                             yRef.current = live.y;
@@ -1471,7 +1820,7 @@ const DesktopPet: React.FC<{ suspended?: boolean }> = ({ suspended = false }) =>
                             } else {
                                 const dir = (Math.sign(dist) || 1) as 1 | -1;
                                 facingRef.current = dir;
-                                xRef.current += dir * WALK_SPEED * dt;
+                                xRef.current += dir * WALK_SPEED * feelOf(petRef.current?.id).pace * dt;
                                 lastMoveRef.current = now;
                                 stepsRef.current += Math.abs(
                                     dir * WALK_SPEED * dt
@@ -1494,11 +1843,65 @@ const DesktopPet: React.FC<{ suspended?: boolean }> = ({ suspended = false }) =>
                 if (pointerX !== null) {
                     const clamped = Math.max(min, Math.min(max, pointerX));
                     const dist = clamped - xRef.current;
-                    if (Math.abs(dist) > CATCH_DISTANCE) {
+                    /*
+                     * The cat hunts it. It creeps to within a short leap,
+                     * holds there with its back end wiggling, waits for the
+                     * pointer to go still — that is the cue every cat waits
+                     * for — and pounces. The dog and the others just come.
+                     */
+                    const hunter = petRef.current?.id === 'static';
+                    const holdOff = hunter ? size * 1.25 : CATCH_DISTANCE;
+                    // Landed on it, or close enough: caught. Sit with it.
+                    const caught = hunter && Math.abs(dist) <= size * 0.35;
+                    if (caught) {
+                        herdingRef.current = false;
+                        setActivityBoth('idle');
+                        idleUntilRef.current = Math.max(idleUntilRef.current, now + 900);
+                    } else if (
+                        hunter &&
+                        Math.abs(dist) < size * 1.75 &&
+                        Math.abs(dist) > size * 0.3 &&
+                        now > nextPounceRef.current &&
+                        now - pointerMovedAtRef.current > 340
+                    ) {
+                        const dir = (Math.sign(dist) || 1) as 1 | -1;
+                        facingRef.current = dir;
+                        const T = 0.42;
+                        vxRef.current = dist / T;
+                        vyRef.current = 0.5 * GRAVITY * T;
+                        spinRef.current = 0;
+                        nextPounceRef.current = now + 3600 + Math.random() * 3000;
+                        playPetLift();
+                        setActivityBoth('pouncing');
+                    } else if (
+                        petRef.current?.id === 'modem' &&
+                        Math.abs(dist) < size * 2.6 &&
+                        now - pointerMovedAtRef.current > 450
+                    ) {
+                        // The collie's eye: when the thing it is herding
+                        // stops, it drops into a crouch and holds, staring,
+                        // ready to go the moment it moves again.
+                        if (!herdingRef.current) herdingSinceRef.current = now;
+                        herdingRef.current = true;
+                        setActivityBoth('chasing');
+                        facingRef.current = (Math.sign(dist) || facingRef.current) as 1 | -1;
+                        lastMoveRef.current = now;
+                    } else if (Math.abs(dist) > holdOff) {
+                        herdingRef.current = false;
                         setActivityBoth('chasing');
                         const dir = Math.sign(dist) as 1 | -1;
                         facingRef.current = dir;
-                        xRef.current += dir * CHASE_SPEED * dt;
+                        xRef.current +=
+                            dir *
+                            CHASE_SPEED *
+                            (hunter ? 0.42 : 1) *
+                            feelOf(petRef.current?.id).pace *
+                            dt;
+                        lastMoveRef.current = now;
+                    } else if (hunter) {
+                        // In range: crouched and still, waiting.
+                        setActivityBoth('chasing');
+                        facingRef.current = (Math.sign(dist) || facingRef.current) as 1 | -1;
                         lastMoveRef.current = now;
                     } else {
                         // Caught up — sit and look at it.
@@ -1516,7 +1919,7 @@ const DesktopPet: React.FC<{ suspended?: boolean }> = ({ suspended = false }) =>
                     } else {
                         const dir = Math.sign(dist) as 1 | -1;
                         facingRef.current = dir;
-                        xRef.current += dir * WALK_SPEED * dt;
+                        xRef.current += dir * WALK_SPEED * feelOf(petRef.current?.id).pace * dt;
                         lastMoveRef.current = now;
                     }
                 } else {
@@ -1579,7 +1982,7 @@ const DesktopPet: React.FC<{ suspended?: boolean }> = ({ suspended = false }) =>
                 poseRef.current === 'none' &&
                 now > nextPoseRef.current
             ) {
-                const [pose, ms] = pickPose();
+                const [pose, ms] = pickPose(petRef.current?.id);
                 poseRef.current = pose;
                 poseFromRef.current = now;
                 poseUntilRef.current = now + ms;
@@ -1592,7 +1995,11 @@ const DesktopPet: React.FC<{ suspended?: boolean }> = ({ suspended = false }) =>
             }
 
             // --- clamp and paint ----------------------------------------
-            xRef.current = Math.max(hard.min, Math.min(hard.max, xRef.current));
+            if (wallRef.current === 0) {
+                xRef.current = Math.max(hard.min, Math.min(hard.max, xRef.current));
+            } else {
+                xRef.current = Math.max(0, Math.min(layerWidth(), xRef.current));
+            }
             if (
                 activityRef.current !== 'gone' &&
                 activityRef.current !== 'peeking' &&
@@ -1637,128 +2044,149 @@ const DesktopPet: React.FC<{ suspended?: boolean }> = ({ suspended = false }) =>
                 setSleepDepth((prev) => (prev === 2 ? prev : 2));
             }
 
+            // --- the bowl ------------------------------------------------
+            // Full bowls are eaten from and then taken away; an empty one
+            // appears when the animal gets hungry and stays until it isn't.
+            const bw = bowlRef.current;
+            if (now > nextMoodCheck) {
+                nextMoodCheck = now + 500;
+                const mood = computeMood();
+                hungryNow = mood === 'hungry' || mood === 'starving';
+            }
+            if (bw && bw.full && now > bw.until) {
+                bowlRef.current = null;
+                setBowl('none');
+            } else if (bw && !bw.full && !hungryNow) {
+                bowlRef.current = null;
+                setBowl('none');
+            } else if (
+                !bw &&
+                hungryNow &&
+                !ledgeRef.current &&
+                yRef.current < 2 &&
+                (activityRef.current === 'idle' || activityRef.current === 'walking')
+            ) {
+                const side = facingRef.current;
+                bowlRef.current = {
+                    x: Math.max(min, Math.min(max, xRef.current + side * size * 0.8)),
+                    full: false,
+                    until: Infinity,
+                };
+                setBowl('empty');
+            }
+            const bowlEl = bowlElRef.current;
+            if (bowlEl && bowlRef.current) {
+                bowlEl.style.left = `${Math.round(bowlRef.current.x)}px`;
+                bowlEl.style.opacity =
+                    bowlRef.current.full && now > bowlRef.current.until - 500
+                        ? String(Math.max(0, (bowlRef.current.until - now) / 500))
+                        : '1';
+            }
+
             const el = elRef.current;
             if (el) {
-                el.style.left = `${Math.round(xRef.current - size / 2)}px`;
-                el.style.bottom = `${Math.round(GROUND + yRef.current)}px`;
+                el.style.left = `${Math.round(xRef.current)}px`;
+                el.style.bottom = `${Math.round(FOOT + yRef.current)}px`;
             }
-            /* --- what it is looking at ------------------------------
-             * Only while it has nothing more pressing to do. A creature that
-             * keeps turning to face the pointer *while* being thrown across
-             * the screen, or while asleep, is not attentive — it is broken.
-             */
-            const a2 = activityRef.current;
-            const canLook =
-                !reduced &&
-                (a2 === 'idle' || a2 === 'walking' || a2 === 'chasing');
-            let targetX = 0;
-            let targetY = 0;
-            if (canLook && lookRef.current) {
-                const dx = lookRef.current.x - xRef.current;
-                const dy =
-                    lookRef.current.y - (GROUND + yRef.current + size * 0.6);
-                // Falls off with distance: something across the room is not
-                // being looked at, it is merely in the same room.
-                const reach = Math.max(
-                    0,
-                    1 - Math.abs(dx) / (ATTENTION_RANGE * 3.2)
-                );
-                targetX =
-                    Math.max(-1, Math.min(1, dx / ATTENTION_RANGE)) * reach;
-                targetY =
-                    Math.max(-1, Math.min(1, dy / (ATTENTION_RANGE * 0.7))) *
-                    reach;
-            }
-            attentionRef.current = {
-                x: approach(attentionRef.current.x, targetX, dt, 0.09),
-                y: approach(attentionRef.current.y, targetY, dt, 0.07),
-            };
 
+            /* --- the animal ----------------------------------------------
+             * Which clip, from what it is doing; a pose, from the animator;
+             * and at most thirty times a second, the pixels. Position moves
+             * every frame — only the drawing is rate-limited — so motion
+             * across the screen stays smooth while the sprite keeps the
+             * cadence of hand-drawn animation.
+             */
+            const act2 = activityRef.current;
+            const kind = (petRef.current?.id ?? 'modem') as PetKind;
+            const movedNow =
+                Math.abs(xRef.current - wasX) +
+                (act2 === 'climbing' || act2 === 'climbLedge'
+                    ? Math.abs(yRef.current - wasY)
+                    : 0);
+            const begging =
+                hungryNow &&
+                !!bowlRef.current &&
+                !bowlRef.current.full &&
+                act2 === 'idle' &&
+                Math.abs(xRef.current - bowlRef.current.x) < size * 1.1;
+            if (act2 !== 'chasing') herdingRef.current = false;
+            const clip: Clip = begging
+                ? 'sit'
+                : act2 === 'chasing' && herdingRef.current
+                ? // Held long enough, the crouch becomes a down — still
+                  // facing it, still watching.
+                  now - herdingSinceRef.current > 5000
+                    ? 'lie'
+                    : 'stalk'
+                : clipFor(kind, act2, reactionRef.current, poseRef.current, movedNow > 0.05);
+
+            // Small ambient business that belongs to one animal each.
+            if (now > nextAmbientRef.current && !reduced) {
+                if (kind === 'glitch' && (act2 === 'idle' || act2 === 'walking')) {
+                    glitchUntilRef.current = now + 160 + Math.random() * 200;
+                    nextAmbientRef.current = now + 9000 + Math.random() * 16000;
+                } else if (kind === 'pixel' && act2 !== 'gone' && act2 !== 'peeking') {
+                    burst('bubble', 1);
+                    nextAmbientRef.current = now + 4500 + Math.random() * 6000;
+                } else {
+                    nextAmbientRef.current = now + 5000;
+                }
+            }
+            // Chasing its tail is a lot of turning round.
+            if (poseRef.current === 'tailChase' && act2 === 'idle' && !reduced) {
+                const turn = Math.floor(now / 330) % 2 === 0 ? 1 : -1;
+                facingRef.current = turn as 1 | -1;
+            }
             const phaseMs = Math.max(1, phaseLengthRef.current);
             const phase = Math.min(
                 1,
                 Math.max(0, (now - phaseFromRef.current) / phaseMs)
             );
+            // What it is looking at, relative to its own head. A hungry
+            // animal by its bowl looks at *you*.
+            let look: { dx: number; dy: number } | null = null;
+            if (begging) {
+                look = { dx: 0, dy: 80 };
+            } else if (lookRef.current) {
+                look = {
+                    dx: lookRef.current.x - (xRef.current + headAtRef.current.x),
+                    dy: lookRef.current.y - (FOOT + yRef.current + headAtRef.current.y),
+                };
+            }
+            const stroked = now < strokeRef.current.until;
+            chargeRef.current = Math.max(0, chargeRef.current - dt * 0.12);
 
-            const body = bodyRef.current;
-            if (body) {
-                const t = transformFor({
-                    activity: activityRef.current,
-                    reaction: reactionRef.current,
-                    pose: poseRef.current,
-                    facing: facingRef.current,
-                    now,
+            let anim = animatorRef.current;
+            if (!anim || anim.kind !== kind) {
+                anim = new Animator(kind);
+                animatorRef.current = anim;
+            }
+            {
+                const pose = anim.update(now, {
+                    clip,
+                    p: phase,
+                    len: phaseMs,
+                    moved: movedNow,
+                    speed: movedNow / Math.max(dt, 1 / 240),
+                    vy: vyRef.current,
                     spin: spinRef.current,
                     squash: squashRef.current,
-                    wall: wallRef.current,
+                    facing: facingRef.current,
+                    look,
+                    alarm: clip === 'worry' || clip === 'speechless',
+                    happy: stroked,
                     reduced: !!reduced,
-                    phase,
-                    phaseMs,
-                    attention: attentionRef.current,
-                    posePhase: Math.min(
-                        1,
-                        Math.max(
-                            0,
-                            (now - poseFromRef.current) /
-                                Math.max(1, poseUntilRef.current - poseFromRef.current)
-                        )
-                    ),
                 });
-                body.style.transform = t.transform;
-                body.style.transformOrigin = t.origin;
-
-                /* --- the hat, one beat behind -----------------------------
-                 * Driven by how fast the head just turned, pulled back to
-                 * level by its own stiffness, and damped so it settles rather
-                 * than ringing. Clamped hard: a hat that swings further than
-                 * this stops looking like inertia and starts looking like it
-                 * has come off.
-                 */
-                // Tracked unconditionally, *outside* the `if (hat)` below.
-                // Left inside it, the reference went stale the whole time
-                // nothing was being worn — so the frame a hat appeared (or
-                // the `cool` reaction dropped sunglasses on mid-spin) the
-                // spring was handed the difference between the current
-                // rotation and one from some arbitrary earlier moment, and
-                // the hat snapped to its stop and rang.
-                const drive = Math.max(-30, Math.min(30, t.rot - lastRotRef.current));
-                lastRotRef.current = t.rot;
-
-                const hat = hatElRef.current;
-                if (hat) {
-                    if (reduced) {
-                        hatAngleRef.current = 0;
-                        hatVelRef.current = 0;
-                    } else {
-                        // Integrated against real elapsed time rather than
-                        // per frame, so the spring is as stiff on a 144Hz
-                        // display as on a 60Hz one. Capped so that coming
-                        // back to a tab that stalled for a second does not
-                        // resolve as one enormous step.
-                        const step = Math.min(2.5, dt * 60);
-                        hatVelRef.current +=
-                            (-hatAngleRef.current * 0.16 -
-                                hatVelRef.current * 0.22) *
-                                step -
-                            drive * 0.42;
-                        hatAngleRef.current = Math.max(
-                            -17,
-                            Math.min(
-                                17,
-                                hatAngleRef.current + hatVelRef.current * step
-                            )
-                        );
-                    }
-                    hat.style.transform = `rotate(${hatAngleRef.current.toFixed(
-                        2
-                    )}deg)`;
-                } else if (hatAngleRef.current || hatVelRef.current) {
-                    // Nothing worn: park the spring so whatever goes on next
-                    // starts level instead of mid-swing.
-                    hatAngleRef.current = 0;
-                    hatVelRef.current = 0;
+                if (now - lastDrawRef.current >= drawEvery) {
+                    const since = Math.min(0.1, (now - lastDrawRef.current) / 1000);
+                    lastDrawRef.current = now;
+                    const t0 = performance.now();
+                    paint(pose, kind, now, since);
+                    paintCost = paintCost * 0.9 + (performance.now() - t0) * 0.1;
+                    drawEvery = paintCost > 4 ? 1000 / 20 : DRAW_EVERY_MS;
                 }
             }
+
             // The contact shadow stays on the bar while the creature does
             // not, which is what makes a hop read as a hop and a throw read
             // as height rather than as the sprite simply getting smaller.
@@ -1771,9 +2199,11 @@ const DesktopPet: React.FC<{ suspended?: boolean }> = ({ suspended = false }) =>
                     activityRef.current === 'gone' ||
                     activityRef.current === 'peeking' ||
                     wallRef.current !== 0;
+                // The fish is always a little way above its shadow.
+                const base = kind === 'pixel' ? 0.15 : 0.26;
                 shadow.style.left = `${Math.round(xRef.current - width / 2)}px`;
                 shadow.style.width = `${Math.round(width)}px`;
-                shadow.style.opacity = String(offBar ? 0 : 0.26 - lift * 0.2);
+                shadow.style.opacity = String(offBar ? 0 : base - lift * (base - 0.06));
             }
 
             paintProjectile(toyElRef.current, toyRef.current, now, true);
@@ -1813,7 +2243,7 @@ const DesktopPet: React.FC<{ suspended?: boolean }> = ({ suspended = false }) =>
         if (!rect) return { x: clientX / scale, y: 0 };
         return {
             x: (clientX - rect.left) / scale,
-            y: (rect.bottom - clientY) / scale - GROUND,
+            y: (rect.bottom - clientY) / scale - FOOT,
         };
     }, []);
 
@@ -1833,9 +2263,95 @@ const DesktopPet: React.FC<{ suspended?: boolean }> = ({ suspended = false }) =>
         };
     };
 
+    /**
+     * Stroking: the pointer moving back and forth across the animal with no
+     * button held. A couple of reversals over a short stretch counts; it
+     * keeps counting for as long as the hand keeps moving, and pays out as
+     * a pat every few seconds rather than on every pass.
+     *
+     * Static keeps a running charge while it happens. Stroke her long
+     * enough and it discharges — a crackle, a flinch, and she walks off.
+     */
+    const onStroke = (clientX: number) => {
+        const p = petRef.current;
+        if (!p) return;
+        const act = activityRef.current;
+        if (
+            act === 'held' ||
+            act === 'falling' ||
+            act === 'pouncing' ||
+            act === 'gone' ||
+            act === 'peeking' ||
+            act === 'climbing' ||
+            act === 'climbLedge'
+        ) {
+            return;
+        }
+        const st = strokeRef.current;
+        const now = performance.now();
+        if (now - st.last > 420) {
+            st.travel = 0;
+            st.flips = 0;
+            st.dir = 0;
+            st.lastX = clientX;
+        }
+        const dx = clientX - st.lastX;
+        st.lastX = clientX;
+        st.last = now;
+        if (Math.abs(dx) < 1) return;
+        const dir = Math.sign(dx);
+        if (st.dir !== 0 && dir !== st.dir) st.flips++;
+        st.dir = dir;
+        st.travel += Math.abs(dx);
+        if (p.id === 'static') {
+            chargeRef.current = Math.min(1.1, chargeRef.current + Math.abs(dx) * 0.0011);
+        }
+        if (st.travel < STROKE_TRAVEL || st.flips < 1) return;
+
+        st.until = now + 650;
+        lastMoveRef.current = now;
+
+        if (p.id === 'static' && chargeRef.current >= 1) {
+            dischargeStatic();
+            return;
+        }
+        if (now < st.nextPat) return;
+        st.nextPat = now + STROKE_PAT_EVERY_MS;
+        if (act === 'sleeping' || act === 'wallNap') {
+            // A stroke wakes it gently, without the startle of a poke.
+            react('happy', 600);
+            say(randomLine(p.wakeLines));
+            return;
+        }
+        strokingPatRef.current = true;
+        pettPet();
+        strokingPatRef.current = false;
+    };
+
+    /** Static, discharged. */
+    const dischargeStatic = () => {
+        const p = petRef.current;
+        if (!p) return;
+        chargeRef.current = 0;
+        strokeRef.current.until = 0;
+        strokeRef.current.nextPat = performance.now() + 4000;
+        burst('spark', 4);
+        playPetZap();
+        // Away from the hand, briskly, and not looking back.
+        const { min, max } = walkBounds(spriteRef.current);
+        const away = -facingRef.current * spriteRef.current * (2.4 + Math.random());
+        targetRef.current = Math.max(min, Math.min(max, xRef.current + away));
+        phaseUntilRef.current = 0;
+        setActivityBoth('walking');
+        if (p.dischargeLines) say(randomLine(p.dischargeLines));
+    };
+
     const onSpriteMove = (e: React.PointerEvent) => {
         const drag = dragRef.current;
-        if (!drag?.active || drag.pointerId !== e.pointerId) return;
+        if (!drag?.active || drag.pointerId !== e.pointerId) {
+            if (e.pointerType !== 'touch' && e.buttons === 0) onStroke(e.clientX);
+            return;
+        }
         const first = drag.samples[0];
         const far =
             Math.abs(e.clientX - first.x) > DRAG_THRESHOLD ||
@@ -1914,14 +2430,14 @@ const DesktopPet: React.FC<{ suspended?: boolean }> = ({ suspended = false }) =>
          * landing, and comes back in through the top.
          *
          * The threshold has to be near the very bottom of the screen. Local y
-         * runs from 0 at the creature's feet down to -GROUND at the last row
+         * runs from 0 at the creature's feet down to -FOOT at the last row
          * of pixels, so a cutoff of -4 — which is what this was — meant that
          * putting the animal down anywhere on the lower three quarters of the
          * taskbar dropped it out of the world. That is where people put it
          * down. It has to be the bottom dozen pixels, so that leaving is
          * something you did rather than something that happened.
          */
-        despawningRef.current = yRef.current < -(GROUND * 0.6);
+        despawningRef.current = yRef.current < -(FOOT - 12);
         if (despawningRef.current) burst('sparkle', 3);
 
         if (drag.shaken) {
@@ -2083,6 +2599,22 @@ const DesktopPet: React.FC<{ suspended?: boolean }> = ({ suspended = false }) =>
      * Render
      * --------------------------------------------------------------- */
 
+    // The buffer is sized for the creature's scale and only rebuilt when that
+    // changes; the ImageData is a view onto it, so drawing needs no copy.
+    const frame = useMemo(() => frameFor(achievements.scale), [achievements.scale]);
+    if (frameRef.current !== frame) {
+        frameRef.current = frame;
+        imageRef.current =
+            typeof ImageData !== 'undefined'
+                ? new ImageData(new Uint8ClampedArray(frame.px.buffer), frame.w, frame.h)
+                : null;
+        lastDrawRef.current = 0;
+    }
+    // The sunglasses are the whole point of the "cool" performance, so they
+    // go on for its duration whether or not they have been unlocked yet —
+    // which is also how you find out they exist.
+    wornRef.current = reaction === 'cool' ? 'shades' : achievements.equipped;
+
     if (!pet || suspended || state.hidden) return null;
 
     const mood = computeMood(state);
@@ -2091,11 +2623,6 @@ const DesktopPet: React.FC<{ suspended?: boolean }> = ({ suspended = false }) =>
     const away = activity === 'gone' || activity === 'peeking';
     const star = currentStar();
     const wardrobe = unlockedAccessories();
-    // The sunglasses are the whole point of the "cool" performance, so they
-    // go on for its duration whether or not they have been unlocked yet —
-    // which is also how you find out they exist.
-    const worn: AccessoryId | null =
-        reaction === 'cool' ? 'shades' : achievements.equipped;
 
     const menuItems: ContextMenuItem[] = away
         ? [
@@ -2220,89 +2747,90 @@ const DesktopPet: React.FC<{ suspended?: boolean }> = ({ suspended = false }) =>
               },
           ];
 
+    const [ox, oy] = originOf(frame);
+    /** Pixel size for the particles and props: whole pixels, never fractions. */
+    const px = Math.max(1, Math.round(achievements.scale));
+    const toyArt = pixelSprite(TOY_SPRITE[pet.id] ?? 'ball', px);
+    const treatArt = pixelSprite(TREAT_SPRITE[pet.id] ?? 'biscuit', px);
+    const bowlArt = pixelSprite(bowl === 'full' ? 'bowlFull' : 'bowlEmpty', px);
+
     return (
         <div ref={layerRef} style={styles.layer}>
             <div ref={shadowRef} style={styles.shadow} aria-hidden="true" />
+
+            {bowl !== 'none' && (
+                <div
+                    ref={bowlElRef}
+                    style={{
+                        ...styles.bowl,
+                        bottom: FOOT - 1,
+                        marginLeft: -bowlArt.w / 2,
+                        cursor: bowl === 'empty' ? 'pointer' : 'default',
+                        pointerEvents: bowl === 'empty' ? 'auto' : 'none',
+                    }}
+                    title={bowl === 'empty' ? `Feed ${pet.name}` : undefined}
+                    onClick={() => {
+                        if (bowl !== 'empty') return;
+                        playClick();
+                        feedPet();
+                    }}
+                >
+                    <img
+                        src={bowlArt.url}
+                        width={bowlArt.w}
+                        height={bowlArt.h}
+                        alt=""
+                        draggable={false}
+                        style={styles.pixelated}
+                    />
+                </div>
+            )}
 
             {/* The toy and the treat sit behind the creature, so a carried
                 ball reads as being in front of its face rather than in it. */}
             {hasToy && (
                 <div
                     ref={toyElRef}
-                    style={{ ...styles.toy, background: pet.toyColor }}
+                    style={{ ...styles.prop, width: toyArt.w, height: toyArt.h }}
                     aria-hidden="true"
-                />
+                >
+                    <img src={toyArt.url} width={toyArt.w} height={toyArt.h} alt="" style={styles.pixelated} />
+                </div>
             )}
             {hasTreat && (
-                <div ref={treatElRef} style={styles.treat} aria-hidden="true" />
+                <div
+                    ref={treatElRef}
+                    style={{ ...styles.prop, width: treatArt.w, height: treatArt.h }}
+                    aria-hidden="true"
+                >
+                    <img src={treatArt.url} width={treatArt.w} height={treatArt.h} alt="" style={styles.pixelated} />
+                </div>
             )}
 
             <div
                 ref={elRef}
                 style={{
                     ...styles.pet,
-                    width: sprite,
-                    height: sprite,
-                    left: xRef.current - sprite / 2,
-                    bottom: GROUND,
+                    left: Math.round(xRef.current),
+                    bottom: FOOT,
                 }}
             >
-                {bubble && !away && <div style={styles.bubble}>{bubble}</div>}
-
-                {particles.map((p) => (
-                    <span
-                        key={p.id}
-                        className={`pet-particle pet-particle-${p.kind}`}
-                        style={
-                            {
-                                animationDelay: `${p.delay}ms`,
-                                ['--pet-dx' as string]: `${p.dx}px`,
-                            } as React.CSSProperties
-                        }
-                        aria-hidden="true"
-                    >
-                        {p.glyph}
-                    </span>
-                ))}
-
-                {/* Sleep accumulates. One z is a state; three rising z's of
-                    increasing size is a creature that has been under for a
-                    while, and it is the cheapest possible way to show the
-                    difference between "just dropped off" and "deeply out". */}
-                {asleep &&
-                    Array.from({ length: sleepDepth }, (_, i) => (
-                        <span
-                            key={i}
-                            className="pet-zzz"
-                            style={{
-                                ...styles.zzz,
-                                fontSize: 11 + i * 3,
-                                animationDelay: `${i * 0.55}s`,
-                            }}
-                            aria-hidden="true"
-                        >
-                            z
-                        </span>
-                    ))}
-
-                {hungry && !asleep && !away && activity !== 'held' && (
-                    <span style={styles.hungerMark} title="Hungry">
-                        !
-                    </span>
-                )}
-
-                {/* Ten seconds of gold, then it's gone. Clicking it while it
-                    is up opens the list — see `onSimpleClick`. */}
-                {star && (
-                    <span
-                        className="pet-star"
-                        style={styles.star}
-                        title={`${star.name} — click to see it`}
-                        aria-hidden="true"
-                    >
-                        ★
-                    </span>
-                )}
+                {/* The animal, painted every frame by `pet/render.ts`. One
+                    art pixel to one screen pixel, the density of every icon
+                    on the desktop. */}
+                <canvas
+                    ref={canvasRef}
+                    width={frame.w}
+                    height={frame.h}
+                    style={{
+                        ...styles.canvas,
+                        left: -ox,
+                        top: -oy,
+                        width: frame.w,
+                        height: frame.h,
+                    }}
+                    aria-hidden="true"
+                />
 
                 {/* The little grey button the `press` performance presses.
                     It only exists for the second the creature is pressing it,
@@ -2311,9 +2839,7 @@ const DesktopPet: React.FC<{ suspended?: boolean }> = ({ suspended = false }) =>
                     <span
                         style={{
                             ...styles.startButton,
-                            left: `calc(50% + ${
-                                facingRef.current * sprite * 0.42
-                            }px)`,
+                            left: facingRef.current * sprite * 0.62 - 16,
                         }}
                         aria-hidden="true"
                     >
@@ -2321,60 +2847,98 @@ const DesktopPet: React.FC<{ suspended?: boolean }> = ({ suspended = false }) =>
                     </span>
                 )}
 
-                {/* The same art the tray and the Pet window use, so it is
-                    recognisably one creature across all three — only larger,
-                    and with the animation on a wrapper so the speech bubble
-                    and the particles above don't spin along with it. */}
+                {/* Fitted to the drawn pixels every frame — see `paint`. */}
                 <div
-                    ref={bodyRef}
-                    style={{ ...styles.body, width: sprite, height: sprite }}
-                >
-                    <img
-                        src={getIconByName(pet.icon) as unknown as string}
-                        alt=""
-                        width={sprite}
-                        height={sprite}
-                        draggable={false}
-                        style={{
-                            ...styles.sprite,
-                            width: sprite,
-                            height: sprite,
-                        }}
-                        onPointerDown={onPointerDown}
-                        onPointerMove={onSpriteMove}
-                        onPointerUp={endDrag}
-                        onPointerCancel={endDrag}
-                        onDoubleClick={onDoubleClick}
-                        onPointerEnter={onEnter}
-                        onContextMenu={onContextMenu}
-                        onKeyDown={onKeyDown}
-                        tabIndex={0}
-                        role="button"
-                        aria-label={`${pet.name}, your desktop pet. Enter to poke, arrow keys to move, shift and an arrow key to throw.`}
-                        title={`${pet.name} — click to ${
-                            hungry ? 'feed' : 'poke'
-                        }, double-click for a trick, drag to pick up, right-click for more`}
-                    />
-                    {/* The wardrobe hangs in its own box so the hat spring
-                        has something to rotate that is not the animal. The
-                        pivot sits at the bottom centre — where the hat meets
-                        the head — so it swings rather than orbits. */}
-                    {worn && (
-                        <div
-                            ref={hatElRef}
-                            style={{
-                                ...styles.hatLayer,
-                                transformOrigin: `50% ${Math.round(
-                                    pet.anatomy.hat * sprite
-                                )}px`,
-                            }}
-                        >
-                            <PetAccessory
-                                id={worn}
-                                unit={sprite}
-                                anatomy={pet.anatomy}
+                    ref={hitRef}
+                    style={styles.hit}
+                    onPointerDown={onPointerDown}
+                    onPointerMove={onSpriteMove}
+                    onPointerUp={endDrag}
+                    onPointerCancel={endDrag}
+                    onDoubleClick={onDoubleClick}
+                    onPointerEnter={onEnter}
+                    onContextMenu={onContextMenu}
+                    onKeyDown={onKeyDown}
+                    tabIndex={0}
+                    role="button"
+                    aria-label={`${pet.name}, your desktop pet. Enter to poke, arrow keys to move, shift and an arrow key to throw.`}
+                    title={`${pet.name} — click to ${
+                        hungry ? 'feed' : 'poke'
+                    }, stroke with the pointer, double-click for a trick, drag to pick up, right-click for more`}
+                />
+
+                {/* The speech bubble, over the top of whatever was drawn. */}
+                <div ref={bubbleElRef} style={styles.headAnchor}>
+                    {bubble && !away && (
+                        <div ref={bubbleBoxRef} style={styles.bubble}>
+                            {bubble}
+                            <span
+                                ref={bubbleTailRef}
+                                style={styles.bubbleTail}
+                                aria-hidden="true"
                             />
                         </div>
+                    )}
+                </div>
+
+                {/* Everything that belongs to the head itself: particles,
+                    sleep, and the achievement star. */}
+                <div ref={headElRef} style={styles.headAnchor}>
+
+                    {particles.map((p) => {
+                        const art = pixelSprite(p.sprite, px);
+                        return (
+                            <img
+                                key={p.id}
+                                src={art.url}
+                                width={art.w}
+                                height={art.h}
+                                alt=""
+                                className={`pet-particle pet-particle-${p.kind}`}
+                                style={
+                                    {
+                                        animationDelay: `${p.delay}ms`,
+                                        ['--pet-dx' as string]: `${p.dx}px`,
+                                    } as React.CSSProperties
+                                }
+                                aria-hidden="true"
+                            />
+                        );
+                    })}
+
+                    {/* Sleep accumulates: one z is a state, three rising z's
+                        is a creature that has been under for a while. */}
+                    {asleep &&
+                        Array.from({ length: sleepDepth }, (_, i) => {
+                            const art = pixelSprite('zed', px);
+                            return (
+                                <img
+                                    key={i}
+                                    src={art.url}
+                                    width={art.w}
+                                    height={art.h}
+                                    alt=""
+                                    className="pet-zzz"
+                                    style={{
+                                        ...styles.zzz,
+                                        animationDelay: `${i * 0.7}s`,
+                                    }}
+                                    aria-hidden="true"
+                                />
+                            );
+                        })}
+
+                    {/* Ten seconds of gold, then it's gone. Clicking the
+                        animal while it is up opens the list. */}
+                    {star && (
+                        <img
+                            src={pixelSprite('star', px).url}
+                            alt=""
+                            className="pet-star"
+                            style={styles.star}
+                            title={`${star.name} — click to see it`}
+                            aria-hidden="true"
+                        />
                     )}
                 </div>
             </div>
@@ -2508,8 +3072,8 @@ function paintProjectile(
         el.style.opacity = '0';
         return;
     }
-    el.style.left = `${Math.round(p.x - 7)}px`;
-    el.style.bottom = `${Math.round(GROUND + p.y)}px`;
+    el.style.left = `${Math.round(p.x - el.offsetWidth / 2)}px`;
+    el.style.bottom = `${Math.round(FOOT + p.y)}px`;
     // A ball rolls, so its spin follows the ground it has covered. A biscuit
     // is not a wheel and falls flat.
     if (rolls) el.style.transform = `rotate(${Math.round(p.x * 6)}deg)`;
@@ -2520,12 +3084,11 @@ function paintProjectile(
 }
 
 /* -------------------------------------------------------------------------
- * The animation itself
+ * The idle repertoire
  * ----------------------------------------------------------------------
- * One function, no spritesheet. The art is a single 32px frame per animal, so
- * every bit of life here is squash, stretch, rotation and vertical bob driven
- * by real time — which is also why it scales from 40% to 200% without anyone
- * having to redraw anything.
+ * What the animal does while standing about. The poses themselves — what a
+ * groom or a stretch actually looks like for a collie as opposed to a cat —
+ * live in `pet/animate.ts`; this decides only which one, and how often.
  */
 
 /**
@@ -2554,12 +3117,28 @@ const POSE_TABLE: { pose: PetPose; weight: number; ms: [number, number] }[] = [
     { pose: 'tailChase', weight: 3, ms: [1300, 2000] },
 ];
 
-const POSE_TOTAL = POSE_TABLE.reduce((n, p) => n + p.weight, 0);
+/**
+ * Each species' own habits, as multipliers on the table above.
+ *
+ * Four animals with one shared list of fidgets is four costumes. A cat
+ * washes far more than a dog and almost never chases its tail; a stoat
+ * spends half its life up on its hind legs looking about; a betta flares.
+ * Anything not listed keeps its weight.
+ */
+const HABITS: Record<string, Partial<Record<PetPose, number>>> = {
+    modem: { dig: 1.4, tailChase: 1.3, groom: 0.6 },
+    static: { groom: 2.2, stretch: 1.4, lie: 1.6, dance: 1.5, tailChase: 0.15, dig: 0.3, sniff: 0.7 },
+    glitch: { perk: 3.2, dance: 1.6, sniff: 1.5, tailChase: 1.2, lie: 0.6, groom: 0.7 },
+    pixel: { perk: 1.6, stretch: 1.6, scratch: 0.3, dig: 0.5, tailChase: 0.6, groom: 0.5 },
+};
 
-function pickPose(): [PetPose, number] {
-    let roll = Math.random() * POSE_TOTAL;
+function pickPose(species?: string): [PetPose, number] {
+    const habits = (species && HABITS[species]) || {};
+    const weight = (e: (typeof POSE_TABLE)[number]) => e.weight * (habits[e.pose] ?? 1);
+    const total = POSE_TABLE.reduce((n, e) => n + weight(e), 0);
+    let roll = Math.random() * total;
     for (const entry of POSE_TABLE) {
-        roll -= entry.weight;
+        roll -= weight(entry);
         if (roll <= 0) {
             const [lo, hi] = entry.ms;
             return [entry.pose, lo + Math.random() * (hi - lo)];
@@ -2568,437 +3147,77 @@ function pickPose(): [PetPose, number] {
     return ['blink', 180];
 }
 
-interface TransformInput {
-    activity: PetActivity;
-    reaction: PetReaction | null;
-    pose: PetPose;
-    facing: 1 | -1;
-    now: number;
-    spin: number;
-    squash: number;
-    wall: 0 | 1 | -1;
-    reduced: boolean;
-    /** Progress through the current timed reaction, 0..1. */
-    phase: number;
-    /** How long that reaction runs for, in ms — sets how many hops fit. */
-    phaseMs: number;
-    /** Where the creature is currently looking. See `petMotion.ts`. */
-    attention: Attention;
-    /** Progress through the current idle pose, 0..1. */
-    posePhase: number;
-}
-
-function transformFor(input: TransformInput): {
-    transform: string;
-    origin: string;
-    /** The body's rotation this frame — what drives the hat's inertia. */
-    rot: number;
-} {
-    const {
-        activity,
-        reaction,
-        pose,
-        facing,
-        now,
-        spin,
-        squash,
-        wall,
-        reduced,
-        phase,
-        phaseMs,
-        attention,
-        posePhase,
-    } = input;
-    let ty = 0;
-    let tx = 0;
-    let rot = 0;
-    let sx = 1;
-    let sy = 1;
-    let origin = '50% 100%';
-    /** Only the ambient stances lean; a thrown creature does not sightsee. */
-    let attentionLeans = false;
-
-    if (
-        reduced &&
-        (activity === 'idle' || activity === 'walking' || activity === 'chasing')
-    ) {
-        return { transform: `scaleX(${facing})`, origin, rot: 0 };
-    }
-
+/**
+ * Which clip shows what the creature is doing.
+ *
+ * The behaviour engine above thinks in activities — walking to a wall,
+ * being thrown, performing one of the seven reactions — and the animator in
+ * `pet/animate.ts` thinks in clips. This is the whole of the translation.
+ * Several activities share a clip (anything purposeful trots; anything
+ * airborne tumbles), and the idle fidgets map one to one.
+ */
+function clipFor(
+    kind: PetKind,
+    activity: PetActivity,
+    reaction: PetReaction | null,
+    pose: PetPose,
+    moving: boolean
+): Clip {
     switch (activity) {
         case 'walking':
+            return moving ? 'walk' : 'stand';
         case 'chasing':
+            // The cat stalks; everybody else simply comes over.
+            return kind === 'static' ? 'stalk' : moving ? 'trot' : 'stand';
+        case 'fetching':
+        case 'returning':
         case 'foraging':
+            return moving ? 'run' : 'stand';
         case 'toWall':
         case 'toLedge':
-        case 'onLedge': {
-            // One stride per `speed` ms. The bob is keyframed rather than a
-            // sine so the body rises slowly off the back leg and drops
-            // quickly onto the next contact — symmetric bobbing is what
-            // makes a walk read as floating. See WALK_BOB.
-            const speed = activity === 'walking' ? 760 : 480;
-            const stride = ((now % speed) + speed) % speed / speed;
-            ty = track(stride, WALK_BOB);
-            // The roll still wants to be a sine: it is a sway, not a footfall.
-            rot = Math.sin(stride * Math.PI * 2) * 3.6;
-            sy = 1 + (-ty / 3.4) * 0.035;
-            sx = squashX(sy, 0.4);
-            attentionLeans =
-                activity === 'walking' ||
-                activity === 'chasing' ||
-                activity === 'onLedge';
-            break;
-        }
-
-        case 'fetching':
-        case 'returning': {
-            // A flat-out run: a bigger bound and a forward lean.
-            const step = Math.sin(now / 95);
-            ty = -Math.abs(step) * 6;
-            rot = 8 * facing + step * 5;
-            sx = 1.05;
-            sy = 0.97;
-            break;
-        }
-
-        /* --- the wall ------------------------------------------------
-         * A quarter turn towards the edge it is on, so the creature reads as
-         * clinging rather than as floating next to the screen border. The
-         * scramble is a small vertical judder on the climb only. */
+            return moving ? 'trot' : 'stand';
+        case 'onLedge':
+            return moving ? 'walk' : 'stand';
         case 'climbing':
-        case 'climbLedge': {
-            const scramble = Math.sin(now / 90) * 2;
-            // Up a screen edge the side comes from `wall`; up the side of a
-            // window it comes from which way the creature turned to reach it.
-            const side = activity === 'climbing' ? wall : facing;
-            rot = side === -1 ? 78 : -78;
-            ty = scramble;
-            sy = 1.02;
-            break;
-        }
-
-        case 'ledgeSit': {
-            /* Sitting on a title bar with its legs over the side.
-             *
-             * The lean is *outward*, over the drop, which is the whole reason
-             * this is a separate pose from the ordinary sit: a creature
-             * perched on an edge leans over it, and that is what tells you it
-             * is on an edge rather than merely somewhere high up. The sway is
-             * slow and shallow — it is comfortable up there.
-             */
-            const sway = Math.sin(now / 1100);
-            rot = facing * 7 + sway * 2.2;
-            ty = 3;
-            sy = 0.9 + sway * 0.012;
-            sx = squashX(sy, 0.5);
-            attentionLeans = true;
-            break;
-        }
-
-        case 'wallHang': {
-            const breath = Math.sin(now / 700);
-            rot = (wall === -1 ? 82 : -82) + breath * 2.5;
-            sy = 1 + breath * 0.02;
-            break;
-        }
-
-        case 'wallNap': {
-            const breath = Math.sin(now / 1000);
-            rot = (wall === -1 ? 88 : -88) + breath * 1.5;
-            sy = 0.94 + breath * 0.015;
-            break;
-        }
-
-        case 'gone':
-        case 'peeking':
-            // Both are positioned rather than posed; a peek is the element
-            // rising, not the body doing anything.
-            sy = 1;
-            break;
-
-        /* --- the seven performances ---------------------------------- */
-        case 'reacting':
-            switch (reaction) {
-                case 'press': {
-                    // A press is a fast approach, a *hold* while the button is
-                    // down, and a slower release — the same shape as the
-                    // effort frames in Claude's dumbbell animation. Driven by
-                    // a sine it was a creature rocking; the hold is what makes
-                    // it a creature pressing something. There is also a small
-                    // lean back first, because nothing pushes without winding
-                    // up. See PRESS.
-                    const d = track(phase, PRESS);
-                    tx = facing * d * 5.5;
-                    ty = Math.max(0, d) * 3;
-                    rot = facing * d * 15;
-                    sy = 1 - Math.max(0, d) * 0.07;
-                    sx = squashX(sy, 0.5);
-                    break;
-                }
-                case 'heart': {
-                    // The same jump rig as `happy`, a touch lower and slower —
-                    // affection rather than excitement.
-                    const hops = Math.max(1, Math.round(phaseMs / 620));
-                    const hop = (phase * hops) % 1;
-                    ty = track(hop, JUMP_Y) * 0.82;
-                    sy = track(hop, JUMP_SY);
-                    sx = squashX(sy);
-                    break;
-                }
-                case 'cool': {
-                    // A slow lean back, as the glasses land. Deliberately the
-                    // stillest of the seven — it is the only one where the
-                    // joke is a prop rather than a movement.
-                    const t = Math.sin(now / 420);
-                    rot = -facing * 7 + t * 2;
-                    ty = -2;
-                    sy = 1.02;
-                    break;
-                }
-                case 'yap': {
-                    // Lies on its side and talks. The quarter turn is the
-                    // whole gag, so it is fast and it stays there.
-                    const yap = Math.sin(now / 80);
-                    rot = facing * 84 + yap * 5;
-                    ty = 6;
-                    origin = '50% 70%';
-                    sx = 1 + Math.abs(yap) * 0.04;
-                    break;
-                }
-                case 'sing': {
-                    const sway = Math.sin(now / 260);
-                    rot = sway * 12;
-                    ty = -Math.abs(Math.sin(now / 130)) * 3;
-                    sy = 1 + Math.abs(sway) * 0.03;
-                    break;
-                }
-                case 'speechless':
-                    // Absolutely nothing. Which, next to six animations, is
-                    // itself an animation.
-                    sy = 1.005;
-                    break;
-                case 'worry': {
-                    const shiver = Math.sin(now / 42);
-                    tx = shiver * 1.6;
-                    rot = shiver * 2.5;
-                    sy = 0.97;
-                    sx = 1.02;
-                    break;
-                }
-                default:
-                    break;
-            }
-            break;
-
-        case 'happy': {
-            /*
-             * A jump with anticipation, an asymmetric arc and a landing.
-             *
-             * The old version was `Math.abs(Math.sin(now / 110))`, which is a
-             * hop in the sense that the sprite goes up and comes down. It has
-             * no crouch, its rise and fall take exactly as long as each other,
-             * and it never holds still. See the note at the top of
-             * `petMotion.ts` — this is the single biggest difference between
-             * the creature now and the creature before.
-             *
-             * How many hops fit is derived from the reaction's own length, so
-             * a 320ms keyboard nudge gets one and a 1100ms pat gets two,
-             * without either of them being cut off mid-air.
-             */
-            const hops = Math.max(1, Math.round(phaseMs / 560));
-            const hop = (phase * hops) % 1;
-            ty = track(hop, JUMP_Y);
-            sy = track(hop, JUMP_SY);
-            sx = squashX(sy);
-            // A little tilt into the launch and out of the landing, following
-            // the vertical rather than running on its own clock.
-            rot = -ty * 0.34 * facing;
-            break;
-        }
-
-        case 'eating': {
-            // Down to the food, a burst of fast nodding, then back up. The
-            // dive and the lift are eased and the nodding only happens in
-            // between — it used to nod for the entire phase, including while
-            // arriving, which made the whole thing read as a shiver.
-            const dive = track(phase, [
-                { at: 0, v: 0 },
-                { at: 0.18, v: 1, ease: easeIn },
-                { at: 0.82, v: 1 },
-                { at: 1, v: 0, ease: easeOut },
-            ]);
-            const nodding = phase > 0.18 && phase < 0.82 ? 1 : 0;
-            ty = 2 * dive;
-            rot = (6 * facing + Math.sin(now / 62) * 5 * nodding) * dive;
-            sy = 1 - 0.06 * dive;
-            sx = squashX(sy, 0.7);
-            break;
-        }
-
+        case 'climbLedge':
+            return 'climb';
+        case 'wallHang':
+            return 'cling';
+        case 'wallNap':
+            return 'clingNap';
+        case 'ledgeSit':
+            return 'ledgeSit';
+        case 'sleeping':
+            return 'sleep';
+        case 'happy':
+            return 'hop';
+        case 'eating':
+            return 'eat';
         case 'trick':
-            rot = spin;
-            origin = '50% 50%';
-            sy = 1.02;
-            break;
-
+            return 'trick';
         case 'dizzy':
-            rot = Math.sin(now / 90) * 9;
-            ty = Math.abs(Math.sin(now / 180)) * 2;
-            sy = 0.95;
-            sx = 1.05;
-            break;
-
+            return 'dizzy';
         case 'held':
-            // Dangling from the pointer: the pivot moves to the scruff, and
-            // the creature swings and paddles.
-            origin = '50% 10%';
-            rot = Math.sin(now / 130) * 11;
-            sy = 1.06;
-            sx = 0.96;
-            break;
-
+            return 'dangle';
         case 'falling':
-            rot = spin;
-            origin = '50% 50%';
-            sy = 1.04;
-            sx = 0.97;
-            break;
-
-        case 'sleeping': {
-            // Settled down onto the bar, breathing slowly.
-            const breath = Math.sin(now / 900);
-            ty = 5;
-            sy = 0.82 + breath * 0.015;
-            sx = 1.14 - breath * 0.015;
-            rot = 4 * facing;
-            break;
-        }
-
-        default: {
-            // Idle: breathing, plus whatever small business is running.
-            // Breathing is deliberately *not* keyframed — a resting animal is
-            // the one thing that genuinely is a smooth sine.
-            const breath = Math.sin(now / 850);
-            sy = 1 + breath * 0.02;
-            sx = 1 - breath * 0.015;
-            attentionLeans = true;
-
-            if (pose === 'blink') {
-                sy *= 0.9;
-            } else if (pose === 'stretch') {
-                sy *= 1.1;
-                sx *= 0.92;
-                ty = -3;
-                rot = -6 * facing;
-            } else if (pose === 'scratch') {
-                rot = Math.sin(now / 55) * 7;
-                ty = -1;
-            } else if (pose === 'sit') {
-                sy *= 0.9;
-                sx *= 1.06;
-                ty = 2;
-            } else if (pose === 'perk') {
-                sy *= 1.06;
-                ty = -4;
-            } else if (pose === 'lie') {
-                // Flat out on its side. The longest of the idle poses and the
-                // most obviously "off duty".
-                sy *= 0.62;
-                sx *= 1.3;
-                ty = 7;
-                rot = 9 * facing;
-            } else if (pose === 'groom') {
-                // Head down, working at something, in small fast circles.
-                ty = 2;
-                rot = 9 * facing + Math.sin(now / 68) * 6;
-                sy *= 0.93;
-            } else if (pose === 'sniff') {
-                // Nose down, casting slowly side to side.
-                ty = 2.5;
-                rot = 5 * facing + Math.sin(now / 185) * 5.5;
-                sy *= 0.95;
-            } else if (pose === 'dig') {
-                // Quick front-footed scrabbling, leaning into it.
-                ty = 1 + Math.abs(Math.sin(now / 52)) * 3;
-                rot = 13 * facing;
-                sx *= 1.05;
-                sy *= 0.95;
-            } else if (pose === 'yawn') {
-                // Keyframed rather than cyclic: a yawn is a one-shot with a
-                // held peak, which is exactly what a sine cannot do.
-                const open = track(posePhase, [
-                    { at: 0, v: 0 },
-                    { at: 0.28, v: 1, ease: easeOut },
-                    { at: 0.52, v: 1 },
-                    { at: 1, v: 0, ease: easeIn },
-                ]);
-                sy *= 1 + open * 0.16;
-                sx *= 1 - open * 0.06;
-                ty = -open * 3;
-                rot = -open * 7 * facing;
-            } else if (pose === 'tailChase') {
-                // Round and round. Low, fast, and faintly undignified.
-                rot = (now / 2.1) % 360;
-                origin = '50% 55%';
-                sy *= 0.95;
-                sx *= 1.03;
-            } else if (pose === 'dance') {
-                // Two-step: a sway on the slow clock, a bounce on the fast one.
-                const bounce = Math.abs(Math.sin(now / 175));
-                ty = -bounce * 5;
-                rot = Math.sin(now / 350) * 13;
-                sy *= 1 + bounce * 0.05;
-                sx = squashX(sy, 0.5);
-            } else if (pose === 'ponder') {
-                // Head cocked, almost still. The one that reads as thinking.
-                rot = 11 * facing + Math.sin(now / 1400) * 2.5;
-                ty = -1;
-            } else if (pose === 'watch') {
-                // Up on its toes, leaning in, with a small alert bob that is
-                // faster than breathing and much shallower than a hop.
-                sy *= 1.05;
-                ty = -2 - Math.abs(Math.sin(now / 240)) * 1.6;
-                rot += 2.5 * facing;
+            return 'tumble';
+        case 'pouncing':
+            return 'pounce';
+        case 'gone':
+            return 'stand';
+        case 'peeking':
+            return 'perk';
+        case 'reacting':
+            return reaction ?? 'stand';
+        default:
+            switch (pose) {
+                case 'none':
+                case 'blink':
+                    return 'stand';
+                default:
+                    return pose;
             }
-            break;
-        }
     }
-
-    // The landing squash, which decays over about a third of a second.
-    if (squash > 0) {
-        sy *= 1 - squash * 0.35;
-        sx *= 1 + squash * 0.3;
-    }
-
-    /* --- attention -------------------------------------------------------
-     * Applied on top of whatever the creature is doing rather than as a state
-     * of its own, so it survives a walk cycle and a blink. The lean is small
-     * on purpose: three pixels and six degrees is enough to read as "looking
-     * at you" and not enough to look like it is falling over.
-     */
-    if (attentionLeans) {
-        tx += attention.x * 3.4;
-        // Deliberately *not* multiplied by `facing`. The transform reads
-        // `translate() rotate() scale()`, and CSS applies those right to left
-        // — so the scale flips the sprite first and the rotation is applied
-        // in world space afterwards. Folding `facing` in here tilted the
-        // creature away from the pointer whenever it happened to be facing
-        // left, which looked like it was recoiling.
-        rot += attention.x * 6;
-        // Looking up straightens it; looking down rounds its back.
-        ty -= Math.max(0, attention.y) * 1.8;
-        sy += Math.max(0, attention.y) * 0.022;
-    }
-
-    return {
-        transform: `translate(${tx.toFixed(2)}px, ${ty.toFixed(
-            2
-        )}px) rotate(${rot.toFixed(2)}deg) scale(${(sx * facing).toFixed(
-            3
-        )}, ${sy.toFixed(3)})`,
-        origin,
-        rot,
-    };
 }
 
 const styles: StyleSheetCSS = {
@@ -3014,91 +3233,91 @@ const styles: StyleSheetCSS = {
         pointerEvents: 'none',
         overflow: 'hidden',
     },
+    /** Zero-size: its top-left corner *is* the point between the feet. */
     pet: {
         position: 'absolute',
-        justifyContent: 'center',
-        alignItems: 'center',
+        width: 0,
+        height: 0,
     },
-    body: {
-        position: 'relative',
-        justifyContent: 'center',
-        alignItems: 'center',
-        willChange: 'transform',
-        // A hard one-pixel shadow rather than a soft blur: at this size the
-        // creature regularly rises past the bottom edge of a window, and an
-        // outline is what makes that read as standing in front of it instead
-        // of as a drawing bug. Soft shadows look wrong on pixel art.
-        filter: 'drop-shadow(1px 1px 0 rgba(0,0,0,0.45))',
-    },
-    sprite: {
+    canvas: {
+        position: 'absolute',
         imageRendering: 'pixelated',
+        pointerEvents: 'none',
+    },
+    /** The one thing on this layer that accepts a click. Sized every frame. */
+    hit: {
+        position: 'absolute',
+        left: -16,
+        top: -32,
+        width: 32,
+        height: 32,
         cursor: 'grab',
-        // The one thing on this layer that accepts a click.
         pointerEvents: 'auto',
         userSelect: 'none',
         touchAction: 'none',
+        outline: 'none',
     },
-    /** Sits exactly over the sprite; only its transform ever differs. */
-    hatLayer: {
+    /** Follows the head; zero-size, like the feet anchor. */
+    headAnchor: {
         position: 'absolute',
-        left: 0,
-        top: 0,
-        right: 0,
-        bottom: 0,
+        width: 0,
+        height: 0,
         pointerEvents: 'none',
-        willChange: 'transform',
     },
+    pixelated: {
+        imageRendering: 'pixelated',
+        display: 'block',
+    },
+    /**
+     * A Windows 95 balloon tip: tooltip yellow, a hard one-pixel border, and
+     * a little tail pointing down at whoever is talking.
+     */
     bubble: {
         position: 'absolute',
-        bottom: '100%',
-        marginBottom: 16,
-        left: '50%',
-        marginLeft: -92,
-        width: 184,
-        padding: '5px 7px',
+        bottom: 10,
+        left: 0,
+        marginLeft: -96,
+        width: 192,
+        padding: '5px 8px',
         background: '#ffffe1',
         border: '1px solid #000',
-        boxShadow: '2px 2px 0 rgba(0,0,0,0.3)',
+        boxShadow: '2px 2px 0 rgba(0,0,0,0.25)',
         fontFamily: 'MSSerif',
         fontSize: 10,
         lineHeight: 1.4,
         color: '#000',
         textAlign: 'center',
         pointerEvents: 'none',
+        boxSizing: 'border-box',
+    },
+    bubbleTail: {
+        position: 'absolute',
+        left: 90,
+        bottom: -7,
+        width: 10,
+        height: 7,
+        background: '#ffffe1',
+        clipPath: 'polygon(0 0, 100% 0, 30% 100%)',
+        filter: 'drop-shadow(0 1px 0 #000)',
     },
     zzz: {
         position: 'absolute',
         top: -10,
-        right: -4,
-        fontFamily: 'MSSerif',
-        color: '#333',
+        left: 4,
         pointerEvents: 'none',
-    },
-    hungerMark: {
-        position: 'absolute',
-        top: -10,
-        right: -2,
-        fontFamily: 'MSSerif',
-        fontWeight: 'bold',
-        fontSize: 14,
-        color: '#c0392b',
-        pointerEvents: 'none',
+        imageRendering: 'pixelated',
     },
     star: {
         position: 'absolute',
-        top: -14,
-        left: '50%',
-        marginLeft: -7,
-        fontSize: 15,
-        lineHeight: 1,
-        color: '#ffcc22',
-        textShadow: '0 0 4px rgba(255,204,34,0.9), 0 1px 0 rgba(0,0,0,0.5)',
+        top: -20,
+        left: -4,
+        imageRendering: 'pixelated',
+        filter: 'drop-shadow(0 0 2px rgba(255,204,34,0.85))',
         pointerEvents: 'none',
     },
     startButton: {
         position: 'absolute',
         bottom: 0,
-        marginLeft: -16,
         padding: '1px 4px',
         background: '#c0c0c0',
         border: '1px solid #fff',
@@ -3111,32 +3330,21 @@ const styles: StyleSheetCSS = {
     },
     shadow: {
         position: 'absolute',
-        bottom: GROUND - 1,
-        height: 5,
+        bottom: FOOT - 3,
+        height: 4,
         borderRadius: '50%',
         background: '#000',
         opacity: 0.26,
         pointerEvents: 'none',
     },
-    toy: {
+    /** A toy or a treat: a little bitmap that falls, rolls and is carried. */
+    prop: {
         position: 'absolute',
-        width: 14,
-        height: 14,
-        borderRadius: '50%',
-        border: '1px solid rgba(0,0,0,0.55)',
-        boxShadow:
-            'inset -2px -2px 0 rgba(0,0,0,0.22), inset 2px 2px 0 rgba(255,255,255,0.5)',
         pointerEvents: 'none',
     },
-    treat: {
+    bowl: {
         position: 'absolute',
-        width: 10,
-        height: 8,
-        background: '#b5763a',
-        border: '1px solid #6d4520',
-        borderRadius: 2,
-        boxShadow: 'inset 1px 1px 0 rgba(255,255,255,0.4)',
-        pointerEvents: 'none',
+        transition: 'opacity 200ms linear',
     },
     menuHost: {
         position: 'absolute',

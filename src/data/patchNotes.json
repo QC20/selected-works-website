@@ -24,6 +24,24 @@
     ]
   },
   {
+    "head": "The pets, redrawn",
+    "date": "2026-10-30",
+    "why": "The four animals were a 32-pixel face each: big eyes, no body, and everything they did was that one picture being squashed and spun. A face cannot walk, so they bounced; a face cannot look at anything, so they leaned. They are drawn from a skeleton now, every frame, and drawn as adult animals rather than as mascots.",
+    "notes": [
+      "Modem is a border collie, Static a grey tabby, Glitch an ermine whose colour channels are a pixel out of register, and Pixel a veiltail betta that swims through the desktop instead of sitting in a cartoon bowl",
+      "A small pixel renderer paints each one live: body parts merged into one silhouette, lit from the upper left like every icon on the desktop, outlined in a darker shade of the fur rather than in black",
+      "Legs are placed by inverse kinematics and the walk advances by distance travelled, so feet stay planted instead of skating",
+      "The head turns on its rig to follow the pointer, and comes round to face you when the pointer is close. It blinks, breathes, and turns its head before it turns round",
+      "Move the pointer back and forth across an animal to stroke it. Stroke Static for long enough and she discharges",
+      "Put the pointer on the taskbar and the collie herds it, the cat stalks it and pounces, and the others come over",
+      "A hungry animal sits by an empty bowl and looks at you, instead of growing a red exclamation mark",
+      "Each species has its own habits: the cat washes and kneads, the ermine sits up to look about, the betta flares its fins and sinks gently when dropped",
+      "Hats are drawn in the same pixels, sit on whichever head is wearing them, and swing a beat behind it",
+      "The Pet window shows each animal alive on a strip of taskbar, so you choose one by meeting it",
+      "Voices are shaped breath rather than square waves, and Static purrs"
+    ]
+  },
+  {
     "head": "It starts much faster now",
     "date": "2026-10-15",
     "why": "Every one of the forty-odd programs on this desktop was in the first file the browser downloaded — Doom's loader, a DOS emulator, a three.js scene, a face detector — all queued ahead of the one thing anybody came for. The fix is ordinary code splitting, plus the part that matters more: fetching a program a moment before you ask for it rather than a moment after.",

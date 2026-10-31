@@ -81,7 +81,7 @@ import {
 } from './pets';
 import { reportOpenWindows } from './resourceMeter';
 import { SessionWindow, pendingSession, saveSession } from './session';
-import DesktopPet from './DesktopPet';
+import PetHost from './PetHost';
 import FindDialog from './FindDialog';
 import { PROGRAM_ALIASES, registerProgramEntries } from './searchIndex';
 import { registerOpenApp } from './appBridge';
@@ -2258,7 +2258,7 @@ const Desktop: React.FC<DesktopProps> = (props) => {
                     openApp('showcase');
                 }}
             />
-            <DesktopPet
+            <PetHost
                 suspended={
                     experienceOpen ||
                     shutdownDialogOpen ||

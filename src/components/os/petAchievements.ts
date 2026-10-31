@@ -3,7 +3,7 @@
  * ----------------------------------------------------------------------
  * `pets.ts` knows what the animal *is* and how hungry it is. This knows what
  * has happened to it: how many times it has been thrown, how far, whether it
- * has ever climbed a wall, which of its four faces you have actually met.
+ * has ever climbed a wall, which of the four animals you have actually met.
  *
  * The idea is lifted, openly, from the pet Microsoft slipped into VS Code
  * 1.137 — the one they ran a naming contest for in September 2026. Almost
@@ -41,11 +41,10 @@ import { useEffect, useState } from 'react';
 /* -------------------------------------------------------------------------
  * The wardrobe
  * ----------------------------------------------------------------------
- * Every one of these is drawn by `DesktopPet` out of a couple of divs and a
- * border — no images, because the four animals are 32px sprites and anything
- * bitmapped would have to be redrawn per species to sit right. A shape made
- * of CSS can be positioned off the species' own hat-line and eye-line and
- * still look deliberate on all four.
+ * Every one of these is drawn by `pet/wardrobe.ts` in the same pixels as the
+ * animal wearing it, positioned off the head the rig has just solved — so a
+ * hat sits on the crown of whichever animal is wearing it, tilts with its
+ * head, and swings a beat behind when it turns round.
  */
 
 export type AccessoryId =

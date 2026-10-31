@@ -62,7 +62,7 @@ export const PROGRAM_ALIASES: Record<string, string> = {
     television: 'tv telly channels archive video watch',
     statistics: 'analytics visitors counter numbers traffic',
     systemMonitor: 'resource meter performance memory heap fps cpu',
-    pet: 'tamagotchi animal dog cat fish creature adopt',
+    pet: 'tamagotchi animal dog cat fish creature adopt collie tabby ermine stoat betta',
     guestbook: 'msn messenger chat message board sign',
     stocks: 'market watch shares ticker finance',
     trail: 'oregon dysentery wagon',

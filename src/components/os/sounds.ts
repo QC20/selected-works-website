@@ -247,66 +247,140 @@ export function playDialUp(): number {
  * ---------------------------------------------------------------------- */
 
 /**
- * Four voices, one per animal, built out of the same oscillators as
- * everything else above.
+ * Filtered noise, optionally pulsed.
+ *
+ * Square waves are what made the old voices sound like a toy: a bark built
+ * from two clipped square notes is a bark the way a sprite is a dog. Real
+ * animal sounds are mostly breath — noise shaped by a throat — with a
+ * little pitch on top, so these are noise through a filter, with an
+ * oscillator underneath where the sound has a note in it.
+ *
+ * `pulse` amplitude-modulates the noise, which is the whole trick of a purr:
+ * a low rumble switched on and off about twenty-five times a second.
+ */
+function breath(options: {
+    duration: number;
+    gain?: number;
+    delay?: number;
+    filter?: BiquadFilterType;
+    frequency?: number;
+    endFrequency?: number;
+    q?: number;
+    pulse?: number;
+}): void {
+    const ctx = audio();
+    if (!ctx) return;
+    const start = ctx.currentTime + (options.delay || 0);
+    const end = start + options.duration;
+    const peak = options.gain ?? 0.05;
+
+    const length = Math.ceil(ctx.sampleRate * (options.duration + 0.05));
+    const buffer = ctx.createBuffer(1, length, ctx.sampleRate);
+    const data = buffer.getChannelData(0);
+    for (let i = 0; i < length; i++) data[i] = Math.random() * 2 - 1;
+    const source = ctx.createBufferSource();
+    source.buffer = buffer;
+
+    const filter = ctx.createBiquadFilter();
+    filter.type = options.filter ?? 'lowpass';
+    filter.frequency.setValueAtTime(options.frequency ?? 800, start);
+    if (options.endFrequency) {
+        filter.frequency.exponentialRampToValueAtTime(options.endFrequency, end);
+    }
+    filter.Q.value = options.q ?? 0.8;
+
+    const envelope = ctx.createGain();
+    envelope.gain.setValueAtTime(0.0001, start);
+    envelope.gain.exponentialRampToValueAtTime(peak, start + Math.min(0.03, options.duration / 4));
+    envelope.gain.setValueAtTime(peak, Math.max(start + 0.03, end - options.duration * 0.35));
+    envelope.gain.exponentialRampToValueAtTime(0.0001, end);
+
+    source.connect(filter);
+    if (options.pulse) {
+        const am = ctx.createGain();
+        am.gain.value = 0.55;
+        const lfo = ctx.createOscillator();
+        lfo.frequency.value = options.pulse;
+        const depth = ctx.createGain();
+        depth.gain.value = 0.45;
+        lfo.connect(depth);
+        depth.connect(am.gain);
+        filter.connect(am);
+        am.connect(envelope);
+        lfo.start(start);
+        lfo.stop(end + 0.05);
+    } else {
+        filter.connect(envelope);
+    }
+    envelope.connect(ctx.destination);
+    source.start(start);
+    source.stop(end + 0.05);
+}
+
+/**
+ * Four voices, one per animal.
  *
  * A screen-mate that makes no sound is a picture that moves; a screen-mate
- * with a sampled bark is a 40kB download and somebody else's dog. These are
- * caricatures in three or four tones each — enough that Modem and Static are
- * obviously not the same creature, short enough that hearing one twenty times
- * in a session never becomes the reason somebody hits the mute button.
+ * with a sampled bark is a 40kB download and somebody else's dog. These
+ * are a few hundred milliseconds of shaped noise and tone each — enough
+ * that Modem and Static are obviously not the same creature, and short and
+ * soft enough that hearing one twenty times in a session never becomes the
+ * reason somebody hits the mute button.
  *
- * They go through `tone`, which goes through `audio()`, which returns null
- * while the tray speaker is muted — so the pet is silent by exactly the same
- * switch as the rest of the machine.
+ * They go through `audio()`, which returns null while the tray speaker is
+ * muted — so the pet is silent by exactly the same switch as the rest of
+ * the machine.
  */
 export function playPetVoice(species: string): void {
     switch (species) {
-        // A bark: two clipped square notes, the second lower than the first.
+        // A soft "boof": a breathy low bark with a little chest in it.
         case 'modem':
-            tone({ frequency: 300, endFrequency: 210, duration: 0.07, type: 'square', gain: 0.05 });
-            tone({
-                frequency: 250,
-                endFrequency: 170,
-                duration: 0.09,
-                type: 'square',
-                gain: 0.045,
-                delay: 0.11,
-            });
+            breath({ duration: 0.11, gain: 0.07, frequency: 900, endFrequency: 380, q: 1.2 });
+            tone({ frequency: 190, endFrequency: 120, duration: 0.1, type: 'triangle', gain: 0.045 });
             break;
 
-        // A meow: one triangle note bent up and then let down again.
+        // A "mrrp": a short rising trill, the sound a cat makes in greeting.
         case 'static':
-            tone({ frequency: 520, endFrequency: 780, duration: 0.13, type: 'triangle', gain: 0.05 });
-            tone({
-                frequency: 760,
-                endFrequency: 430,
-                duration: 0.2,
-                type: 'triangle',
-                gain: 0.045,
-                delay: 0.12,
-            });
+            tone({ frequency: 560, endFrequency: 760, duration: 0.12, type: 'triangle', gain: 0.035 });
+            tone({ frequency: 740, endFrequency: 620, duration: 0.14, type: 'sine', gain: 0.03, delay: 0.1 });
+            breath({ duration: 0.2, gain: 0.025, filter: 'bandpass', frequency: 1400, q: 1.5, pulse: 32 });
             break;
 
-        // Corrupted data given a voice: three short blips at unrelated pitches.
+        // Dooking: the soft clucking a stoat makes, a little too regular —
+        // the corruption is in the timing, not the timbre.
         case 'glitch':
-            for (let i = 0; i < 3; i++) {
-                tone({
-                    frequency: 400 + Math.random() * 1400,
-                    duration: 0.035,
-                    type: i === 1 ? 'sawtooth' : 'square',
-                    gain: 0.035,
-                    delay: i * 0.055,
-                });
-            }
+            [880, 1040, 880].forEach((f, i) => {
+                tone({ frequency: f, endFrequency: f * 0.82, duration: 0.04, type: 'square', gain: 0.022, delay: i * 0.07 });
+                breath({ duration: 0.04, gain: 0.03, filter: 'bandpass', frequency: f * 1.6, q: 3, delay: i * 0.07 });
+            });
             break;
 
         // A bubble leaving the water: a quick rise that stops abruptly.
         case 'pixel':
         default:
-            tone({ frequency: 380, endFrequency: 1100, duration: 0.09, type: 'sine', gain: 0.05 });
+            tone({ frequency: 420, endFrequency: 1150, duration: 0.08, type: 'sine', gain: 0.04 });
+            tone({ frequency: 600, endFrequency: 1500, duration: 0.05, type: 'sine', gain: 0.025, delay: 0.09 });
             break;
     }
+}
+
+/** Contentment, as a sound: a low rumble that comes and goes. The cat's. */
+export function playPetPurr(): void {
+    breath({ duration: 1.3, gain: 0.05, frequency: 260, q: 0.9, pulse: 24 });
+}
+
+/** Static discharging: a crackle of tiny sparks, then a snap. */
+export function playPetZap(): void {
+    for (let i = 0; i < 4; i++) {
+        breath({
+            duration: 0.018 + Math.random() * 0.02,
+            gain: 0.05,
+            filter: 'highpass',
+            frequency: 3500 + Math.random() * 2500,
+            delay: i * (0.025 + Math.random() * 0.03),
+        });
+    }
+    tone({ frequency: 2600, endFrequency: 900, duration: 0.06, type: 'square', gain: 0.02, delay: 0.13 });
 }
 
 /** The little fanfare at the end of a trick, or a caught ball brought back. */

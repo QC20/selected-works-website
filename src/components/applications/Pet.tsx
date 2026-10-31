@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import Window from '../os/Window';
 import Colors from '../../constants/colors';
-import { Icon } from '../general';
 import { playClick } from '../os/sounds';
+import PetPortrait from '../os/pet/PetPortrait';
+import PetBadge from '../os/pet/PetBadge';
 import {
     PET_LIST,
     PetDef,
@@ -96,18 +97,17 @@ const humanAge = (from: number): string => {
 /**
  * Picking an animal.
  * ------------------
- * This used to be four cards in a grid, each with its own "Adopt" button, and
- * it had two problems. It told you almost nothing about the animals — a name
- * and one line of tagline each — and the only route back to it wiped your
- * current pet the instant you clicked, so "let me just see what the others are
- * like" cost you the one you had and there was no way to change your mind.
+ * A proper Windows 95 chooser — a list on the left, a preview on the
+ * right, OK and Cancel at the bottom — the shape Display Properties and
+ * Font selection use. Cancel genuinely cancels: nothing is written until
+ * you press OK, so browsing never costs you the animal you already have.
  *
- * So it is a proper Windows 95 chooser now: a list on the left, a preview on
- * the right, and OK/Cancel at the bottom. It is the shape Display Properties
- * and Font selection use, it lets you click through all four and read about
- * them before committing to anything, and Cancel genuinely cancels — the
- * animal you already had is still there, because nothing is written until you
- * press OK.
+ * The preview is the animal itself, alive, on a little strip of taskbar
+ * (see `PetPortrait`). It used to be a 56px copy of the tray icon, which
+ * meant choosing between four drawings; now you meet them. It looks at the
+ * pointer, it can be stroked, and it goes about the business its species
+ * goes about, so you can tell which of the four you would like to live with
+ * before you commit to any of them.
  *
  * Nothing is lost by switching, either: the wardrobe and the achievements are
  * the *visitor's*, not the animal's, so they survive a change of pet.
@@ -156,8 +156,11 @@ const Chooser: React.FC<{
                                     }
                                 }}
                             >
-                                <Icon icon={p.icon} size={20} />
-                                <span style={styles.listName}>{p.name}</span>
+                                <PetBadge kind={p.id} size={24} />
+                                <span style={styles.listText}>
+                                    <span style={styles.listName}>{p.name}</span>
+                                    <span style={styles.listBreed}>{p.breed}</span>
+                                </span>
                                 {p.id === current && (
                                     <span style={styles.listCurrent}>yours</span>
                                 )}
@@ -167,12 +170,22 @@ const Chooser: React.FC<{
                 </div>
 
                 <div style={styles.preview}>
-                    <div style={styles.previewHead}>
-                        <Icon icon={pet.icon} size={56} />
-                        <div style={styles.previewHeadText}>
-                            <span style={styles.previewName}>{pet.name}</span>
-                            <span style={styles.previewTag}>{pet.tagline}</span>
-                        </div>
+                    <div style={styles.stage}>
+                        <PetPortrait
+                            key={pet.id}
+                            kind={pet.id}
+                            width={156}
+                            height={78}
+                            zoom={2}
+                            title={`${pet.name} — click to say hello, or stroke with the pointer`}
+                        />
+                    </div>
+                    <div style={styles.previewHeadText}>
+                        <span style={styles.previewName}>
+                            {pet.name}
+                            <span style={styles.previewBreed}>{pet.breed}</span>
+                        </span>
+                        <span style={styles.previewTag}>{pet.tagline}</span>
                     </div>
                     <div style={styles.facts}>
                         <Row label="Trick" value={pet.trickName} />
@@ -225,23 +238,43 @@ const Dashboard: React.FC<{
     const mood = computeMood(state);
     const level = contentment(state);
 
+    const achievements = useAchievementState();
+    const hungry = mood === 'hungry' || mood === 'starving';
+
     return (
         <div style={styles.dashRoot}>
+            {/* Your animal, alive, in its own strip of desktop: wearing
+                what it wears, begging if it is hungry, and strokeable —
+                which counts as a pat, here as anywhere. */}
+            <div style={styles.stage}>
+                <PetPortrait
+                    kind={pet.id}
+                    width={232}
+                    height={74}
+                    zoom={2}
+                    accessory={achievements.equipped}
+                    hungry={hungry}
+                    onStroke={() => pettPet()}
+                    title={`${pet.name} — stroke with the pointer to pat`}
+                />
+            </div>
             <div style={styles.dashHead}>
-                <Icon icon={pet.icon} size={64} />
                 <div style={styles.dashHeadText}>
-                    <span style={styles.dashName}>{pet.name}</span>
-                    <span style={styles.dashTagline}>{pet.tagline}</span>
-                    <span
-                        style={{
-                            ...styles.moodBadge,
-                            color: MOOD_COLOR[mood],
-                            borderColor: MOOD_COLOR[mood],
-                        }}
-                    >
-                        {MOOD_LABEL[mood]}
+                    <span style={styles.dashName}>
+                        {pet.name}
+                        <span style={styles.previewBreed}>{pet.breed}</span>
                     </span>
+                    <span style={styles.dashTagline}>{pet.tagline}</span>
                 </div>
+                <span
+                    style={{
+                        ...styles.moodBadge,
+                        color: MOOD_COLOR[mood],
+                        borderColor: MOOD_COLOR[mood],
+                    }}
+                >
+                    {MOOD_LABEL[mood]}
+                </span>
             </div>
 
             <fieldset style={styles.group}>
@@ -296,9 +329,10 @@ const Dashboard: React.FC<{
                 <p style={styles.hint}>
                     {pet.name} {pet.trickName} on command, chases {pet.toyName}{' '}
                     along the taskbar, and will come and find {pet.treatName}{' '}
-                    wherever it lands. Out there you can also drag {pet.name}{' '}
-                    around the screen, throw them, double-click for the trick,
-                    or right-click for the lot.
+                    wherever it lands. Out there you can also stroke {pet.name}{' '}
+                    by moving the pointer back and forth across them, pick them
+                    up and throw them, double-click for the trick, or
+                    right-click for the lot.
                 </p>
             </fieldset>
 
@@ -444,6 +478,17 @@ const Wardrobe: React.FC<{ pet: PetDef }> = ({ pet }) => {
     return (
         <fieldset style={styles.group}>
             <legend style={styles.legend}>Wardrobe</legend>
+            <div style={styles.stage}>
+                <PetPortrait
+                    kind={pet.id}
+                    width={160}
+                    height={64}
+                    zoom={2}
+                    hold="sit"
+                    accessory={achievements.equipped}
+                    title={pet.name}
+                />
+            </div>
             {owned.length === 0 ? (
                 <p style={styles.hint}>
                     Nothing yet. {pet.name} earns something to wear for most of
@@ -692,7 +737,42 @@ const styles: StyleSheetCSS = {
         color: Colors.black,
     },
     listRowOn: { background: '#000080', color: Colors.white },
-    listName: { flex: 1, fontFamily: 'MSSerif', fontSize: 11, color: 'inherit' },
+    listText: {
+        flex: 1,
+        display: 'flex',
+        flexDirection: 'column',
+        minWidth: 0,
+        color: 'inherit',
+    },
+    listName: { fontFamily: 'MSSerif', fontSize: 11, color: 'inherit' },
+    listBreed: {
+        fontFamily: 'MSSerif',
+        fontSize: 9,
+        opacity: 0.75,
+        color: 'inherit',
+    },
+    /**
+     * The sunken well a live portrait sits in — the same bevel as a list
+     * box, so the little desktop inside reads as a view *into* something.
+     */
+    stage: {
+        alignSelf: 'center',
+        flexShrink: 0,
+        padding: 0,
+        border: `1px solid ${Colors.darkGray}`,
+        borderRightColor: Colors.white,
+        borderBottomColor: Colors.white,
+        boxShadow: `inset 1px 1px 0 ${Colors.black}`,
+        background: Colors.turquoise,
+        lineHeight: 0,
+    },
+    previewBreed: {
+        marginLeft: 6,
+        fontFamily: 'MSSerif',
+        fontSize: 10,
+        fontWeight: 'normal',
+        color: '#555',
+    },
     listCurrent: {
         fontFamily: 'MSSerif',
         fontSize: 9,
@@ -703,8 +783,8 @@ const styles: StyleSheetCSS = {
         flex: 1,
         minWidth: 0,
         flexDirection: 'column',
-        gap: 8,
-        padding: 9,
+        gap: 7,
+        padding: 8,
         border: `1px solid ${Colors.darkGray}`,
         borderRightColor: Colors.white,
         borderBottomColor: Colors.white,
@@ -849,12 +929,18 @@ const styles: StyleSheetCSS = {
 
     // ---- dashboard ----
     dashRoot: { display: 'flex', flexDirection: 'column', gap: 10 },
-    dashHead: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+    dashHead: {
+        flexDirection: 'row',
+        alignItems: 'flex-start',
+        justifyContent: 'space-between',
+        gap: 12,
+    },
     dashHeadText: {
         display: 'flex',
         flexDirection: 'column',
         gap: 3,
         minWidth: 0,
+        flex: 1,
     },
     dashName: {
         fontFamily: 'MSSerif',
@@ -865,6 +951,7 @@ const styles: StyleSheetCSS = {
     dashTagline: { fontFamily: 'MSSerif', fontSize: 10, color: '#444' },
     moodBadge: {
         alignSelf: 'flex-start',
+        flexShrink: 0,
         marginTop: 2,
         padding: '1px 7px',
         fontFamily: 'MSSerif',

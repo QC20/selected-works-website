@@ -3,10 +3,19 @@
  * --------
  * Four characters native to this machine rather than anything borrowed:
  *
- *   Modem   a dog who remembers the sound of dial-up.
- *   Glitch  a slime that formed out of a corrupted save file.
- *   Static  a cat found asleep on top of the television.
- *   Pixel   a fish, mostly for people who want the low-maintenance option.
+ *   Modem   a border collie who remembers the sound of dial-up, and herds
+ *           the pointer the way his ancestors herded sheep.
+ *   Glitch  an ermine that formed out of a corrupted save file. Its colour
+ *           channels are a pixel out of register and it occasionally tears.
+ *   Static  a grey tabby the colour of a dead channel, found asleep on top
+ *           of the television. Stroke her too long and she crackles.
+ *   Pixel   a betta, the fish people actually keep on desks, swimming
+ *           through the desktop as if it were the tank.
+ *
+ * They are drawn, not pictured: `pet/` holds a small renderer and a rig for
+ * each, and the creature on the taskbar is painted fresh every frame from a
+ * pose. This file is the part that is not about how they look — what they
+ * are called, what they say, how hungry they are.
  *
  * One store, following the same shape as `theme.ts` and `crt.ts`: a
  * module-level object, persisted to `localStorage`, read by a `useState` hook
@@ -109,37 +118,16 @@ export interface PetDef {
     respawnLines: string[];
     /** One per reaction, so a poke says something specific to the animal. */
     reactionLines: Record<PetReaction, string[]>;
-    /** The thing it chases when you play fetch, and what colour that is. */
+    /** The thing it chases when you play fetch. */
     toyName: string;
-    toyColor: string;
     /** What a tossed treat is, for this animal. */
     treatName: string;
-    /**
-     * Where this species' features sit on its own 32px sprite, as fractions
-     * of the sprite box. The wardrobe in `PetAccessory.tsx` is drawn out of
-     * CSS rather than painted into the art, so a hat has to be told where the
-     * top of *this* head is — Pixel's bowl rim is a third of the way down the
-     * frame and Glitch's blob does not start until halfway, so a hat pinned
-     * to one fixed offset floats in mid-air on one animal and sits through
-     * the skull of another.
-     *
-     * These are measured rather than guessed: each icon was rendered at 8x
-     * with a decile grid over it and the crown, eye line, chin and skull
-     * width read straight off. The first draft of this table was estimated
-     * from the alpha bounding box, which is wrong for three of the four —
-     * Glitch's box includes two loose pixels floating above the slime, and
-     * Static's includes the ear tips rather than the head between them.
-     */
-    anatomy: {
-        /** Top of the head, 0 = top of the sprite box. */
-        hat: number;
-        /** Centre of the eye line. */
-        eyes: number;
-        /** Under the chin. */
-        neck: number;
-        /** Half the width of the head at the eye line, as a fraction. */
-        headWidth: number;
-    };
+    /** What it is, in a few words, for the Pet window's "about" row. */
+    breed: string;
+    /** Leaping at the pointer — only the hunters have these. */
+    pounceLines?: string[];
+    /** Stroked until the static discharged — only Static has these. */
+    dischargeLines?: string[];
 }
 
 export const PETS: Record<PetSpecies, PetDef> = {
@@ -147,16 +135,17 @@ export const PETS: Record<PetSpecies, PetDef> = {
         id: 'modem',
         name: 'Modem',
         icon: 'petModemIcon',
-        tagline: 'A good boy who still remembers the sound of dial-up.',
+        breed: 'Border collie',
+        tagline: 'A border collie who still remembers the sound of dial-up. Herds the pointer.',
         idleLines: [
-            'Modem is pacing by the tray, bored.',
+            'Modem is lying very still, watching the pointer the way a collie watches sheep.',
             'Modem is chewing thoughtfully on a cable that is not his.',
             'Modem has found a warm patch near the clock and will not be moved.',
             'Modem is watching the Start button. Something might happen.',
             'Modem heard a noise. There was no noise.',
         ],
         hungryLines: [
-            'Modem is scratching at an empty bowl.',
+            'Modem is sitting by an empty bowl, looking at you.',
             'Modem has pushed his bowl across the taskbar to make a point.',
             'Modem is doing the stare. You know the one.',
         ],
@@ -181,7 +170,7 @@ export const PETS: Record<PetSpecies, PetDef> = {
         trickName: 'rolls over',
         trickLines: [
             'Modem rolls over, gets halfway back up, and gives up. Still counts.',
-            'Modem does a full spin and looks around for applause.',
+            'Modem goes all the way over and comes up looking for applause.',
             'Modem rolls the wrong way, corrects, and finishes with real conviction.',
         ],
         playLines: [
@@ -220,44 +209,37 @@ export const PETS: Record<PetSpecies, PetDef> = {
             'Modem steps off the edge without checking first. He lands fine. He always does.',
             'Modem launches himself off the window with total confidence.',
         ],
-        wallNapLines: [
-            'Modem has fallen asleep halfway up a wall. He does this.',
-        ],
-        runAwayLines: [
-            'Modem has gone to hide. Badly. You can see most of him.',
-        ],
-        comeBackLines: [
-            'Modem comes back at a dead sprint and overshoots.',
-        ],
+        wallNapLines: ['Modem has fallen asleep halfway up a wall. He does this.'],
+        runAwayLines: ['Modem has gone to hide. Badly. You can see most of him.'],
+        comeBackLines: ['Modem comes back at a dead sprint and overshoots.'],
         respawnLines: [
             'Modem falls out of the top of the screen and lands on the bar, unharmed and delighted.',
         ],
         reactionLines: {
-            press: ['Modem presses the Start button with his nose. Nothing opens.'],
+            press: ['Modem presses the Start button with his paw. Nothing opens.'],
             heart: ['Modem loves you. Modem has always loved you.'],
             cool: ['Modem has found sunglasses. He is not going to explain where.'],
             yap: [
-                'Modem lies on his side and barks at nothing in particular.',
-                'Modem is yapping at the corner of the screen. It started it.',
+                'Modem barks at nothing in particular, with total commitment.',
+                'Modem is barking at the corner of the screen. It started it.',
             ],
             sing: ['Modem howls one long note. It is a handshake tone, roughly.'],
             speechless: ['Modem has no notes.'],
             worry: ['Modem has heard the hard drive make a sound and is concerned.'],
         },
         toyName: 'a tennis ball',
-        toyColor: '#c8d94a',
         treatName: 'a biscuit',
-        anatomy: { hat: 0.33, eyes: 0.585, neck: 0.86, headWidth: 0.3 },
     },
     glitch: {
         id: 'glitch',
         name: 'Glitch',
         icon: 'petGlitchIcon',
-        tagline: 'Formed out of a corrupted save file. Mostly harmless.',
+        breed: 'Ermine, corrupted',
+        tagline: 'An ermine that formed out of a corrupted save file. Mostly harmless.',
         idleLines: [
-            'Glitch is idly reforming itself in the corner of the tray.',
+            'Glitch is up on its hind legs, scanning the desktop for something only it can see.',
             'Glitch flickered. Probably nothing.',
-            'Glitch is briefly two slimes and then, correctly, one again.',
+            'Glitch is briefly two stoats and then, correctly, one again.',
             'Glitch is reading the taskbar clock and disagreeing with it.',
         ],
         hungryLines: [
@@ -274,38 +256,38 @@ export const PETS: Record<PetSpecies, PetDef> = {
             'Glitch reassembled the moment the page loaded. It had been waiting in a buffer.',
         ],
         feedLines: [
-            'Glitch absorbs it instantly and glows for a second.',
-            'Glitch eats it, checksums it, and approves.',
-            'Glitch swallows it whole and goes briefly transparent.',
+            'Glitch eats it in two bites and one checksum.',
+            'Glitch eats it, verifies it, and approves.',
+            'Glitch eats so fast that two frames of it are missing.',
         ],
         petLines: [
-            'Glitch wobbles happily.',
-            'Glitch ripples outward from where you touched it.',
+            'Glitch chatters happily, very slightly out of sync with itself.',
+            'Glitch’s outline ripples outward from where you touched it.',
             'Glitch leans on your pointer and leaves a faint smear.',
         ],
-        trickName: 'reboots itself',
+        trickName: 'does the war dance',
         trickLines: [
-            'Glitch turns itself inside out and back again. Do not think about it.',
-            'Glitch briefly renders at the wrong resolution, on purpose, for you.',
-            'Glitch performs a clean reboot in under a second. Show-off.',
+            'Glitch does the weasel war dance. Several frames of it are missing.',
+            'Glitch bounces sideways, backwards, and once, briefly, into next week.',
+            'Glitch performs the war dance and then reboots, as is traditional.',
         ],
         playLines: [
             'Glitch is chasing a stray pixel that should not exist.',
-            'Glitch absorbs the pixel, thinks better of it, and puts it back.',
+            'Glitch catches the pixel, thinks better of it, and puts it back.',
             'Glitch corners the pixel against the tray. The pixel had a good run.',
         ],
         heldLines: [
-            'Glitch is dripping upward. That is not how anything works.',
+            'Glitch is dangling, and very slightly to the left of where it is dangling.',
             'Glitch has stopped rendering its own edges. It seems relaxed.',
-            'Glitch is briefly a wireframe. It would rather you did not mention it.',
+            'Glitch has gone long, the way stoats do. Longer than it should be able to.',
         ],
         droppedLines: [
             'Glitch reassembles itself out of order and then fixes it.',
-            'Glitch splatters, reforms, and looks pleased about the whole thing.',
-            'Glitch lands as a completely different shape and slowly corrects.',
+            'Glitch scatters into scanlines, reforms, and looks pleased about the whole thing.',
+            'Glitch lands a frame before it hits the ground and waits for the ground to catch up.',
         ],
         wakeLines: [
-            'Glitch reboots. Two seconds of nothing, then a slime again.',
+            'Glitch reboots. Two seconds of nothing, then a stoat again.',
             'Glitch comes back up in safe mode, then normally.',
         ],
         dizzyLines: [
@@ -313,52 +295,47 @@ export const PETS: Record<PetSpecies, PetDef> = {
             'Glitch has lost track of which way is down and is treating it as optional.',
         ],
         climbLines: [
-            'Glitch has flowed up the side of the screen. Gravity was more of a suggestion.',
-            'Glitch is at the top of the wall, dripping upward, entirely content.',
+            'Glitch went up the side of the screen in two frames. There should have been more frames.',
+            'Glitch is at the top of the wall, entirely content and very slightly torn.',
         ],
         ledgeLines: [
-            'Glitch has flowed up onto the window frame and settled there.',
+            'Glitch has run up onto the window frame and settled there.',
             'Glitch is sitting on the title bar, very slightly out of alignment with it.',
             'Glitch has occupied the top edge of that window.',
         ],
         hopOffLines: [
-            'Glitch pours off the edge and reassembles on the way down.',
+            'Glitch drops off the edge and arrives slightly before it lands.',
             'Glitch lets go. Gravity is one of the rules it has agreed to follow.',
         ],
         wallNapLines: [
-            'Glitch has gone dormant against the wall. It is still very slightly moving.',
+            'Glitch has gone dormant against the wall. It is still very slightly flickering.',
         ],
-        runAwayLines: [
-            'Glitch has hidden itself in an unused region of memory.',
-        ],
-        comeBackLines: [
-            'Glitch rematerialises about four pixels from where it left.',
-        ],
+        runAwayLines: ['Glitch has hidden itself in an unused region of memory.'],
+        comeBackLines: ['Glitch rematerialises about four pixels from where it left.'],
         respawnLines: [
             'Glitch fell out of the bottom of the screen and came back in through the top. It does not consider this remarkable.',
         ],
         reactionLines: {
-            press: ['Glitch presses the Start button by growing through it.'],
-            heart: ['Glitch renders a heart, badly, on purpose.'],
+            press: ['Glitch presses the Start button. The Start button presses back.'],
+            heart: ['Glitch is fond of you. It has written this to disk.'],
             cool: ['Glitch has generated sunglasses out of two corrupted sprites.'],
             yap: [
-                'Glitch lies on its side and emits a sound no format supports.',
-                'Glitch is arguing with the taskbar in a protocol nobody uses any more.',
+                'Glitch makes the dooking noise, in a protocol nobody uses any more.',
+                'Glitch is arguing with the taskbar. Neither of them is winning.',
             ],
             sing: ['Glitch sings one pure tone and one that is definitely not.'],
             speechless: ['Glitch has stopped. Glitch has simply stopped.'],
             worry: ['Glitch has found an unclosed tag somewhere and is worried about it.'],
         },
         toyName: 'a stray pixel',
-        toyColor: '#7ae0ff',
         treatName: 'a spare byte',
-        anatomy: { hat: 0.5, eyes: 0.62, neck: 0.9, headWidth: 0.28 },
     },
     static: {
         id: 'static',
         name: 'Static',
         icon: 'petStaticIcon',
-        tagline: 'Found asleep on top of the television. Never left.',
+        breed: 'Grey tabby',
+        tagline: 'A grey tabby the colour of a dead channel. Found asleep on top of the television. Never left.',
         idleLines: [
             'Static is watching the cursor, unimpressed.',
             'Static is sitting very close to the Television window. No comment.',
@@ -384,7 +361,7 @@ export const PETS: Record<PetSpecies, PetDef> = {
             'Static finishes and washes a paw for considerably longer than necessary.',
         ],
         petLines: [
-            'Static allows exactly three pets before walking off.',
+            'Static allows exactly three strokes before reconsidering.',
             'Static permits this. Static is not enjoying this. Static is enjoying this.',
             'Static headbutts your pointer once and pretends it was an accident.',
         ],
@@ -430,15 +407,9 @@ export const PETS: Record<PetSpecies, PetDef> = {
             'Static steps off the edge with enormous dignity.',
             'Static drops off the window as though she meant to the entire time.',
         ],
-        wallNapLines: [
-            'Static is asleep on the wall. This is now a place cats sleep.',
-        ],
-        runAwayLines: [
-            'Static has gone. There is no evidence Static was ever here.',
-        ],
-        comeBackLines: [
-            'Static strolls back in as though she had been there the entire time.',
-        ],
+        wallNapLines: ['Static is asleep on the wall. This is now a place cats sleep.'],
+        runAwayLines: ['Static has gone. There is no evidence Static was ever here.'],
+        comeBackLines: ['Static strolls back in as though she had been there the entire time.'],
         respawnLines: [
             'Static reappears at the top of the screen, lands perfectly, and dares you to comment.',
         ],
@@ -447,7 +418,7 @@ export const PETS: Record<PetSpecies, PetDef> = {
             heart: ['Static loves you and would deny it under oath.'],
             cool: ['Static is wearing sunglasses. It suits her, and she knows.'],
             yap: [
-                'Static lies on her side and makes a sound that is not quite a meow.',
+                'Static delivers one long meow, with the air of someone who has said it before.',
                 'Static is having a long conversation with the corner of the screen.',
             ],
             sing: ['Static sings. It is technically singing.'],
@@ -455,33 +426,42 @@ export const PETS: Record<PetSpecies, PetDef> = {
             worry: ['Static has noticed something behind you. There is nothing behind you.'],
         },
         toyName: 'a ball of yarn',
-        toyColor: '#e08a8a',
         treatName: 'a fish flake',
-        anatomy: { hat: 0.28, eyes: 0.63, neck: 0.86, headWidth: 0.3 },
+        pounceLines: [
+            'Static has caught the pointer. The pointer was not where it was.',
+            'Static pounces, misses, and makes it look intentional.',
+            'Static lands exactly where the pointer was a moment ago, which she considers a win.',
+        ],
+        dischargeLines: [
+            'Static has built up a considerable charge and would like you to stop.',
+            'Static crackles, glares, and leaves. That was enough stroking.',
+            'Static discharges into the taskbar and stalks off, faintly smelling of ozone.',
+        ],
     },
     pixel: {
         id: 'pixel',
         name: 'Pixel',
         icon: 'petPixelIcon',
-        tagline: 'Low-maintenance. Mostly just swims.',
+        breed: 'Veiltail betta',
+        tagline: 'A betta — the fish people actually keep on desks. Low maintenance, high drama.',
         idleLines: [
-            'Pixel does a slow lap of the bowl.',
-            'Pixel is doing the thing where it stares at the glass.',
-            'Pixel has found the one interesting corner of the bowl again.',
+            'Pixel does a slow lap of the taskbar.',
+            'Pixel is flaring at its own reflection in a title bar.',
+            'Pixel has found the one interesting corner of the desktop again.',
             'Pixel is swimming through the taskbar. Nobody has told it it cannot.',
         ],
         hungryLines: [
-            'Pixel is circling the top of the bowl, hoping.',
+            'Pixel is hovering by an empty dish, hoping.',
             'Pixel is doing the mouth thing at the surface.',
-            'Pixel has swum to the front of the bowl and stopped.',
+            'Pixel has swum to the front of the screen and stopped.',
         ],
         starvingLines: [
             'Pixel really needs feeding by now.',
-            'Pixel has stopped circling, which for a fish is quite the statement.',
+            'Pixel has stopped swimming laps, which for a fish is quite the statement.',
         ],
         welcomeBackLines: [
-            "Pixel's bowl is looking a little empty. Welcome back.",
-            'Pixel has done several thousand laps since you were last here. It kept count of none of them.',
+            'Pixel has flared at its reflection several thousand times since you were last here.',
+            'Pixel has done a great many laps since you left. It kept count of none of them.',
         ],
         feedLines: [
             'Pixel snaps up the flakes immediately.',
@@ -489,14 +469,14 @@ export const PETS: Record<PetSpecies, PetDef> = {
             'Pixel eats and then swims a small victory lap.',
         ],
         petLines: [
-            'Pixel presses against the glass. About as close to affection as a fish gets.',
-            'Pixel follows your pointer along the bowl the whole way.',
-            'Pixel bumps the glass where your hand is. Twice.',
+            'Pixel follows your pointer along the taskbar the whole way.',
+            'Pixel nudges your pointer with its nose. About as close to affection as a fish gets.',
+            'Pixel flares, briefly, at you. It means well.',
         ],
         trickName: 'does a barrel roll',
         trickLines: [
             'Pixel does a barrel roll. It was over quickly but it definitely happened.',
-            'Pixel loops the loop twice and returns to staring at nothing.',
+            'Pixel rolls all the way over, fins trailing, and returns to staring at nothing.',
             'Pixel executes a flawless barrel roll and immediately forgets it could.',
         ],
         playLines: [
@@ -505,18 +485,18 @@ export const PETS: Record<PetSpecies, PetDef> = {
             'Pixel pushes the flake all the way home with its nose.',
         ],
         heldLines: [
-            'Pixel is out of the water and taking it remarkably well.',
-            'Pixel is flapping gently. Pixel would like to go back in the bowl.',
-            'Pixel has brought the bowl with it, which raises questions.',
+            'Pixel is out of the water, which it was never in, and is taking it remarkably well.',
+            'Pixel is flapping gently. Pixel would like to be put back in the air.',
+            'Pixel has gone very still and very dignified, fins and all.',
         ],
         droppedLines: [
-            'Pixel plops back down and resumes swimming through solid taskbar.',
-            'Pixel bounces once, forgets the entire incident, and swims on.',
+            'Pixel drifts down and resumes swimming through solid taskbar.',
+            'Pixel settles, forgets the entire incident, and swims on.',
             'Pixel lands with a small splash that leaves no water anywhere.',
         ],
         wakeLines: [
             'Pixel was asleep with its eyes open. Fish do that.',
-            'Pixel resumes swimming from exactly where it stopped.',
+            'Pixel lifts off the bottom and resumes swimming from exactly where it stopped.',
         ],
         dizzyLines: [
             'Pixel is swimming in a corkscrew and appears to be enjoying it.',
@@ -524,45 +504,37 @@ export const PETS: Record<PetSpecies, PetDef> = {
         ],
         climbLines: [
             'Pixel has swum up the side of the screen. There is no water there.',
-            'Pixel is at the top of the wall. The bowl came too.',
+            'Pixel is at the top of the wall, fins trailing, entirely unbothered.',
         ],
         ledgeLines: [
-            'Pixel has swum up onto the window frame, bowl and all.',
+            'Pixel is resting on the title bar, the way bettas rest on leaves.',
             'Pixel is perched on the title bar. The physics here are not worth examining.',
             'Pixel has taken up residence on top of that window.',
         ],
         hopOffLines: [
             'Pixel slides off the edge and drifts down, entirely unbothered.',
-            'Pixel leaves the window the only way it knows how: downward.',
+            'Pixel leaves the window the only way it knows how: slowly, and downward.',
         ],
-        wallNapLines: [
-            'Pixel is asleep against the wall, drifting very slightly.',
-        ],
-        runAwayLines: [
-            'Pixel has hidden behind the taskbar. The bowl is still visible.',
-        ],
-        comeBackLines: [
-            'Pixel swims back into view at the same unhurried speed as always.',
-        ],
+        wallNapLines: ['Pixel is asleep against the wall, drifting very slightly.'],
+        runAwayLines: ['Pixel has hidden behind the taskbar. The end of its tail is still showing.'],
+        comeBackLines: ['Pixel swims back into view at the same unhurried speed as always.'],
         respawnLines: [
-            'Pixel drops back in from the top of the screen, bowl and all, entirely unbothered.',
+            'Pixel drifts back in from the top of the screen, fins trailing, entirely unbothered.',
         ],
         reactionLines: {
-            press: ['Pixel bumps the Start button with the rim of its bowl.'],
+            press: ['Pixel nudges the Start button with its nose.'],
             heart: ['Pixel does the affection thing. It is subtle. It counts.'],
-            cool: ['Pixel is wearing sunglasses over a bowl. Do not overthink it.'],
+            cool: ['Pixel flares every fin it has, and is wearing sunglasses. It is magnificent.'],
             yap: [
-                'Pixel tips onto its side and opens and closes its mouth at you.',
+                'Pixel opens and closes its mouth at you, at length.',
                 'Pixel is saying something. Pixel is a fish.',
             ],
             sing: ['Pixel blows a stream of bubbles in what is very nearly a tune.'],
             speechless: ['Pixel stares. Pixel has been staring for some time.'],
-            worry: ['Pixel has noticed the water level and is thinking about it.'],
+            worry: ['Pixel has clamped its fins. Something is up.'],
         },
         toyName: 'a flake',
-        toyColor: '#e8c86a',
         treatName: 'a pinch of flakes',
-        anatomy: { hat: 0.2, eyes: 0.58, neck: 0.92, headWidth: 0.3 },
     },
 };
 
@@ -839,7 +811,7 @@ function buildIntroTips(pet: PetDef): Line[] {
             animation: randomClippy(),
         },
         {
-            text: `Leave ${pet.name} alone for a while and they'll let you know about it. They also perk up whenever you open something new.`,
+            text: `Move your pointer back and forth across ${pet.name} to stroke them. And if they get hungry, they'll go and sit by their bowl until you notice.`,
             animation: randomClippy(),
         },
     ];
