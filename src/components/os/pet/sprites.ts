@@ -23,6 +23,7 @@ export type SpriteName =
     | 'zed'
     | 'spark'
     | 'bubble'
+    | 'dust'
     | 'badge'
     | 'ball'
     | 'yarn'
@@ -39,6 +40,10 @@ interface Bitmap {
 }
 
 const BITMAPS: Record<SpriteName, Bitmap> = {
+    dust: {
+        rows: ['.dd..', 'dDDd.', 'dDDDd', '.ddd.'],
+        ink: { d: '#a9a59b', D: '#d6d2c6' },
+    },
     heart: {
         rows: ['.r.r.', 'rRrrr', 'rrrrd', '.rrd.', '..d..'],
         ink: { r: '#c9445f', R: '#ef8ea0', d: '#8a2238' },
@@ -146,27 +151,72 @@ export const TREAT_SPRITE: Record<string, SpriteName> = {
 
 const cache = new Map<string, { url: string; w: number; h: number }>();
 
-/** A data URL for a sprite at an integer pixel size. Cached. */
+/**
+ * Doubles a bitmap the way emulators learned to in the nineties (EPX, the
+ * rule Scale2x rediscovered): each pixel becomes four, and a corner takes
+ * its neighbours' colour when the two neighbours meeting at that corner
+ * agree with each other and not with the ones opposite. Diagonals come out
+ * as diagonals instead of staircases of 2x2 blocks, which matters here
+ * because the animal beside these props is drawn at one art pixel per
+ * screen pixel — a ball made of fat square pixels next to it looks pasted
+ * in from a different game.
+ */
+function epx(g: string[][]): string[][] {
+    const h = g.length;
+    const w = h ? g[0].length : 0;
+    const out: string[][] = [];
+    const at = (x: number, y: number) => (x < 0 || y < 0 || x >= w || y >= h ? '.' : g[y][x]);
+    for (let y = 0; y < h; y++) {
+        const top: string[] = [];
+        const bot: string[] = [];
+        for (let x = 0; x < w; x++) {
+            const p = g[y][x];
+            const a = at(x, y - 1);
+            const b = at(x + 1, y);
+            const c = at(x - 1, y);
+            const d = at(x, y + 1);
+            top.push(c === a && c !== d && a !== b ? a : p, a === b && a !== c && b !== d ? b : p);
+            bot.push(d === c && d !== b && c !== a ? c : p, b === d && b !== a && d !== c ? d : p);
+        }
+        out.push(top, bot);
+    }
+    return out;
+}
+
+/**
+ * A data URL for a sprite at an integer pixel size. Cached.
+ *
+ * At 2 and 4 the bitmap is doubled with `epx` rather than with squares; any
+ * other size is plain nearest-neighbour.
+ */
 export function sprite(name: SpriteName, px = 1): { url: string; w: number; h: number } {
     const key = `${name}@${px}`;
     const hit = cache.get(key);
     if (hit) return hit;
     const bmp = BITMAPS[name];
-    const h = bmp.rows.length;
-    const w = Math.max(...bmp.rows.map((r) => r.length));
+    const h0 = bmp.rows.length;
+    const w0 = Math.max(...bmp.rows.map((r) => r.length));
+    let grid: string[][] = bmp.rows.map((r) => r.padEnd(w0, '.').split(''));
+    let cell = px;
+    if (px === 2 || px === 4) {
+        for (let n = px; n > 1; n /= 2) grid = epx(grid);
+        cell = 1;
+    }
+    const h = grid.length;
+    const w = grid[0].length;
     let url = '';
     try {
         const canvas = document.createElement('canvas');
-        canvas.width = w * px;
-        canvas.height = h * px;
+        canvas.width = w * cell;
+        canvas.height = h * cell;
         const ctx = canvas.getContext('2d');
         if (ctx) {
             for (let y = 0; y < h; y++) {
-                for (let x = 0; x < bmp.rows[y].length; x++) {
-                    const c = bmp.ink[bmp.rows[y][x]];
+                for (let x = 0; x < w; x++) {
+                    const c = bmp.ink[grid[y][x]];
                     if (!c) continue;
                     ctx.fillStyle = c;
-                    ctx.fillRect(x * px, y * px, px, px);
+                    ctx.fillRect(x * cell, y * cell, cell, cell);
                 }
             }
             url = canvas.toDataURL('image/png');
@@ -174,7 +224,7 @@ export function sprite(name: SpriteName, px = 1): { url: string; w: number; h: n
     } catch {
         /* no canvas (tests, very old browsers): the particle simply won't show */
     }
-    const out = { url, w: w * px, h: h * px };
+    const out = { url, w: w0 * px, h: h0 * px };
     cache.set(key, out);
     return out;
 }

@@ -1,5 +1,23 @@
 [
   {
+    "head": "The pets, drawn properly",
+    "date": "2026-11-14",
+    "why": "The animals on the taskbar were about forty pixels long, which left two pixels for an eye and none for fur. They were built like animals but read like smudges, and beside the companions in other software they looked it. They are now drawn at twice the size, with a coat, a face, and the small motions that come from having a body.",
+    "notes": [
+      "Each animal is twice its old size by default — the collie is a little over a hundred pixels long. The size menu still runs from 40% to 200% of that",
+      "Fur: the tones interlock in short strokes that follow the lie of the hair, and the outline is broken by the tips of the locks. The collie is shaggy, the tabby short and dense, the ermine sleek except for the brush on its tail",
+      "Eyes with lids, an iris, a pupil and a catchlight. The cat’s pupils are slits at rest and go round when it stalks or is startled",
+      "Noses, a line for the mouth, toes, and whiskers on the cat and the ermine. The face stays the right way up when the animal climbs a window or rolls onto its back",
+      "The tabby has real stripes",
+      "Tails and ears are carried rather than driven: the tail trails when the animal sets off and swings through when it stops, and ears flop on a landing and flick now and then on their own",
+      "Blinks close fast and open slower, and the eyes wander when nothing has their attention",
+      "The shadow under the animal is dithered, the way Windows 95 drew every shadow it had",
+      "Toys, treats and bowls are enlarged with a pixel-art upscaler, so they sit beside the animal without turning blocky",
+      "A bigger animal takes bigger strides at a pace that suits its size, with its paws still planted",
+      "A sitting animal is redrawn only when something visibly changes — a few times a second rather than thirty"
+    ]
+  },
+  {
     "head": "Apple Pencil, and other styluses",
     "date": "2026-10-31",
     "why": "Dragging with a stylus could leave things stuck. The browser treats a moving pen or finger as a scroll unless told otherwise, and when it does it cancels the gesture without telling the page it has ended. Desktop icons asked to be scrolled, and nothing in any drag listened for the cancellation.",

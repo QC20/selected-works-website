@@ -204,12 +204,15 @@ body {
  * the main thread.
  *
  * `--pet-dx` is the sideways drift, set per particle so a burst of three
- * fans out instead of stacking into one.
+ * fans out instead of stacking into one. `--pet-k` is how big the animal is
+ * drawn (2 at 100%), set on the animal itself: every distance below is
+ * multiplied by it, so a heart rises as far past a big dog's head as it
+ * does past a small one's.
  */
 .pet-particle {
     position: absolute;
     left: 0;
-    bottom: 6px;
+    bottom: calc(6px * var(--pet-k, 1));
     pointer-events: none;
     opacity: 0;
     image-rendering: pixelated;
@@ -229,13 +232,13 @@ body {
 }
 
 .pet-particle-crumb {
-    bottom: -6px;
+    bottom: calc(-6px * var(--pet-k, 1));
     animation-name: petCrumb;
     animation-duration: 0.7s;
 }
 
 .pet-particle-star {
-    bottom: 2px;
+    bottom: calc(2px * var(--pet-k, 1));
     animation-name: petStar;
     animation-duration: 1.6s;
 }
@@ -261,7 +264,7 @@ body {
         opacity: 1;
     }
     100% {
-        transform: translate(calc(-50% + var(--pet-dx, 0px)), -26px);
+        transform: translate(calc(-50% + var(--pet-dx, 0px)), calc(-26px * var(--pet-k, 1)));
         opacity: 0;
     }
 }
@@ -273,10 +276,10 @@ body {
     }
     30% {
         opacity: 1;
-        transform: translate(calc(-50% + var(--pet-dx, 0px)), -12px) scale(1);
+        transform: translate(calc(-50% + var(--pet-dx, 0px)), calc(-12px * var(--pet-k, 1))) scale(1);
     }
     100% {
-        transform: translate(calc(-50% + var(--pet-dx, 0px)), -26px) scale(0.4);
+        transform: translate(calc(-50% + var(--pet-dx, 0px)), calc(-26px * var(--pet-k, 1))) scale(0.4);
         opacity: 0;
     }
 }
@@ -288,7 +291,7 @@ body {
         opacity: 1;
     }
     100% {
-        transform: translate(calc(-50% + var(--pet-dx, 0px)), 14px);
+        transform: translate(calc(-50% + var(--pet-dx, 0px)), calc(14px * var(--pet-k, 1)));
         opacity: 0;
     }
 }
@@ -297,7 +300,7 @@ body {
    concussion ring is a cartoon, so this is the smallest version of one. */
 @keyframes petStar {
     0% {
-        transform: translate(-50%, 0) rotate(0deg) translateX(10px);
+        transform: translate(-50%, 0) rotate(0deg) translateX(calc(10px * var(--pet-k, 1)));
         opacity: 0;
     }
     12% {
@@ -307,7 +310,7 @@ body {
         opacity: 0.9;
     }
     100% {
-        transform: translate(-50%, 0) rotate(560deg) translateX(10px);
+        transform: translate(-50%, 0) rotate(560deg) translateX(calc(10px * var(--pet-k, 1)));
         opacity: 0;
     }
 }
@@ -319,7 +322,7 @@ body {
         opacity: 1;
     }
     100% {
-        transform: translate(calc(-50% + var(--pet-dx, 0px) * 1.6), -10px);
+        transform: translate(calc(-50% + var(--pet-dx, 0px) * 1.6), calc(-10px * var(--pet-k, 1)));
         opacity: 0;
     }
 }
@@ -334,10 +337,29 @@ body {
         opacity: 0.9;
     }
     50% {
-        transform: translate(calc(-50% + var(--pet-dx, 0px) * 0.5), -16px);
+        transform: translate(calc(-50% + var(--pet-dx, 0px) * 0.5), calc(-16px * var(--pet-k, 1)));
     }
     100% {
-        transform: translate(calc(-50% + var(--pet-dx, 0px)), -34px);
+        transform: translate(calc(-50% + var(--pet-dx, 0px)), calc(-34px * var(--pet-k, 1)));
+        opacity: 0;
+    }
+}
+
+/* Dust kicked up by a hard landing: out along the ground from the feet, a
+   little up, and gone in half a second. Hung off the feet, not the head. */
+.pet-particle-dust {
+    bottom: 0;
+    animation-name: petDust;
+    animation-duration: 0.55s;
+}
+
+@keyframes petDust {
+    0% {
+        transform: translate(-50%, 0) scale(0.6);
+        opacity: 0.9;
+    }
+    100% {
+        transform: translate(calc(-50% + var(--pet-dx, 0px)), calc(-5px * var(--pet-k, 1))) scale(1.25);
         opacity: 0;
     }
 }
@@ -357,7 +379,7 @@ body {
         opacity: 0.85;
     }
     100% {
-        transform: translate(8px, -18px);
+        transform: translate(calc(8px * var(--pet-k, 1)), calc(-18px * var(--pet-k, 1)));
         opacity: 0;
     }
 }

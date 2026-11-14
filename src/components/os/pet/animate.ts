@@ -23,6 +23,7 @@ import {
     BOUND,
     GALLOP,
     Gait,
+    POSE_KEYS,
     Plan,
     QPose,
     TROT,
@@ -1220,6 +1221,29 @@ export class Animator {
     private dt = 1 / 60;
     private lastAt = 0;
 
+    /* Follow-through. The tail and the ears are not driven, they are
+     * *carried*: each is a damped spring hung off the body, kicked by the
+     * body's changes of speed, so the tail trails when the animal sets off,
+     * swings through when it stops, and the ears flop on a landing. This is
+     * the difference between an animal and a mechanism, and it is two
+     * numbers per spring. */
+    private tailX = 0;
+    private tailV = 0;
+    private earX = 0;
+    private earV = 0;
+    private prevSpeed = 0;
+    private prevVy = 0;
+    /** The ear that twitches for no reason, as ears do. */
+    private nextFlick = 0;
+    private flickAt = -1e9;
+    /** Where the eyes rest when nothing has their attention. */
+    private glance = 0;
+    private nextGlance = 0;
+    private lookYv = 0;
+    private blinkAt = -1e9;
+    /** How wide the pupils are, eased — see `dilation`. */
+    private pupil = 0.2;
+
     constructor(kind: PetKind) {
         this.kind = kind;
     }
@@ -1227,6 +1251,15 @@ export class Animator {
     /** The clip currently showing. */
     current(): Clip {
         return this.clip;
+    }
+
+    /**
+     * How wide the pupils are, 0..1. A cat's are the most honest thing
+     * about it: slits when it is at ease in the light, full moons when it
+     * is hunting, startled, or about to do something regrettable.
+     */
+    dilation(): number {
+        return this.pupil;
     }
 
     update(now: number, input: AnimInput): Pose {
@@ -1331,15 +1364,62 @@ export class Animator {
             out.ear = Math.min(out.ear, -input.squash);
         }
 
-        // Blinks: every few seconds, sometimes twice.
+        // Blinks: every few seconds, sometimes twice. The lid comes down
+        // fast and goes back up slower, which is how a real one moves and
+        // why a blink that is simply on-then-off looks like a camera shutter.
         if (!NO_BLINK.has(input.clip) && !input.reduced) {
             if (now > this.nextBlink) {
-                this.blinkUntil = now + 120;
+                this.blinkAt = now;
+                this.blinkUntil = now + 190;
                 this.nextBlink =
-                    now + (Math.random() < 0.18 ? 260 : 2400 + Math.random() * 4200);
+                    now + (Math.random() < 0.18 ? 300 : 2400 + Math.random() * 4200);
             }
-            if (now < this.blinkUntil && out.eye > 0.6) out.eye = 0.1;
+            if (now < this.blinkUntil) {
+                const t = (now - this.blinkAt) / 190;
+                const lid = t < 0.32 ? 1 - t / 0.32 : easeOut((t - 0.32) / 0.68);
+                out.eye = Math.min(out.eye, lid);
+            }
         }
+
+        // Follow-through: kick the springs with whatever the body just did.
+        if (!input.reduced) {
+            const dt = this.dt;
+            const dv = clamp(input.speed - this.prevSpeed, -70, 70);
+            const dvy = clamp(input.vy - this.prevVy, -500, 500);
+            // Setting off leaves the tail behind; stopping throws it on.
+            // Falling lifts it; a landing whips it down.
+            this.tailV += -dv * 0.028 - dvy * 0.0026;
+            this.tailV += (-95 * this.tailX - 8.5 * this.tailV) * dt;
+            this.tailX = clamp(this.tailX + this.tailV * dt, -0.85, 0.85);
+            this.earV += -dvy * 0.006 - Math.abs(dv) * 0.012;
+            this.earV += (-160 * this.earX - 13 * this.earV) * dt;
+            this.earX = clamp(this.earX + this.earV * dt, -1.2, 0.6);
+            out.tailA += this.tailX;
+            out.tailCurl += this.tailX * 0.3;
+            out.ear = clamp(out.ear + this.earX, -1, 1);
+
+            // An ear flicks, every so often, on its own.
+            const settled = ATTENTIVE.has(input.clip) || input.clip === 'ponder';
+            if (settled && now > this.nextFlick) {
+                this.flickAt = now;
+                this.nextFlick = now + 3200 + Math.random() * 7000;
+            }
+            const ft = (now - this.flickAt) / 170;
+            if (ft >= 0 && ft < 1) out.ear = clamp(out.ear - Math.sin(ft * Math.PI) * 0.85, -1, 1);
+        }
+        this.prevSpeed = input.speed;
+        this.prevVy = input.vy;
+
+        // Pupils: wide for the hunt and for a fright, narrow at rest.
+        const wide =
+            input.alarm || input.clip === 'pounce' || input.clip === 'stalk' || input.clip === 'run' || input.clip === 'tumble'
+                ? 1
+                : input.clip === 'watch' || input.clip === 'perk' || input.clip === 'trick' || input.clip === 'hop'
+                ? 0.62
+                : input.happy || input.clip === 'sleep' || input.clip === 'lie'
+                ? 0.34
+                : 0.16;
+        this.pupil = approach(this.pupil, wide, this.dt, wide > this.pupil ? 0.09 : 0.45);
         if (input.alarm) out.happy = 0;
         if (input.happy) out.happy = Math.max(out.happy, 1);
 
@@ -1360,14 +1440,63 @@ export class Animator {
                 xT = fwd > 0 ? 1 : -1;
             }
         }
+        // With nothing to watch, the eyes do not lock dead ahead: they rest
+        // somewhere for a second or two and then go somewhere else.
+        const watching = xT !== 0;
+        if (!watching && !input.reduced && ATTENTIVE.has(input.clip)) {
+            if (now > this.nextGlance) {
+                const r = Math.random();
+                this.glance = r < 0.45 ? 0 : r < 0.75 ? 0.75 : -0.6;
+                this.nextGlance = now + 900 + Math.random() * 2600;
+            }
+            xT = this.glance;
+        }
         this.lookYaw = approach(this.lookYaw, yawT, this.dt, 0.12);
         this.lookPitch = approach(this.lookPitch, pitchT, this.dt, 0.12);
-        this.lookX = approach(this.lookX, xT, this.dt, 0.2);
+        // Eyes are quick — far quicker than the head that follows them.
+        this.lookX = approach(this.lookX, xT, this.dt, watching ? 0.07 : 0.05);
+        this.lookYv = approach(this.lookYv, clamp(pitchT * 2.4, -1, 1), this.dt, 0.08);
         out.yaw = Math.max(out.yaw, this.lookYaw);
         out.pitch += this.lookPitch * (1 - out.yaw * 0.4);
         out.lookX = this.lookX;
+        out.lookY = this.lookYv;
         return out;
     }
+}
+
+/**
+ * A fingerprint of a pose, coarse enough that two poses nobody could tell
+ * apart on screen share one.
+ *
+ * Drawing is the expensive part of having a pet, and most of the time the
+ * pet is sitting still: breathing, which moves a pixel or two every half
+ * second, and blinking. Thirty identical drawings a second is thirty too
+ * many. The desktop compares this before each one and skips the drawing if
+ * it has not changed — positions are rounded to half a screen pixel,
+ * angles to about a degree, and the breath to a sixth, which is finer than
+ * the grid it ends up on.
+ */
+const SIG_POS = new Set([
+    'tx', 'ty', 'sx', 'sy', 'hx', 'hy', 'hdx', 'hdy',
+    'fnx', 'fny', 'ffx', 'ffy', 'hnx', 'hny', 'hfx', 'hfy',
+]);
+
+export function poseSignature(pose: QPose, scale: number): number {
+    let h = 0x811c9dc5;
+    const p = pose as unknown as Record<string, number>;
+    for (let i = 0; i < POSE_KEYS.length; i++) {
+        const k = POSE_KEYS[i] as string;
+        const v = p[k];
+        const q = SIG_POS.has(k)
+            ? Math.round(v * scale * 2)
+            : k === 'breath'
+            ? Math.round(v * 6)
+            : k === 'eye' || k === 'happy' || k === 'ear' || k === 'jaw' || k === 'tongue'
+            ? Math.round(v * 12)
+            : Math.round(v * 48);
+        h = Math.imul(h ^ q, 0x01000193);
+    }
+    return h >>> 0;
 }
 
 /** A single pose, for icons and previews: no animator, no blending. */

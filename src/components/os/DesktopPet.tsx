@@ -1,9 +1,9 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import ContextMenu, { ContextMenuItem } from './ContextMenu';
 import { openAppGlobal } from './appBridge';
-import { Animator, Clip } from './pet/animate';
+import { Animator, Clip, poseSignature } from './pet/animate';
 import { Frame } from './pet/raster';
-import { PetKind, draw, frameFor, originOf } from './pet/render';
+import { PET_SIZE, PetKind, draw, frameFor, originOf } from './pet/render';
 import { SpriteName, TOY_SPRITE, TREAT_SPRITE, sprite as pixelSprite } from './pet/sprites';
 import { TASKBAR_HEIGHT } from './metrics';
 import {
@@ -221,14 +221,21 @@ type PetPose =
     | 'dance'
     | 'ponder';
 
-/** The creature's nominal size at 100%, roughly nose to tail. Everything
+/** The creature's nominal size at rig scale, roughly nose to tail. Everything
  *  that needs to know how big the animal is — walking bounds, how close
  *  counts as caught, where the bowl goes — measures in these. */
 const BASE_SPRITE = 52;
 
-/** Pixels per second. Slow enough to read as an amble, not a scuttle. */
-const WALK_SPEED = 40;
-const CHASE_SPEED = 92;
+/**
+ * Pixels per second at rig scale. Slow enough to read as an amble, not a
+ * scuttle. These are `let` because they are *paces*, not distances: an
+ * animal drawn twice the size has to cover more of the screen per second or
+ * it looks as if it is wading. `setPace` below rescales them whenever the
+ * creature's size changes; there is only ever one creature, so module state
+ * is the honest place for it.
+ */
+let WALK_SPEED = 40;
+let CHASE_SPEED = 92;
 
 /**
  * How each animal moves, relative to the numbers above.
@@ -246,10 +253,10 @@ const FEEL: Record<string, { pace: number; gravity: number; drag: number; bounce
 };
 const feelOf = (id: string | undefined) => FEEL[id ?? 'modem'] ?? FEEL.modem;
 /** Chasing a thrown toy is the one time the creature really runs. */
-const FETCH_SPEED = 165;
+let FETCH_SPEED = 165;
 /** Going to a wall is purposeful — faster than an amble, slower than a chase. */
-const WALL_APPROACH_SPEED = 70;
-const CLIMB_SPEED = 58;
+let WALL_APPROACH_SPEED = 70;
+let CLIMB_SPEED = 58;
 /**
  * Scaling the side of a window, which is a much longer haul than the screen
  * edge: windows open near the top of the desktop and the creature lives at the
@@ -259,9 +266,60 @@ const CLIMB_SPEED = 58;
  */
 const LEDGE_CLIMB_SPEED = 215;
 /** How near the pointer counts as "caught". */
-const CATCH_DISTANCE = 22;
+let CATCH_DISTANCE = 22;
 /** How near the toy or a treat counts as reached. */
-const REACH_DISTANCE = 18;
+let REACH_DISTANCE = 18;
+
+/**
+ * The contact shadow, the way Windows 95 drew every shadow it had: not a
+ * translucent black — there was no such thing in sixteen colours — but a
+ * checkerboard of black pixels with the desktop showing through the gaps.
+ * Dense under the body, thinning to every fourth pixel at the rim, which is
+ * as close to a soft edge as a dither gets.
+ */
+function paintShadow(canvas: HTMLCanvasElement, w: number, h: number): void {
+    canvas.width = w;
+    canvas.height = h;
+    canvas.style.width = `${w}px`;
+    canvas.style.height = `${h}px`;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+    const image = ctx.createImageData(w, h);
+    const px = new Uint32Array(image.data.buffer);
+    const ink = 0x8c000000; // black, a little over half there
+    for (let y = 0; y < h; y++) {
+        for (let x = 0; x < w; x++) {
+            const nx = (x + 0.5 - w / 2) / (w / 2);
+            const ny = (y + 0.5 - h / 2) / (h / 2);
+            const r = nx * nx + ny * ny;
+            if (r > 1) continue;
+            const on = r < 0.42 ? (x + y) % 2 === 0 : x % 2 === 0 && y % 2 === (x >> 1) % 2;
+            if (on) px[y * w + x] = ink;
+        }
+    }
+    ctx.putImageData(image, 0, 0);
+}
+
+/**
+ * Fits the paces to the animal's size.
+ *
+ * Distances scale with the body, one for one. Speeds scale a little less
+ * than that — size to the three-quarters — which is roughly what real
+ * animals do: a big dog covers more ground than a small one but takes
+ * slower strides doing it. The gait itself is advanced by distance in body
+ * lengths (see the `moved` passed to the animator), so whatever the speed,
+ * a planted paw stays planted.
+ */
+function setPace(size: number): void {
+    const k = Math.pow(size, 0.75);
+    WALK_SPEED = 40 * k;
+    CHASE_SPEED = 92 * k;
+    FETCH_SPEED = 165 * k;
+    WALL_APPROACH_SPEED = 70 * k;
+    CLIMB_SPEED = 58 * k;
+    CATCH_DISTANCE = 22 * size;
+    REACH_DISTANCE = 18 * size;
+}
 /** Idle this long with no pointer nearby and the pet nods off. */
 const SLEEP_AFTER_MS = 22_000;
 
@@ -330,11 +388,14 @@ interface Projectile {
 
 interface Particle {
     id: number;
-    kind: 'heart' | 'crumb' | 'sparkle' | 'star' | 'note' | 'sweat' | 'spark' | 'bubble';
+    kind: 'heart' | 'crumb' | 'sparkle' | 'star' | 'note' | 'sweat' | 'spark' | 'bubble' | 'dust';
     /** Horizontal drift, in px, handed to the CSS keyframes as `--pet-dx`. */
     dx: number;
     delay: number;
     sprite: SpriteName;
+    /** Dust only: where on the ground it was kicked up, in layer pixels.
+     *  It stays there — the animal that made it is already bouncing away. */
+    at?: { x: number; y: number };
 }
 
 /**
@@ -377,7 +438,7 @@ const DesktopPet: React.FC<{ suspended?: boolean }> = ({ suspended = false }) =>
     const elRef = useRef<HTMLDivElement | null>(null);
     const toyElRef = useRef<HTMLDivElement | null>(null);
     const treatElRef = useRef<HTMLDivElement | null>(null);
-    const shadowRef = useRef<HTMLDivElement | null>(null);
+    const shadowRef = useRef<HTMLCanvasElement | null>(null);
     const bowlElRef = useRef<HTMLDivElement | null>(null);
 
     /* --- the drawing ------------------------------------------------------
@@ -408,11 +469,19 @@ const DesktopPet: React.FC<{ suspended?: boolean }> = ({ suspended = false }) =>
     const wornRef = useRef<AccessoryId | null>(null);
 
     /** The sprite's nominal size in px. Read in the loop, so also a ref. */
-    const sprite = Math.round(BASE_SPRITE * achievements.scale);
+    /**
+     * How big the animal is actually drawn: the size the visitor chose,
+     * times `PET_SIZE` — the scale the art is designed at. 100% is a
+     * creature a little over a hundred pixels long, which is the size at
+     * which it has a face rather than a smudge.
+     */
+    const bodyScale = achievements.scale * PET_SIZE;
+    setPace(bodyScale);
+    const sprite = Math.round(BASE_SPRITE * bodyScale);
     const spriteRef = useRef(sprite);
     spriteRef.current = sprite;
-    const scaleRef = useRef(achievements.scale);
-    scaleRef.current = achievements.scale;
+    const scaleRef = useRef(bodyScale);
+    scaleRef.current = bodyScale;
 
     /* --- being stroked ----------------------------------------------------
      * Moving the pointer back and forth across the animal, without
@@ -648,12 +717,19 @@ const DesktopPet: React.FC<{ suspended?: boolean }> = ({ suspended = false }) =>
 
     /** A short burst of whatever this moment calls for, cleaned up on a timer. */
     const burst = useCallback((kind: Particle['kind'], count: number) => {
+        const k = scaleRef.current;
         const made: Particle[] = Array.from({ length: count }, (_, i) => ({
             id: ++particleId,
             kind,
-            dx: (Math.random() - 0.5) * 30,
-            delay: i * 110,
+            // Dust goes out along the ground, a puff to each side at once;
+            // everything else drifts a little as it rises, one at a time.
+            dx:
+                kind === 'dust'
+                    ? (i % 2 ? 1 : -1) * (14 + Math.random() * 14) * k
+                    : (Math.random() - 0.5) * 30 * k,
+            delay: kind === 'dust' ? Math.floor(i / 2) * 60 : i * 110,
             sprite: kind,
+            at: kind === 'dust' ? { x: xRef.current, y: Math.max(0, yRef.current) } : undefined,
         }));
         setParticles((prev) => [...prev, ...made]);
         window.setTimeout(
@@ -1071,6 +1147,10 @@ const DesktopPet: React.FC<{ suspended?: boolean }> = ({ suspended = false }) =>
          */
         let drawEvery = DRAW_EVERY_MS;
         let paintCost = 0;
+        /** What the last drawing was of — see the top of `paint`. */
+        let lastSig = -2;
+        let lastSigFrame: Frame | null = null;
+        let lastSigCanvas: HTMLCanvasElement | null = null;
         /** Hunger, re-read twice a second rather than sixty times. */
         let nextMoodCheck = 0;
         let hungryNow = false;
@@ -1105,6 +1185,36 @@ const DesktopPet: React.FC<{ suspended?: boolean }> = ({ suspended = false }) =>
             const image = imageRef.current;
             const canvas = canvasRef.current;
             if (!frame || !image || !canvas) return;
+
+            // Nothing a viewer could see has changed since the last
+            // drawing: do not make another. A sitting animal is redrawn a
+            // handful of times a second this way instead of thirty. The
+            // fish never holds still and Glitch tears on its own clock, so
+            // neither is ever skipped; nor is anything with a hat still
+            // swinging, a charge still crackling, or a hat with moving parts.
+            let sig = -1;
+            if (kind !== 'pixel' && kind !== 'glitch') {
+                const worn = wornRef.current;
+                const busyHat = worn === 'propeller' || worn === 'antenna' || worn === 'halo' || worn === 'crt';
+                const live =
+                    Math.abs(hatVelRef.current) > 0.04 || chargeRef.current > 0 || busyHat
+                        ? Math.floor(now / 34)
+                        : 0;
+                sig =
+                    (poseSignature(pose as Parameters<typeof poseSignature>[0], scaleRef.current) ^
+                        Math.imul(facingRef.current + 2, 0x9e3779b1) ^
+                        Math.imul(Math.round(hatAngleRef.current * 2) + 64, 0x85ebca6b) ^
+                        Math.imul(Math.round((animatorRef.current?.dilation() ?? 0) * 8) + 1, 0xc2b2ae35) ^
+                        Math.imul(Math.round(xRef.current), 0x27d4eb2f) ^
+                        Math.imul(live + (reactionRef.current === 'worry' || reactionRef.current === 'speechless' ? 7 : 3), 0x165667b1) ^
+                        Math.imul((worn ?? '').length * 31 + (worn ? worn.charCodeAt(0) : 0), 0x2545f491)) >>>
+                    0;
+                if (sig === lastSig && frame === lastSigFrame && canvas === lastSigCanvas) return;
+            }
+            lastSig = sig;
+            lastSigFrame = frame;
+            lastSigCanvas = canvas;
+
             const ctx = canvas.getContext('2d');
             if (!ctx) return;
 
@@ -1119,6 +1229,7 @@ const DesktopPet: React.FC<{ suspended?: boolean }> = ({ suspended = false }) =>
                 glitch: kind === 'glitch' ? glitchLevel(now) : 0,
                 charge: kind === 'static' ? chargeRef.current : 0,
                 alarm: reactionRef.current === 'worry' || reactionRef.current === 'speechless',
+                dilate: animatorRef.current?.dilation() ?? 0.16,
             });
             ctx.putImageData(image, 0, 0);
 
@@ -1520,6 +1631,7 @@ const DesktopPet: React.FC<{ suspended?: boolean }> = ({ suspended = false }) =>
                     spinRef.current = 0;
                     squashRef.current = Math.min(1, impact / 500);
                     playPetBump();
+                    if (impact > 260) burst('dust', impact > 700 ? 4 : 2);
                     const pad = size * 0.5;
                     ledgeTargetRef.current =
                         caught.left + pad +
@@ -1536,6 +1648,7 @@ const DesktopPet: React.FC<{ suspended?: boolean }> = ({ suspended = false }) =>
                         vxRef.current *= 0.6;
                         playPetBump();
                         squashRef.current = Math.min(1, impact / 900);
+                        if (impact > 260) burst('dust', impact > 700 ? 4 : 2);
                     } else {
                         const horizontal = Math.abs(vxRef.current);
                         vyRef.current = 0;
@@ -2166,8 +2279,11 @@ const DesktopPet: React.FC<{ suspended?: boolean }> = ({ suspended = false }) =>
                     clip,
                     p: phase,
                     len: phaseMs,
-                    moved: movedNow,
-                    speed: movedNow / Math.max(dt, 1 / 240),
+                    // In body lengths, not screen pixels: the stride is a
+                    // length of the animal's, so the same walk at twice
+                    // the size has to cover twice the ground per step.
+                    moved: movedNow / scaleRef.current,
+                    speed: movedNow / scaleRef.current / Math.max(dt, 1 / 240),
                     vy: vyRef.current,
                     spin: spinRef.current,
                     squash: squashRef.current,
@@ -2200,10 +2316,15 @@ const DesktopPet: React.FC<{ suspended?: boolean }> = ({ suspended = false }) =>
                     activityRef.current === 'peeking' ||
                     wallRef.current !== 0;
                 // The fish is always a little way above its shadow.
-                const base = kind === 'pixel' ? 0.15 : 0.26;
-                shadow.style.left = `${Math.round(xRef.current - width / 2)}px`;
-                shadow.style.width = `${Math.round(width)}px`;
-                shadow.style.opacity = String(offBar ? 0 : base - lift * (base - 0.06));
+                const base = kind === 'pixel' ? 0.5 : 0.85;
+                // Whole, even numbers of pixels: the shadow is dithered, and
+                // a checkerboard on a half-pixel is a smear.
+                const sw = Math.max(6, Math.round(width / 2) * 2);
+                const sh = Math.max(2, Math.round((size * (0.085 - lift * 0.045)) / 2) * 2);
+                if (shadow.width !== sw || shadow.height !== sh) paintShadow(shadow, sw, sh);
+                shadow.style.left = `${Math.round(xRef.current - sw / 2)}px`;
+                shadow.style.bottom = `${FOOT - Math.round(sh / 2) - 1}px`;
+                shadow.style.opacity = String(offBar ? 0 : base - lift * (base - 0.2));
             }
 
             paintProjectile(toyElRef.current, toyRef.current, now, true);
@@ -2601,7 +2722,7 @@ const DesktopPet: React.FC<{ suspended?: boolean }> = ({ suspended = false }) =>
 
     // The buffer is sized for the creature's scale and only rebuilt when that
     // changes; the ImageData is a view onto it, so drawing needs no copy.
-    const frame = useMemo(() => frameFor(achievements.scale), [achievements.scale]);
+    const frame = useMemo(() => frameFor(bodyScale), [bodyScale]);
     if (frameRef.current !== frame) {
         frameRef.current = frame;
         imageRef.current =
@@ -2749,14 +2870,44 @@ const DesktopPet: React.FC<{ suspended?: boolean }> = ({ suspended = false }) =>
 
     const [ox, oy] = originOf(frame);
     /** Pixel size for the particles and props: whole pixels, never fractions. */
-    const px = Math.max(1, Math.round(achievements.scale));
+    // 1, 2 or 4 — the sizes `sprite` can double cleanly (see `epx`).
+    const px = bodyScale < 1.5 ? 1 : bodyScale < 3 ? 2 : 4;
     const toyArt = pixelSprite(TOY_SPRITE[pet.id] ?? 'ball', px);
     const treatArt = pixelSprite(TREAT_SPRITE[pet.id] ?? 'biscuit', px);
     const bowlArt = pixelSprite(bowl === 'full' ? 'bowlFull' : 'bowlEmpty', px);
 
     return (
         <div ref={layerRef} style={styles.layer}>
-            <div ref={shadowRef} style={styles.shadow} aria-hidden="true" />
+            <canvas ref={shadowRef} width={2} height={2} style={styles.shadow} aria-hidden="true" />
+
+            {/* Dust from a hard landing. On the ground where it was kicked
+                up, not on the animal: by the time it has spread, the animal
+                is half a bounce away. */}
+            {particles
+                .filter((p) => p.kind === 'dust' && p.at)
+                .map((p) => {
+                    const art = pixelSprite(p.sprite, px);
+                    return (
+                        <img
+                            key={p.id}
+                            src={art.url}
+                            width={art.w}
+                            height={art.h}
+                            alt=""
+                            className="pet-particle pet-particle-dust"
+                            style={
+                                {
+                                    left: Math.round(p.at!.x),
+                                    bottom: FOOT + Math.round(p.at!.y) - 1,
+                                    animationDelay: `${p.delay}ms`,
+                                    ['--pet-dx' as string]: `${p.dx}px`,
+                                    ['--pet-k' as string]: bodyScale,
+                                } as React.CSSProperties
+                            }
+                            aria-hidden="true"
+                        />
+                    );
+                })}
 
             {bowl !== 'none' && (
                 <div
@@ -2809,11 +2960,16 @@ const DesktopPet: React.FC<{ suspended?: boolean }> = ({ suspended = false }) =>
 
             <div
                 ref={elRef}
-                style={{
-                    ...styles.pet,
-                    left: Math.round(xRef.current),
-                    bottom: FOOT,
-                }}
+                style={
+                    {
+                        ...styles.pet,
+                        left: Math.round(xRef.current),
+                        bottom: FOOT,
+                        // How big it is drawn, for the particle keyframes in
+                        // App.css, which measure their travel in animals.
+                        ['--pet-k' as string]: bodyScale,
+                    } as React.CSSProperties
+                }
             >
                 {/* The animal, painted every frame by `pet/render.ts`. One
                     art pixel to one screen pixel, the density of every icon
@@ -2885,7 +3041,7 @@ const DesktopPet: React.FC<{ suspended?: boolean }> = ({ suspended = false }) =>
                     sleep, and the achievement star. */}
                 <div ref={headElRef} style={styles.headAnchor}>
 
-                    {particles.map((p) => {
+                    {particles.filter((p) => p.kind !== 'dust').map((p) => {
                         const art = pixelSprite(p.sprite, px);
                         return (
                             <img
@@ -3328,13 +3484,12 @@ const styles: StyleSheetCSS = {
         color: '#000',
         pointerEvents: 'none',
     },
+    /** Sized, placed and painted every frame — see `paintShadow`. */
     shadow: {
         position: 'absolute',
         bottom: FOOT - 3,
-        height: 4,
-        borderRadius: '50%',
-        background: '#000',
-        opacity: 0.26,
+        opacity: 0,
+        imageRendering: 'pixelated',
         pointerEvents: 'none',
     },
     /** A toy or a treat: a little bitmap that falls, rolls and is carried. */

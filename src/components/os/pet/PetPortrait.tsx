@@ -127,7 +127,12 @@ const PetPortrait: React.FC<PetPortraitProps> = ({
         if (!ctx) return;
         ctx.imageSmoothingEnabled = false;
 
-        const frame = frameFor(1);
+        // The animal is drawn at the portrait's zoom, not drawn small and
+        // blown up: a real pixel per art pixel, so it has the same fur and
+        // the same face here as it does on the taskbar. The diorama round
+        // it is still laid out in the window's own coarse units.
+        const art = Math.max(1, Math.round(zoom));
+        const frame = frameFor(art);
         const image = new ImageData(new Uint8ClampedArray(frame.px.buffer), frame.w, frame.h);
         const sprite = document.createElement('canvas');
         sprite.width = frame.w;
@@ -234,12 +239,14 @@ const PetPortrait: React.FC<PetPortraitProps> = ({
                     kind,
                     pose,
                     facing,
-                    scale: 1,
+                    scale: art,
                     time: now,
                     accessory: propsRef.current.accessory,
                     glitch: kind === 'glitch' ? 0.1 : 0,
+                    dilate: anim.dilation(),
                 });
                 sctx?.putImageData(image, 0, 0);
+                ctx.setTransform(art, 0, 0, art, 0, 0);
 
                 // The diorama: desktop above, a strip of taskbar below.
                 ctx.fillStyle = Colors.turquoise;
@@ -260,13 +267,14 @@ const PetPortrait: React.FC<PetPortraitProps> = ({
                     const bowl = spriteSize('bowlEmpty');
                     paintSprite(ctx, 'bowlEmpty', x + facing * 20 - bowl.w / 2, ground - bowl.h + 1);
                 }
-                ctx.drawImage(sprite, Math.round(x - ox), Math.round(ground - oy));
+                ctx.setTransform(1, 0, 0, 1, 0, 0);
+                ctx.drawImage(sprite, Math.round(x * art - ox), Math.round(ground * art - oy));
             }
             raf = window.requestAnimationFrame(tick);
         };
         raf = window.requestAnimationFrame(tick);
         return () => window.cancelAnimationFrame(raf);
-    }, [kind, width, height]);
+    }, [kind, width, height, zoom]);
 
     const toLocal = (e: React.PointerEvent) => {
         const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
@@ -279,8 +287,8 @@ const PetPortrait: React.FC<PetPortraitProps> = ({
     return (
         <canvas
             ref={canvasRef}
-            width={width}
-            height={height}
+            width={width * Math.max(1, Math.round(zoom))}
+            height={height * Math.max(1, Math.round(zoom))}
             title={title}
             style={{
                 width: width * zoom,

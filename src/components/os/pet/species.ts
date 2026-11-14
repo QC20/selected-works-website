@@ -2,7 +2,7 @@
  * The three four-legged animals, as proportions, coats and faces.
  * ----------------------------------------------------------------
  * Everything here is data for `quadruped.ts`. The numbers are rig units —
- * one art pixel at 100% — and were set by drawing each animal standing,
+ * one art pixel at scale 1 — and were set by drawing each animal standing,
  * sitting and walking and adjusting until the silhouette read at a glance.
  *
  * The brief was "less childish", and the single biggest lever on that is
@@ -300,14 +300,17 @@ const collie: Species & { face: Face } = {
                         ),
                         k: 2.5,
                     },
-                    // ...and a pale belly line under the ribs.
+                    // ...and a pale belly line under the ribs. Laid along the
+                    // spine, not along the ground: sitting tips the body up
+                    // forty degrees, and a belly line that stays level cuts
+                    // straight across the flank.
                     {
                         p: C(
                             X,
-                            k.chest[0] + 2,
-                            k.chest[1] - k.plan.chest.ry * 0.85,
-                            k.chest[0] - 7,
-                            k.chest[1] - k.plan.chest.ry * 0.7,
+                            k.chest[0] + Math.cos(sp) * 2 + Math.sin(sp) * k.plan.chest.ry * 0.85,
+                            k.chest[1] + Math.sin(sp) * 2 - Math.cos(sp) * k.plan.chest.ry * 0.85,
+                            k.chest[0] - Math.cos(sp) * 7 + Math.sin(sp) * k.plan.chest.ry * 0.7,
+                            k.chest[1] - Math.sin(sp) * 7 - Math.cos(sp) * k.plan.chest.ry * 0.7,
                             1.6,
                             1.0
                         ),
@@ -396,6 +399,11 @@ const tabbyPale = ramp(
     ['#6a6b73', '#8b8c94', '#adaeb4', '#cbccd0', '#e6e6e9'],
     '#4d4e55'
 );
+/** The stripes: the same coat a good deal darker, and a little browner. */
+const tabbyStripe = ramp(
+    ['#16171c', '#22242b', '#31343c', '#454950', '#5f636b'],
+    '#101116'
+);
 const tabbyNose = hex('#b88389');
 
 /** Stripes across the back, read in rig space so they follow the body. */
@@ -411,20 +419,22 @@ function tabbyStripes(k: Skeleton): Mark[] {
     const chestBottom = k.plan.chest.ry * 0.75;
     return [
         {
-            // Mackerel stripes on the flank, thinning toward the belly.
-            shift: -1,
+            // Mackerel stripes on the flank: narrow, leaning back as they
+            // come down, thinning out toward the belly and breaking up
+            // before they reach it.
+            ramp: tabbyStripe,
             fn: (bx, by) => {
                 const [x, y] = toRig(X, bx, by);
                 const along = (x - hx) * ux + (y - hy) * uy;
                 const up = -(x - hx) * uy + (y - hy) * ux;
-                if (up < -chestBottom * 0.4) return false;
-                const band = Math.sin(along * 0.92 + up * 0.25);
-                return band > (up > 1 ? 0.38 : 0.62);
+                if (up < -chestBottom * 0.55) return false;
+                const band = Math.sin(along * 1.28 + up * 0.34 + Math.sin(along * 0.5) * 0.7);
+                return band > (up > 1.5 ? 0.3 : up > -1 ? 0.52 : 0.78);
             },
         },
         {
             // A dark line along the spine.
-            shift: -1,
+            ramp: tabbyStripe,
             fn: (bx, by) => {
                 const [x, y] = toRig(X, bx, by);
                 const up = -(x - hx) * uy + (y - hy) * ux;
@@ -508,7 +518,7 @@ const tabby: Species & { face: Face } = {
             },
             {
                 // Forehead stripes: the "M".
-                shift: -1,
+                ramp: tabbyStripe,
                 fn: (bx, by) => {
                     const [x, y] = toRig(X, bx, by);
                     const dx = x - hx - fc[0] * sk.rx * 0.15;
@@ -532,15 +542,18 @@ const tabby: Species & { face: Face } = {
     legMarks: (k, leg, _near, fore) => {
         const [, , kx, ky, ex, ey, px, py] = leg;
         const X = k.X;
-        // Faint bracelets, and pale toes.
+        // Bracelets, and pale toes.
         const marks: Mark[] = [
             {
-                shift: -1,
+                ramp: tabbyStripe,
                 fn: (bx, by) => {
                     const [x, y] = toRig(X, bx, by);
+                    // Bars all the way up: narrow bracelets on the lower
+                    // leg, broader ones curving across the thigh and the
+                    // shoulder, where most of a cat's side actually is.
                     const t = (y - py) / Math.max(1, ky - py);
-                    void x;
-                    return t > 0.25 && t < 1.2 && Math.sin(t * 9.5) > 0.7;
+                    if (t < 0.25 || t > 3) return false;
+                    return Math.sin(t * 8.4 + (x - px) * 0.42) > (t > 1.15 ? 0.42 : 0.7);
                 },
             },
             {
@@ -558,7 +571,7 @@ const tabby: Species & { face: Face } = {
         const total = pts.length - 1;
         return [
             {
-                shift: -1,
+                ramp: tabbyStripe,
                 fn: (bx, by) => {
                     const [x, y] = toRig(X, bx, by);
                     // Distance along the tail chain, roughly: index of the

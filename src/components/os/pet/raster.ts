@@ -36,7 +36,7 @@
  *     most of what was wrong with the old sprites.
  *
  * Everything is integer pixels in a fixed buffer, one art pixel to one CSS
- * pixel at 100% — the same density as the Windows 95 icons it sits beside.
+ * pixel at any size — the same density as the Windows 95 icons it sits beside.
  */
 
 /* -------------------------------------------------------------------------
@@ -150,9 +150,47 @@ export interface Mark {
     shift?: number;
 }
 
+/**
+ * A coat, as opposed to a surface.
+ *
+ * Without this a layer is shaded like polished plastic: the tones meet in
+ * clean curves and the silhouette is a smooth line. Fur does neither. Its
+ * tones interlock in short strokes that follow the lie of the hair, and its
+ * outline is broken by the tips of the locks. Both come from one field of
+ * "locks" — dashes a pixel wide and a few long, laid along each part's own
+ * axis, so they are carried round with a leg or a tail as it moves instead
+ * of swimming across it.
+ */
+export interface Fur {
+    /** How far the locks push the tone boundaries about, in units of N·L.
+     *  0.08 is a sleek coat; 0.25 is shaggy. */
+    grain: number;
+    /** Length of a lock along the part, rig units. */
+    len: number;
+    /** How far the tips stand out of the silhouette, rig units. */
+    fuzz?: number;
+    /** How far the locks lean off the part's axis, as rise over run. */
+    lean?: number;
+    /** How far markings feather into the fur around them, rig units. */
+    feather?: number;
+    /** Which way along the part the tips point: 1 with its axis, -1 against. */
+    dir?: 1 | -1;
+}
+
 export interface Layer {
     parts: Part[];
     ramp: Ramp;
+    /** The coat. Omitted for skin, scales, cloth and anything else smooth. */
+    fur?: Fur;
+    /**
+     * Art pixels per rig unit. The dome, the blends between parts and the
+     * coat are all sizes, and have to grow with the animal or a creature
+     * drawn at twice the size is the same thin bevel round a flat middle.
+     */
+    px?: number;
+    /** A broad form (a torso, a skull) that catches light reflected back
+     *  up off the ground along its underside. */
+    bounce?: boolean;
     /** Radius of the height dome, in pixels. Roughly the layer's thickest radius. */
     dome: number;
     /** Shade offset for the whole layer: far legs sit a step back in shadow. */
@@ -313,7 +351,7 @@ function bounds(p: Prim): [number, number, number, number] {
     }
 }
 
-function evalParts(parts: Part[], x: number, y: number): number {
+function evalParts(parts: Part[], x: number, y: number, S = 1): number {
     let acc = Infinity;
     for (let i = 0; i < parts.length; i++) {
         const part = parts[i];
@@ -321,7 +359,7 @@ function evalParts(parts: Part[], x: number, y: number): number {
         if (part.cut) {
             acc = Math.max(acc, -d);
         } else if (part.k && acc !== Infinity) {
-            const k = part.k;
+            const k = part.k * S;
             const h = Math.max(k - Math.abs(acc - d), 0) / k;
             acc = Math.min(acc, d) - h * h * k * 0.25;
         } else {
@@ -364,12 +402,52 @@ function band(i: number): number {
 /* Scratch grids, grown on demand and reused frame to frame. */
 let gridD = new Float32Array(0);
 let gridH = new Float32Array(0);
+let gridG = new Float32Array(0);
+let gridSkip = new Uint8Array(0);
+/* The sparse samples of a large layer's field, and the part nearest each. */
+let nodeD = new Float32Array(0);
+let nodeP = new Int8Array(0);
 
 function ensureGrid(n: number): void {
     if (gridD.length < n) {
         gridD = new Float32Array(n);
         gridH = new Float32Array(n);
+        gridG = new Float32Array(n);
     }
+}
+
+/**
+ * Light coming back up off the ground, from below and a little in front.
+ * It never brightens anything past the shadow tone — it only stops the
+ * underside of a big form going to its darkest all the way to the edge,
+ * which is what makes a belly look round rather than cut off.
+ */
+const BX = 0.3;
+const BY = 0.86;
+const BZ = 0.4;
+
+/* The lock under a point, written here rather than returned so the inner
+ * loop allocates nothing. `lockG` is the lock's tone, -1..1, constant along
+ * it; `lockT` is how far along the lock the point is, 0 at the root to 1 at
+ * the tip. */
+let lockG = 0;
+let lockT = 0;
+
+function lock(u: number, v: number, len: number, w: number, seed: number): void {
+    const row = Math.floor(v / w);
+    let h = Math.imul(row, 374761393) + Math.imul(seed + 1, 668265263);
+    h = Math.imul(h ^ (h >>> 13), 1274126177);
+    h ^= h >>> 16;
+    // Each row of hair has its own lock length and its own stagger, or the
+    // ends line up into bars.
+    const rl = len * (0.55 + ((h >>> 8) & 255) / 283);
+    const at = (u + (((h >>> 16) & 255) / 255) * rl) / rl;
+    const cell = Math.floor(at);
+    let k = h + Math.imul(cell, 0x85ebca6b);
+    k = Math.imul(k ^ (k >>> 15), 0xc2b2ae35);
+    k ^= k >>> 13;
+    lockG = (k & 1023) / 511.5 - 1;
+    lockT = at - cell;
 }
 
 /* -------------------------------------------------------------------------
@@ -399,10 +477,23 @@ export function drawLayer(f: Frame, layer: Layer, index: number): void {
     let y0 = Infinity;
     let x1 = -Infinity;
     let y1 = -Infinity;
+    // Sizes only ever grow with the animal. Below 100% they are left as
+    // drawn: the icons are rendered at about 60%, and a dome shrunk to
+    // match would shade a 32px sprite as busily as a 100px one.
+    const S = Math.max(1, layer.px ?? 1);
+    const fur = layer.fur && (layer.px ?? 1) >= 1.25 ? layer.fur : null;
+    const grain = fur ? fur.grain : 0;
+    const fuzz = fur ? (fur.fuzz ?? 0) * S : 0;
+    const feather = fur ? (fur.feather ?? 0) * S : 0;
+    const lockLen = fur ? Math.max(2, fur.len * S) : 1;
+    const lockW = Math.max(1, S * 0.5);
+    const lean = fur ? fur.lean ?? 0 : 0;
+    const tip = fur ? fur.dir ?? 1 : 1;
+
     for (const part of layer.parts) {
         if (part.cut) continue;
         const b = bounds(part.p);
-        const pad = (part.k ?? 0) * 0.5;
+        const pad = (part.k ?? 0) * S * 0.5 + fuzz * 0.5;
         x0 = Math.min(x0, b[0] - pad);
         y0 = Math.min(y0, b[1] - pad);
         x1 = Math.max(x1, b[2] + pad);
@@ -420,7 +511,7 @@ export function drawLayer(f: Frame, layer: Layer, index: number): void {
     const gh = gy1 - gy0 + 1;
     ensureGrid(gw * gh);
 
-    const R = Math.max(0.5, layer.dome);
+    const R = Math.max(0.5, layer.dome * S);
     // Per-part bounds, for skipping parts that cannot matter at a pixel: a
     // part further away than the dome radius plus its blend cannot change
     // whether the pixel is inside, nor how deep — so its field is never
@@ -428,36 +519,212 @@ export function drawLayer(f: Frame, layer: Layer, index: number): void {
     const parts = layer.parts;
     const n = parts.length;
     const pb = new Float32Array(n * 4);
+    // Each part's own frame — an origin and a unit axis — which is what the
+    // locks are laid along: down a leg, along a tail, lengthwise on a barrel.
+    const pf = fur ? new Float32Array(n * 4) : null;
     for (let i = 0; i < n; i++) {
         const b = bounds(parts[i].p);
-        const reach = R + (parts[i].k ?? 0) + 1.5;
+        const reach = R + (parts[i].k ?? 0) * S + fuzz + 1.5;
         pb[i * 4] = b[0] - reach;
         pb[i * 4 + 1] = b[1] - reach;
         pb[i * 4 + 2] = b[2] + reach;
         pb[i * 4 + 3] = b[3] + reach;
+        if (pf) {
+            const q = parts[i].p;
+            let fx = 0;
+            let fy = 0;
+            let ax = 1;
+            let ay = 0;
+            if (q.t === 0) {
+                fx = q.x;
+                fy = q.y;
+                // Along the longer radius, so a tall oval combs downward.
+                if (q.rx >= q.ry) {
+                    ax = q.c;
+                    ay = q.s;
+                } else {
+                    ax = -q.s;
+                    ay = q.c;
+                }
+            } else if (q.t === 1) {
+                fx = q.ax;
+                fy = q.ay;
+                ax = q.bx - q.ax;
+                ay = q.by - q.ay;
+            } else {
+                fx = q.pts[0];
+                fy = q.pts[1];
+                ax = q.pts[2] - q.pts[0];
+                ay = q.pts[3] - q.pts[1];
+            }
+            const al = Math.sqrt(ax * ax + ay * ay) || 1;
+            pf[i * 4] = fx;
+            pf[i * 4 + 1] = fy;
+            pf[i * 4 + 2] = ax / al;
+            pf[i * 4 + 3] = ay / al;
+        }
     }
+    // Finding the surface. Two ways, by size.
+    //
+    // At ordinary sizes the field is worked out at every pixel, after a
+    // coarse pass that writes off 4x4 tiles of plain air — a leg on the
+    // diagonal fills a fifth of its own rectangle. The margin is generous
+    // because the ellipse's distance is an estimate, not exact.
+    //
+    // From about 175% up, every shape is at least twice the size it was
+    // designed at and its field is correspondingly smooth, so it is sampled
+    // at every second pixel (every fourth, from 350%) and interpolated
+    // between. That is a quarter of the work for an edge that lands within
+    // an eighth of a pixel of the exact one; the fur, the dome and the
+    // light are all still worked out per pixel.
+    const step = S >= 3.5 ? 4 : S >= 1.75 ? 2 : 1;
+    const TILE = 4;
+    const tw = Math.ceil(gw / TILE);
+    const th = Math.ceil(gh / TILE);
+    const nw = Math.floor((gw - 1) / step) + 2;
+    const nh = Math.floor((gh - 1) / step) + 2;
+    if (step === 1) {
+        if (gridSkip.length < tw * th) gridSkip = new Uint8Array(tw * th);
+        const clear = 4.6 + fuzz;
+        for (let ty = 0; ty < th; ty++) {
+            for (let tx = 0; tx < tw; tx++) {
+                const cx = gx0 + tx * TILE + TILE / 2;
+                const cy = gy0 + ty * TILE + TILE / 2;
+                let acc = Infinity;
+                for (let pi = 0; pi < n; pi++) {
+                    const o = pi * 4;
+                    if (cx < pb[o] - 2.2 || cx > pb[o + 2] + 2.2 || cy < pb[o + 1] - 2.2 || cy > pb[o + 3] + 2.2) continue;
+                    const part = parts[pi];
+                    const dd = sdf(part.p, cx, cy);
+                    if (part.cut) {
+                        acc = Math.max(acc, -dd);
+                    } else if (part.k && acc !== Infinity) {
+                        const k = part.k * S;
+                        const hh = Math.max(k - Math.abs(acc - dd), 0) / k;
+                        acc = Math.min(acc, dd) - hh * hh * k * 0.25;
+                    } else {
+                        acc = Math.min(acc, dd);
+                    }
+                }
+                gridSkip[ty * tw + tx] = acc > clear ? 1 : 0;
+            }
+        }
+    } else {
+        if (nodeD.length < nw * nh) {
+            nodeD = new Float32Array(nw * nh);
+            nodeP = new Int8Array(nw * nh);
+        }
+        for (let ny = 0; ny < nh; ny++) {
+            for (let nx = 0; nx < nw; nx++) {
+                const cx = gx0 + nx * step + 0.5;
+                const cy = gy0 + ny * step + 0.5;
+                let acc = Infinity;
+                let near = -1;
+                let nearD = Infinity;
+                for (let pi = 0; pi < n; pi++) {
+                    const o = pi * 4;
+                    if (cx < pb[o] || cx > pb[o + 2] || cy < pb[o + 1] || cy > pb[o + 3]) continue;
+                    const part = parts[pi];
+                    const dd = sdf(part.p, cx, cy);
+                    if (part.cut) {
+                        acc = Math.max(acc, -dd);
+                    } else if (part.k && acc !== Infinity) {
+                        const k = part.k * S;
+                        const hh = Math.max(k - Math.abs(acc - dd), 0) / k;
+                        acc = Math.min(acc, dd) - hh * hh * k * 0.25;
+                        if (dd < nearD) {
+                            nearD = dd;
+                            near = pi;
+                        }
+                    } else {
+                        acc = Math.min(acc, dd);
+                        if (dd < nearD) {
+                            nearD = dd;
+                            near = pi;
+                        }
+                    }
+                }
+                nodeD[ny * nw + nx] = acc === Infinity ? 64 : acc;
+                nodeP[ny * nw + nx] = near;
+            }
+        }
+    }
+    const skip = gridSkip;
     for (let gy = 0; gy < gh; gy++) {
+        const trow = ((gy / TILE) | 0) * tw;
+        const jy = (gy / step) | 0;
+        const fy = (gy - jy * step) / step;
         for (let gx = 0; gx < gw; gx++) {
+            const i = gy * gw + gx;
             const px = gx0 + gx + 0.5;
             const py = gy0 + gy + 0.5;
-            let acc = Infinity;
-            for (let pi = 0; pi < n; pi++) {
-                const o = pi * 4;
-                if (px < pb[o] || px > pb[o + 2] || py < pb[o + 1] || py > pb[o + 3]) continue;
-                const part = parts[pi];
-                const dd = sdf(part.p, px, py);
-                if (part.cut) {
-                    acc = Math.max(acc, -dd);
-                } else if (part.k && acc !== Infinity) {
-                    const k = part.k;
-                    const hh = Math.max(k - Math.abs(acc - dd), 0) / k;
-                    acc = Math.min(acc, dd) - hh * hh * k * 0.25;
-                } else {
-                    acc = Math.min(acc, dd);
+            let d: number;
+            let near = -1;
+            if (step === 1) {
+                if (skip[trow + ((gx / TILE) | 0)]) {
+                    gridD[i] = 1e3;
+                    gridH[i] = 0;
+                    gridG[i] = 0;
+                    continue;
                 }
+                let acc = Infinity;
+                let nearD = Infinity;
+                for (let pi = 0; pi < n; pi++) {
+                    const o = pi * 4;
+                    if (px < pb[o] || px > pb[o + 2] || py < pb[o + 1] || py > pb[o + 3]) continue;
+                    const part = parts[pi];
+                    const dd = sdf(part.p, px, py);
+                    if (part.cut) {
+                        acc = Math.max(acc, -dd);
+                    } else if (part.k && acc !== Infinity) {
+                        const k = part.k * S;
+                        const hh = Math.max(k - Math.abs(acc - dd), 0) / k;
+                        acc = Math.min(acc, dd) - hh * hh * k * 0.25;
+                        if (dd < nearD) {
+                            nearD = dd;
+                            near = pi;
+                        }
+                    } else {
+                        acc = Math.min(acc, dd);
+                        if (dd < nearD) {
+                            nearD = dd;
+                            near = pi;
+                        }
+                    }
+                }
+                d = acc === Infinity ? 1e3 : acc;
+            } else {
+                const jx = (gx / step) | 0;
+                const fx = (gx - jx * step) / step;
+                const o = jy * nw + jx;
+                d =
+                    (nodeD[o] * (1 - fx) + nodeD[o + 1] * fx) * (1 - fy) +
+                    (nodeD[o + nw] * (1 - fx) + nodeD[o + nw + 1] * fx) * fy;
+                if (d > fuzz + 1.5) {
+                    gridD[i] = 1e3;
+                    gridH[i] = 0;
+                    gridG[i] = 0;
+                    continue;
+                }
+                // Whose fur this is: the part nearest the nearest sample.
+                const q = o + (fx >= 0.5 ? 1 : 0) + (fy >= 0.5 ? nw : 0);
+                near = nodeP[q];
+                if (near < 0) near = Math.max(nodeP[o], nodeP[o + 1], nodeP[o + nw], nodeP[o + nw + 1]);
             }
-            const d = acc === Infinity ? 1e3 : acc;
-            const i = gy * gw + gx;
+            if (pf && near >= 0 && d < fuzz + 1) {
+                const o = near * 4;
+                const rx = px - pf[o];
+                const ry = py - pf[o + 1];
+                const u = rx * pf[o + 2] + ry * pf[o + 3];
+                const v = ry * pf[o + 2] - rx * pf[o + 3];
+                lock(u * tip, v + lean * u, lockLen, lockW, near);
+                gridG[i] = lockG;
+                // The outline: each lock lifts toward its tip and drops
+                // away after it, a sawtooth about the true edge.
+                if (fuzz > 0) d -= fuzz * (0.35 + 0.65 * (lockG * 0.5 + 0.5)) * (lockT - 0.5);
+            } else {
+                gridG[i] = 0;
+            }
             gridD[i] = d;
             // A quarter-circle bevel: vertical at the silhouette, flat once
             // the pixel is deeper than the dome radius.
@@ -485,7 +752,7 @@ export function drawLayer(f: Frame, layer: Layer, index: number): void {
         for (const part of m.parts) {
             if (part.cut) continue;
             const b = bounds(part.p);
-            const pad = (part.k ?? 0) * 0.5;
+            const pad = (part.k ?? 0) * S * 0.5 + feather;
             mx0 = Math.min(mx0, b[0] - pad);
             my0 = Math.min(my0, b[1] - pad);
             mx1 = Math.max(mx1, b[2] + pad);
@@ -522,7 +789,8 @@ export function drawLayer(f: Frame, layer: Layer, index: number): void {
                 nx /= nl;
                 ny /= nl;
                 nz /= nl;
-                s = band(nx * L[0] + ny * L[1] + nz * L[2]);
+                s = band(nx * L[0] + ny * L[1] + nz * L[2] + grain * gridG[i]);
+                if (s === 0 && layer.bounce && nx * BX + ny * BY + nz * BZ > 0.8) s = 1;
             }
             s += layer.shift ?? 0;
 
@@ -538,9 +806,11 @@ export function drawLayer(f: Frame, layer: Layer, index: number): void {
                         continue;
                     }
                     const inside = mark.parts
-                        ? evalParts(mark.parts, x + 0.5, y + 0.5) < 0
+                        ? evalParts(mark.parts, x + 0.5, y + 0.5, S) < feather * gridG[i]
                         : mark.fn
-                        ? mark.fn(x + 0.5, y + 0.5)
+                        ? // A pattern has no edge to feather, so the fur
+                          // drags it sideways instead: the same fraying.
+                          mark.fn(x + 0.5 + feather * 0.7 * gridG[i], y + 0.5)
                         : false;
                     if (!inside) continue;
                     if (markRamps[m] >= 0) useRamp = markRamps[m];

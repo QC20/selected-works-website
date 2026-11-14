@@ -725,6 +725,23 @@ function legParts(
 }
 
 /**
+ * The clefts between the toes: two short lines down the front of a paw,
+ * one tone darker. Only once the paw is big enough to have toes — below
+ * that they are a stray dark pixel on a foot four pixels long.
+ */
+function toeMarks(X: Xf, plan: Plan, leg: number[]): Mark[] {
+    if (X.s < 1.4) return [];
+    const px = leg[6];
+    const py = leg[7];
+    const [pr, ph] = plan.paw;
+    const cx = px + pr * 0.35;
+    const parts: Part[] = [0.62, 0.12].map((t) => ({
+        p: C(X, cx + pr * t, py + ph * 1.15, cx + pr * (t + 0.08), py + ph * 0.3, 0.27, 0.27),
+    }));
+    return [{ shift: -1, parts }];
+}
+
+/**
  * Builds the full layer stack for one frame.
  *
  * The order is the painter's order for a right-facing animal seen from its
@@ -1028,7 +1045,7 @@ export function buildQuadruped(sp: Species, pose: QPose, X: Xf): Built {
         ramp: coat.fur,
         dome: plan.dome.leg + 1,
         contour: true,
-        marks: sp.legMarks?.(k, k.legs.hn, true, false) ?? [],
+        marks: [...(sp.legMarks?.(k, k.legs.hn, true, false) ?? []), ...toeMarks(X, plan, k.legs.hn)],
     };
     const nearFore: Layer & { name: string } = {
         name: 'nearFore',
@@ -1036,7 +1053,7 @@ export function buildQuadruped(sp: Species, pose: QPose, X: Xf): Built {
         ramp: coat.fur,
         dome: plan.dome.leg,
         contour: true,
-        marks: sp.legMarks?.(k, k.legs.fn, true, true) ?? [],
+        marks: [...(sp.legMarks?.(k, k.legs.fn, true, true) ?? []), ...toeMarks(X, plan, k.legs.fn)],
     };
 
     // A raised tail goes behind the body; one hanging down or curled round
