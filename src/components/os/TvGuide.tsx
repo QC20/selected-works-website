@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Channel } from './channels';
-import { listings, onAir, Slot } from './tvSchedule';
+import { Block as Airing, blockAt, blockLabel, listings } from './tvSchedule';
 
 /**
  * The listings channel.
@@ -26,7 +26,7 @@ const SPAN = 3;
 const LAST_PAGE = 12;
 
 const timeOfDay = (t: number): string =>
-    new Date(t).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    new Date(t).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
 
 const runtime = (seconds: number): string => {
     const m = Math.round(seconds / 60);
@@ -35,7 +35,7 @@ const runtime = (seconds: number): string => {
 };
 
 /** Channels with nothing scheduled — the test card — get one block. */
-const keyOf = (channel: number, slot: Slot | null): string =>
+const keyOf = (channel: number, slot: Airing | null): string =>
     slot ? `${channel}:${slot.startsAt}` : `${channel}:bars`;
 
 export interface TvGuideProps {
@@ -70,7 +70,7 @@ const TvGuide: React.FC<TvGuideProps> = ({
 
     const [focusKey, setFocusKey] = useState(() => {
         const c = channels.find((ch) => ch.number === current);
-        return keyOf(current, c ? onAir(c, now) : null);
+        return keyOf(current, c ? blockAt(c, now) : null);
     });
 
     // Whichever block owns the tab stop. If the focused block has scrolled
@@ -97,7 +97,7 @@ const TvGuide: React.FC<TvGuideProps> = ({
     }, [tabbable]);
 
     /** Page the window so `slot` is on screen; false if it cannot be. */
-    const reveal = (slot: Slot): boolean => {
+    const reveal = (slot: Airing): boolean => {
         let next = page;
         if (slot.startsAt >= to) {
             next = Math.floor((slot.startsAt - base) / HALF_HOUR) - (SPAN - 1);
@@ -112,17 +112,17 @@ const TvGuide: React.FC<TvGuideProps> = ({
     const onKey = (
         e: React.KeyboardEvent,
         channel: Channel,
-        slot: Slot | null
+        slot: Airing | null
     ) => {
         const row = channels.indexOf(channel);
-        let target: { channel: Channel; slot: Slot | null } | null = null;
+        let target: { channel: Channel; slot: Airing | null } | null = null;
 
         switch (e.key) {
             case 'ArrowRight':
-                if (slot) target = { channel, slot: onAir(channel, slot.endsAt) };
+                if (slot) target = { channel, slot: blockAt(channel, slot.endsAt) };
                 break;
             case 'ArrowLeft':
-                if (slot) target = { channel, slot: onAir(channel, slot.startsAt - 1) };
+                if (slot) target = { channel, slot: blockAt(channel, slot.startsAt - 1) };
                 break;
             case 'ArrowUp':
             case 'ArrowDown': {
@@ -130,7 +130,7 @@ const TvGuide: React.FC<TvGuideProps> = ({
                 if (!other) break;
                 // Whatever is on the other channel at the same moment.
                 const at = slot ? Math.max(slot.startsAt, from) : from;
-                target = { channel: other, slot: onAir(other, at) };
+                target = { channel: other, slot: blockAt(other, at) };
                 break;
             }
             case 'Enter':
@@ -215,6 +215,7 @@ const TvGuide: React.FC<TvGuideProps> = ({
                                     />
                                 )}
                                 {slots.map((s) => {
+                                    const label = blockLabel(s, channel);
                                     const left = Math.max(s.startsAt, from);
                                     const right = Math.min(s.endsAt, to);
                                     const airing = s.startsAt <= now && now < s.endsAt;
@@ -227,11 +228,13 @@ const TvGuide: React.FC<TvGuideProps> = ({
                                             left={((left - from) / span) * 100}
                                             width={((right - left) / span) * 100}
                                             airing={airing}
-                                            title={s.programme.title}
-                                            meta={`${timeOfDay(s.startsAt)} · ${runtime(s.programme.seconds)}`}
+                                            title={label.title}
+                                            meta={`${timeOfDay(s.startsAt)} · ${
+                                                label.detail || runtime((s.endsAt - s.startsAt) / 1000)
+                                            }`}
                                             label={`Channel ${channel.number}, ${channel.name}, ${when}${
                                                 airing ? ', on now' : ''
-                                            }: ${s.programme.title}`}
+                                            }: ${label.title}${label.detail ? `, ${label.detail}` : ''}`}
                                             onFocus={setFocusKey}
                                             onClick={() => onTune(channel.number)}
                                             onKeyDown={(e) => onKey(e, channel, s)}

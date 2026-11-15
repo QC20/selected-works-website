@@ -3,6 +3,7 @@ import Window from '../os/Window';
 import MenuBar, { MenuBarMenu } from '../os/MenuBar';
 import Colors from '../../constants/colors';
 import { openExternal } from '../os/openExternal';
+import { GITHUB_PROJECTS } from '../os/githubProjects';
 import useMountedRef from '../../hooks/useMountedRef';
 
 export const GITHUB_URL = 'https://github.com/QC20';
@@ -17,9 +18,32 @@ interface Repo {
     stargazers_count: number;
     forks_count: number;
     updated_at: string;
+    homepage?: string | null;
+    has_pages?: boolean;
     topics?: string[];
     fork: boolean;
 }
+
+/** Prefer a repository's configured homepage; fall back to its known Pages URL. */
+const websiteFor = (repo: Repo): string | null => {
+    const homepage = repo.homepage?.trim();
+    if (homepage) {
+        try {
+            const withProtocol = /^[a-z][a-z\d+.-]*:\/\//i.test(homepage)
+                ? homepage
+                : `https://${homepage}`;
+            const url = new URL(withProtocol);
+            if (url.protocol === 'http:' || url.protocol === 'https:') return url.href;
+        } catch {
+            // An invalid homepage should not produce a dead or unsafe button.
+        }
+    }
+
+    const knownPage = GITHUB_PROJECTS.find((project) => project.name === repo.name);
+    if (knownPage) return knownPage.url;
+    if (repo.has_pages) return `https://qc20.github.io/${encodeURIComponent(repo.name)}/`;
+    return null;
+};
 
 export interface GitHubViewerProps extends WindowAppProps {}
 
@@ -76,6 +100,7 @@ const GitHubViewer: React.FC<GitHubViewerProps> = ({
     }, [load]);
 
     const current = repos?.find((r) => r.id === selected) || null;
+    const website = current ? websiteFor(current) : null;
 
     const status = error
         ? 'Disconnected'
@@ -255,14 +280,22 @@ const GitHubViewer: React.FC<GitHubViewerProps> = ({
                                         ).toLocaleDateString()}
                                     </p>
                                 </div>
-                                <button
-                                    style={styles.button}
-                                    onClick={() =>
-                                        openExternal(current.html_url)
-                                    }
-                                >
-                                    Open on GitHub
-                                </button>
+                                <div style={styles.buttonRow}>
+                                    <button
+                                        style={styles.button}
+                                        onClick={() => openExternal(current.html_url)}
+                                    >
+                                        Open on GitHub
+                                    </button>
+                                    {website && (
+                                        <button
+                                            style={styles.button}
+                                            onClick={() => openExternal(website)}
+                                        >
+                                            Open website
+                                        </button>
+                                    )}
+                                </div>
                             </>
                         ) : (
                             <p style={styles.detailHint}>
@@ -454,6 +487,14 @@ const styles: StyleSheetCSS = {
         fontSize: 11,
         cursor: 'pointer',
         alignSelf: 'flex-start',
+        flexShrink: 0,
+    },
+    buttonRow: {
+        display: 'flex',
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        alignItems: 'flex-start',
+        gap: 6,
         flexShrink: 0,
     },
 };

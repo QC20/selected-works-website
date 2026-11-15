@@ -5,141 +5,88 @@ import CrtScreen from '../os/CrtScreen';
 import StaticBurst from '../os/StaticBurst';
 import { CRT_TELEVISION } from '../os/crt';
 import TvGuide from '../os/TvGuide';
-import { CHANNELS, Channel } from '../os/channels';
-import { detailsUrl, fileUrl, onAir, Slot } from '../os/tvSchedule';
+import TvOsd from '../os/TvOsd';
+import {
+    IdentCard,
+    ListingsChannel,
+    nowLine,
+    PromoCard,
+    StandByCard,
+    TestCard,
+    TvKeyframes,
+    UpNextCard,
+    WeatherChannel,
+} from '../os/TvScreens';
+import { CHANNELS, Channel, channelByNumber, DEFAULT_CHANNEL } from '../os/channels';
+import { detailsUrl, programmeLabel, Segment, segmentAt } from '../os/tvSchedule';
+import { DeckState, TvDeck } from '../os/tvDeck';
 import { clearTvState, setTvState } from '../os/tvState';
-import { playClick } from '../os/sounds';
+import { playClick, startTvStatic, useMuted } from '../os/sounds';
 
 /**
  * The television.
  * ---------------
- * A set in a cabinet: a tube, a VHS deck under it, four knobs, and a printed
- * channel list down the side. It is deliberately a *thing in a window* rather
- * than a mode the whole desktop drops into — this is something to have on in
- * the corner while you poke at the rest of the machine, not a takeover.
+ * A set in a cabinet: a tube, a VHS deck under it, a row of knobs, and the
+ * printed channel card down the side. A thing in a window rather than a mode
+ * the desktop drops into — something to have on in the corner.
  *
- * The illusion rests on three details, in descending order of how much they
- * matter:
+ * What makes it television rather than a video player, roughly in order:
  *
- *   It is already playing when you get there.  `tvSchedule.ts` decides what
- *   is on from the clock, so tuning to channel 8 drops you into the middle of
- *   a programme rather than starting one — the same programme, at the same
- *   second, as anyone else on channel 8. Nothing announces this; it is just
- *   never at 00:00. Pause or skip on the deck and you fall behind the
- *   broadcast, the LIVE light goes out, and pressing it rejoins.
+ *   It is already on when you get there.  The schedule (`os/tvSchedule.ts`)
+ *   is a function of the clock, so channel 8 is always halfway through
+ *   something, the same thing at the same second as for anyone else.
  *
- *   Changing channel costs something.  A burst of snow and a clunk, then the
- *   new picture. Instant cuts feel like a playlist. The snow is also doing
- *   real work — it stays up until the new picture is actually playing, so
- *   the buffering reads as the set tuning rather than as the site loading.
+ *   It has a running order.  Programmes start on the hour and half hour, and
+ *   the gaps are breaks: an ident and jingle, real commercials from 1948 to
+ *   1999, a card saying what is up next. The breaks are also where the next
+ *   tape loads, which is why one programme cuts cleanly to the next.
  *
- *   Every control does what it says.  The set streams the Archive's raw
- *   derivative files into an ordinary `<video>` instead of embedding the
- *   Archive's player, precisely so that VOLUME is the volume, the deck's
- *   ±15s genuinely seeks, and the end of a programme can roll the next one.
- *   See the note on `fileUrl` in `tvSchedule.ts`.
+ *   Changing channel is quick and costs something.  The channels either side
+ *   are buffered (`os/tvDeck.ts`), so CH▲ is a click, a flash of snow and a
+ *   picture; a far channel is snow for as long as the tape takes to arrive,
+ *   with the hiss of an untuned set, and never a black screen.
  *
- * GUIDE puts the listings on the tube; that is `os/TvGuide.tsx`.
+ *   Every control does what it says.  VOLUME is the volume, the deck's ±15s
+ *   really seeks, MUTE mutes, and a remote's worth of keys work: arrows for
+ *   channel and volume, digits to type a channel, L for the last one.
+ *
+ * Channels 2, 3 and 17 are drawn rather than taped: the test card, the
+ * scrolling listings, and the WeatherStar 4000+. GUIDE puts the interactive
+ * grid on the tube; that is `os/TvGuide.tsx`.
  */
 
 /** How long the snow covers a change, at minimum. */
-const TUNE_MS = 620;
+const TUNE_MS = 420;
+const BANNER_MS = 4500;
+const NUMBER_MS = 3000;
+const VOLUME_MS = 2200;
+const DIGIT_MS = 1600;
 
-/** How long the snow may cover a stream that never starts. */
-const TUNE_CAP_MS = 6000;
-
-/** Where the volume knob starts. Loud enough to hear, quiet enough to forgive. */
-const DEFAULT_VOLUME = 0.4;
-
-/* -------------------------------------------------------------------------
- * Test card
- * ---------------------------------------------------------------------- */
-
-/**
- * Channel 2, drawn rather than streamed. See `TEST_CARD_CHANNEL` in
- * `channels.ts` for how to remove the whole thing in one edit — this component
- * and that constant are the only two places it exists.
- *
- * The tone is off until asked for. A 1 kHz sine that starts by itself the
- * moment somebody lands on channel 2 is authentic and completely intolerable.
- */
-const TestCard: React.FC<{ tone: boolean; volume: number }> = ({
-    tone,
-    volume,
-}) => {
-    useEffect(() => {
-        if (!tone) return;
-        let ctx: AudioContext | null = null;
-        let osc: OscillatorNode | null = null;
-        try {
-            const Ctor =
-                window.AudioContext || (window as any).webkitAudioContext;
-            ctx = new Ctor();
-            osc = ctx.createOscillator();
-            const gain = ctx.createGain();
-            osc.type = 'sine';
-            osc.frequency.value = 1000;
-            gain.gain.value = Math.min(0.06, volume * 0.12);
-            osc.connect(gain).connect(ctx.destination);
-            osc.start();
-        } catch {
-            /* no audio context — the card just stays silent */
-        }
-        return () => {
-            try {
-                osc?.stop();
-                ctx?.close();
-            } catch {
-                /* already gone */
-            }
-        };
-    }, [tone, volume]);
-
-    // The seven SMPTE bars, at full and then at 75%, plus a black strip.
-    const bars = [
-        '#c0c0c0',
-        '#c0c000',
-        '#00c0c0',
-        '#00c000',
-        '#c000c0',
-        '#c00000',
-        '#0000c0',
-    ];
-    const stops = bars
-        .map((c, i) => `${c} ${(i / 7) * 100}% ${((i + 1) / 7) * 100}%`)
-        .join(', ');
-
-    return (
-        <div style={testCardStyles.root}>
-            <div
-                style={{
-                    ...testCardStyles.bars,
-                    background: `linear-gradient(to right, ${stops})`,
-                }}
-            />
-            <div style={testCardStyles.lower}>
-                <div style={testCardStyles.plate}>
-                    <span style={testCardStyles.plateText}>NOSTALGIVISION</span>
-                    <span style={testCardStyles.plateSub}>
-                        TRANSMISSION RESUMES AT 06:00
-                    </span>
-                </div>
-            </div>
-        </div>
-    );
+const read = <T,>(key: string, fallback: T): T => {
+    try {
+        const raw = localStorage.getItem(key);
+        return raw == null ? fallback : (JSON.parse(raw) as T);
+    } catch {
+        return fallback;
+    }
 };
+const write = (key: string, value: unknown): void => {
+    try {
+        localStorage.setItem(key, JSON.stringify(value));
+    } catch {
+        /* private mode — the set just forgets */
+    }
+};
+
+const clamp01 = (v: number) => Math.max(0, Math.min(1, v));
 
 /* -------------------------------------------------------------------------
  * Controls
  * ---------------------------------------------------------------------- */
 
 /**
- * One knob. A range input wearing a dial.
- *
- * `src/index.css` styles bare `input` for the showcase's text fields —
- * `width: 100%`, padding and an inset shadow — which turns an unstyled slider
- * into a full-width bar with a shadow on it. Every dimension here is pinned
- * for that reason, not out of fussiness.
+ * One knob. A range input wearing a dial. `src/index.css` styles bare `input`
+ * for the showcase's text fields, so every dimension here is pinned.
  */
 const Knob: React.FC<{
     label: string;
@@ -167,28 +114,26 @@ const DeckButton: React.FC<{
     title: string;
     disabled?: boolean;
     wide?: boolean;
+    pressed?: boolean;
     children: React.ReactNode;
-}> = ({ onClick, title, disabled, wide, children }) => (
+}> = ({ onClick, title, disabled, wide, pressed, children }) => (
     <button
         type="button"
         title={title}
+        aria-label={title}
+        aria-pressed={pressed}
         disabled={disabled}
         onClick={onClick}
         style={{
             ...deckStyles.button,
             ...(wide ? deckStyles.buttonWide : null),
+            ...(pressed ? styles.pressed : null),
             ...(disabled ? deckStyles.buttonDisabled : null),
         }}
     >
         {children}
     </button>
 );
-
-/* -------------------------------------------------------------------------
- * The set
- * ---------------------------------------------------------------------- */
-
-export interface TelevisionProps extends WindowAppProps {}
 
 /** The wall clock, once a second, while the set is on. */
 const useClock = (running: boolean): number => {
@@ -212,302 +157,388 @@ const clockTime = (seconds: number): string => {
 };
 
 const timeOfDay = (t: number): string =>
-    new Date(t).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    new Date(t).toLocaleTimeString('en-US', {
+        hour: 'numeric',
+        minute: '2-digit',
+    });
 
-const Television: React.FC<TelevisionProps> = ({
-    onInteract,
-    onClose,
-    onMinimize,
-}) => {
-    const videoRef = useRef<HTMLVideoElement | null>(null);
+/** The programme a segment leads to, for "NEXT" lines. */
+const upNextOf = (channel: Channel, seg: Segment | null) => {
+    if (!seg) return null;
+    if (seg.kind !== 'programme') return seg.upNext ?? null;
+    return segmentAt(channel, seg.endsAt + 1)?.upNext ?? null;
+};
+
+/* -------------------------------------------------------------------------
+ * The set
+ * ---------------------------------------------------------------------- */
+
+export interface TelevisionProps extends WindowAppProps {}
+
+const Television: React.FC<TelevisionProps> = ({ onInteract, onClose, onMinimize }) => {
+    const rootRef = useRef<HTMLDivElement | null>(null);
+    const hostRef = useRef<HTMLDivElement | null>(null);
+    const deckRef = useRef<TvDeck | null>(null);
     const guideButtonRef = useRef<HTMLButtonElement | null>(null);
 
     const [power, setPower] = useState(true);
-    const [channelNumber, setChannelNumber] = useState(8); // Computer Chronicles
-    const [slot, setSlot] = useState<Slot | null>(null);
-    const [mediaUrl, setMediaUrl] = useState<string | null>(null);
-    /**
-     * Bumped on every tune and used as the `<video>`'s key, so each tune
-     * mounts a fresh element. Rejoining the same programme ("LIVE") keeps the
-     * same URL, and a reused element would never fire `loadedmetadata` again
-     * to seek to where the broadcast has got to.
-     */
-    const [tuneId, setTuneId] = useState(0);
+    const [channelNumber, setChannelNumber] = useState<number>(() => {
+        const saved = read<number>('tv.channel.v2', DEFAULT_CHANNEL);
+        return channelByNumber(saved) ? saved : DEFAULT_CHANNEL;
+    });
+    const lastChannel = useRef<number | null>(null);
+    /** Which way the viewer is surfing, so the set buffers ahead of them. */
+    const direction = useRef<1 | -1>(1);
+    const [deck, setDeck] = useState<DeckState | null>(null);
 
-    const [tuning, setTuning] = useState(false);
-    const [failed, setFailed] = useState(false);
-    const [playing, setPlaying] = useState(true);
-    const [tone, setTone] = useState(false);
+    const [volume, setVolumeState] = useState(() => clamp01(read('tv.volume.v1', 0.4)));
+    const [userMuted, setUserMuted] = useState(false);
+    const systemMuted = useMuted();
+    const [brightness, setBrightness] = useState(() => clamp01(read('tv.bright.v1', 0.5)));
+    const [staticLevel, setStaticLevel] = useState(() => clamp01(read('tv.static.v1', 0.75)));
+
     const [guideOpen, setGuideOpen] = useState(false);
-
-    /**
-     * The viewer has paused or skipped, so the tape is no longer where the
-     * broadcast is. While that is true the schedule does not cut them off at
-     * the end of the slot; the tape plays out and `onEnded` rejoins the
-     * broadcast. State for the LIVE light, a ref for the timers.
-     */
-    const [shifted, setShiftedState] = useState(false);
-    const shiftedRef = useRef(false);
-    const setShifted = useCallback((value: boolean) => {
-        shiftedRef.current = value;
-        setShiftedState(value);
-    }, []);
-
-    const [volume, setVolume] = useState(DEFAULT_VOLUME);
-    const [brightness, setBrightness] = useState(0.5);
-    const [staticLevel, setStaticLevel] = useState(0.75);
+    const [tone, setTone] = useState(false);
+    const [snowMin, setSnowMin] = useState(true);
+    const [weatherReady, setWeatherReady] = useState(false);
+    const [bannerUntil, setBannerUntil] = useState(0);
+    const [numberUntil, setNumberUntil] = useState(0);
+    const [volumeUntil, setVolumeUntil] = useState(0);
+    const [digits, setDigits] = useState('');
+    const [powerFx, setPowerFx] = useState<'on' | 'off' | null>('on');
 
     const now = useClock(power);
 
-    const channel: Channel =
-        CHANNELS.find((c) => c.number === channelNumber) ?? CHANNELS[0];
-    const isTestCard = channel.kind === 'testCard';
+    // On a phone the window is the width of the screen; the printed channel
+    // card would leave the picture a stamp. Below this the card goes (GUIDE,
+    // CH▲▼ and the digits still reach every channel) and the knobs wrap.
+    const [width, setWidth] = useState(760);
+    useEffect(() => {
+        const el = rootRef.current;
+        if (!el || typeof ResizeObserver === 'undefined') return;
+        const ro = new ResizeObserver(([entry]) => setWidth(entry.contentRect.width));
+        ro.observe(el);
+        return () => ro.disconnect();
+    }, []);
+    const narrow = width < 620;
+    const channel: Channel = channelByNumber(channelNumber) ?? CHANNELS[0];
+    const muted = userMuted || systemMuted || volume <= 0;
+    const audible = muted ? 0 : volume;
 
-    /* --- tuning ------------------------------------------------------- */
+    /* --- the tuner ----------------------------------------------------- */
 
-    /**
-     * Which tune is current. Someone spinning the dial fires several in a
-     * row, and only the last one is allowed to lift the snow.
-     */
-    const tuneToken = useRef(0);
-    /** When the current tune began, so the snow lasts at least TUNE_MS. */
-    const tuneStarted = useRef(0);
-    /**
-     * Every pending "stop showing snow" timer.
-     *
-     * `tuneToken` already stops a *stale* tune from writing, but it cannot
-     * stop a timer from firing after the window has closed — and changing
-     * channel and closing the TV inside 620ms is an entirely ordinary thing
-     * to do.
-     */
-    const tuneTimers = useRef<number[]>([]);
-    useEffect(
-        () => () => {
-            tuneTimers.current.forEach(window.clearTimeout);
-            tuneTimers.current = [];
-        },
-        []
-    );
-
-    /** Lift the snow, but not before it has been up for TUNE_MS. */
-    const endTuning = useCallback((token: number) => {
-        const wait = Math.max(0, TUNE_MS - (Date.now() - tuneStarted.current));
-        tuneTimers.current.push(
-            window.setTimeout(() => {
-                if (tuneToken.current === token) setTuning(false);
-            }, wait)
-        );
+    useEffect(() => {
+        const host = hostRef.current;
+        if (!host) return;
+        const d = new TvDeck(host);
+        deckRef.current = d;
+        const unsubscribe = d.subscribe(setDeck);
+        return () => {
+            unsubscribe();
+            d.dispose();
+            deckRef.current = null;
+        };
     }, []);
 
-    /** Join whatever `target` is broadcasting right now. */
-    const tune = useCallback(
-        (target: Channel) => {
-            const token = ++tuneToken.current;
-            tuneStarted.current = Date.now();
-            setTuneId(token);
-            setTuning(true);
-            setFailed(false);
-            setShifted(false);
-
-            const next = target.kind === 'testCard' ? null : onAir(target);
-            setSlot(next);
-            setMediaUrl(next ? fileUrl(next.programme) : null);
-
-            if (target.kind === 'testCard') {
-                // Still hold the snow for a beat — the test card should feel
-                // tuned-to, not switched-to.
-                endTuning(token);
-                return;
-            }
-            if (!next) {
-                setFailed(true);
-                endTuning(token);
-                return;
-            }
-
-            // The snow lifts when the picture arrives (`onPlaying`), not on a
-            // timer: it is there to cover the buffering. This only stops a
-            // stalled stream from leaving it up for good.
-            tuneTimers.current.push(
-                window.setTimeout(() => {
-                    if (tuneToken.current === token) setTuning(false);
-                }, TUNE_CAP_MS)
-            );
-        },
-        [endTuning, setShifted]
-    );
-
-    // Retune whenever the dial moves, and on first open.
     useEffect(() => {
-        if (!power) return;
-        tune(channel);
-        // `channel` is derived from channelNumber; depending on the number
-        // keeps this from re-firing on unrelated re-renders.
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [channelNumber, power, tune]);
+        deckRef.current?.setVolume(volume, userMuted || systemMuted);
+    }, [volume, userMuted, systemMuted]);
 
-    // The broadcast moves on whether or not anyone is watching: when this
-    // programme's time is up, the next one starts. A viewer who has paused
-    // or skipped is left to finish their tape — unless it has already run
-    // out, in which case there is nothing to protect.
+    // Retune whenever the dial moves, and on power-on.
     useEffect(() => {
-        if (!power || !slot) return;
-        const id = window.setTimeout(() => {
-            const video = videoRef.current;
-            if (shiftedRef.current && video && !video.ended) return;
-            tune(channel);
-        }, Math.max(0, slot.endsAt - Date.now()) + 250);
+        const d = deckRef.current;
+        if (!d) return;
+        if (!power) {
+            d.powerOff();
+            return;
+        }
+        const i = CHANNELS.findIndex((c) => c.number === channel.number);
+        const at = (k: number) => CHANNELS[(i + k + CHANNELS.length * 2) % CHANNELS.length];
+        const dir = direction.current;
+        d.setNeighbours([at(dir), at(-dir), at(dir * 2)]);
+        d.tune(channel);
+        setSnowMin(true);
+        setWeatherReady(false);
+        const t = Date.now();
+        setBannerUntil(t + BANNER_MS);
+        setNumberUntil(t + NUMBER_MS);
+        write('tv.channel.v2', channel.number);
+        const id = window.setTimeout(() => setSnowMin(false), TUNE_MS);
         return () => window.clearTimeout(id);
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [power, slot, tune]);
+    }, [power, channel.number]);
 
-    /* --- playback ----------------------------------------------------- */
+    useEffect(() => write('tv.volume.v1', volume), [volume]);
+    useEffect(() => write('tv.bright.v1', brightness), [brightness]);
+    useEffect(() => write('tv.static.v1', staticLevel), [staticLevel]);
 
-    // Seek to where the broadcast is once the file is actually ready —
-    // measured now, not when the dial moved, because the file took a moment
-    // to arrive. Setting currentTime before metadata has loaded is silently
-    // ignored.
-    const onLoadedMetadata = useCallback(() => {
-        const video = videoRef.current;
-        if (!video || !slot) return;
-        const target = (Date.now() - slot.startsAt) / 1000;
-        if (target > 1 && Number.isFinite(video.duration)) {
-            video.currentTime = Math.min(target, Math.max(0, video.duration - 2));
-        }
-        video.volume = volume;
-        video.play().catch(() => {
-            // Autoplay with sound can still be refused. Muting and retrying is
-            // what every video site does here; the VOLUME knob un-mutes it.
-            video.muted = true;
-            video.play().catch(() => setPlaying(false));
-        });
-    }, [slot, volume]);
+    const phase = deck?.phase ?? 'tuning';
+    const segment = deck?.segment ?? null;
+    const snowing =
+        power && (snowMin || phase === 'tuning' || (channel.kind === 'weather' && !weatherReady));
 
-    /**
-     * The tape ran out. If the broadcast is still on the same programme —
-     * the baked running time can be a second longer than the file, or the
-     * viewer skipped ahead — the slot timer above will roll the next one, so
-     * wait for it rather than reloading the end of this one. Otherwise the
-     * viewer had fallen behind: rejoin the broadcast wherever it has got to.
-     */
-    const onEnded = useCallback(() => {
-        const live = onAir(channel);
-        if (live && slot && live.startsAt === slot.startsAt) return;
-        tune(channel);
-    }, [channel, slot, tune]);
-
+    // The hiss of an untuned set, for exactly as long as the snow is up.
     useEffect(() => {
-        const video = videoRef.current;
-        if (video) video.volume = volume;
-    }, [volume, tuneId]);
+        if (!snowing) return;
+        return startTvStatic(audible * 0.8);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [snowing]);
 
-    /* --- publish to the rest of the desktop --------------------------- */
+    /* --- controls ------------------------------------------------------ */
 
-    useEffect(() => {
-        setTvState({
-            on: power,
-            channel: channel.number,
-            channelName: channel.name,
-            programme: slot?.programme.title ?? (isTestCard ? 'Test Card' : null),
-            mediaUrl,
-            muted: volume === 0,
-        });
-    }, [power, channel, slot, mediaUrl, volume, isTestCard]);
+    const tuneTo = useCallback(
+        (n: number) => {
+            if (!channelByNumber(n)) return;
+            setChannelNumber((current) => {
+                if (current !== n) lastChannel.current = current;
+                return n;
+            });
+            if (!power) setPower(true);
+        },
+        [power]
+    );
 
-    // The window closing means there is no television anywhere any more —
-    // the 3D room's monitor goes back to showing the site.
-    useEffect(() => () => clearTvState(), []);
+    const step = useCallback(
+        (delta: number) => {
+            playClick();
+            direction.current = delta < 0 ? -1 : 1;
+            const i = CHANNELS.findIndex((c) => c.number === channelNumber);
+            tuneTo(CHANNELS[(i + delta + CHANNELS.length) % CHANNELS.length].number);
+        },
+        [channelNumber, tuneTo]
+    );
 
-    // Keep the mirrored position roughly current without re-rendering here.
-    useEffect(() => {
-        if (!power || !mediaUrl) return;
-        const id = window.setInterval(() => {
-            const video = videoRef.current;
-            if (video) setTvState({ positionSeconds: video.currentTime });
-        }, 1000);
-        return () => window.clearInterval(id);
-    }, [power, mediaUrl]);
+    const changeVolume = useCallback((v: number) => {
+        const next = clamp01(v);
+        setVolumeState(next);
+        if (next > 0) setUserMuted(false);
+        setVolumeUntil(Date.now() + VOLUME_MS);
+    }, []);
 
-    /* --- controls ----------------------------------------------------- */
-
-    const step = (delta: number) => {
+    const toggleMute = useCallback(() => {
         playClick();
-        const i = CHANNELS.findIndex((c) => c.number === channelNumber);
-        const next = CHANNELS[(i + delta + CHANNELS.length) % CHANNELS.length];
-        setChannelNumber(next.number);
-    };
+        setUserMuted((m) => !m);
+        setVolumeUntil(0);
+    }, []);
 
-    const seek = (delta: number) => {
-        const video = videoRef.current;
-        if (!video) return;
-        playClick();
-        setShifted(true);
-        video.currentTime = Math.max(0, video.currentTime + delta);
-    };
-
-    const togglePlay = () => {
-        const video = videoRef.current;
-        if (!video) return;
-        playClick();
-        if (video.paused) {
-            video.play().catch(() => undefined);
-            setPlaying(true);
-        } else {
-            video.pause();
-            setPlaying(false);
-            setShifted(true);
-        }
-    };
-
-    const goLive = () => {
-        playClick();
-        tune(channel);
-    };
+    const showInfo = useCallback(() => {
+        setBannerUntil(Date.now() + BANNER_MS);
+        setNumberUntil(Date.now() + NUMBER_MS);
+    }, []);
 
     const togglePower = () => {
         playClick();
         setPower((on) => {
             if (on) {
-                setMediaUrl(null);
-                setSlot(null);
                 setGuideOpen(false);
+                setDigits('');
             }
+            setPowerFx(on ? 'off' : 'on');
             return !on;
         });
     };
 
     const closeGuide = useCallback(() => {
         setGuideOpen(false);
-        // Back to the button that opened it, so a keyboard user is not
-        // dropped at the top of the page.
         window.setTimeout(() => guideButtonRef.current?.focus(), 0);
     }, []);
 
     const tuneFromGuide = useCallback(
         (n: number) => {
             playClick();
-            setChannelNumber(n);
+            tuneTo(n);
             closeGuide();
         },
-        [closeGuide]
+        [closeGuide, tuneTo]
     );
 
-    const nowShowing = isTestCard
-        ? 'Test Card F'
-        : slot?.programme.title ?? (tuning ? 'Tuning…' : 'No signal');
-    const upNext = slot ? onAir(channel, slot.endsAt) : null;
-    // Where the tape is, not where the broadcast is: after a pause the two
-    // differ, and this is the deck's readout. The clock re-renders the set
-    // once a second, which is what keeps it moving.
-    const video = videoRef.current;
-    const position =
-        video && !tuning && Number.isFinite(video.currentTime)
-            ? video.currentTime
-            : slot
-            ? (now - slot.startsAt) / 1000
-            : 0;
-    const length = slot?.programme.seconds ?? 0;
-    const progress = length ? Math.min(1, Math.max(0, position / length)) : 0;
+    // Typing a channel on the remote: the first digit waits for a second.
+    const digitTimer = useRef(0);
+    const pressDigit = useCallback(
+        (d: string) => {
+            playClick();
+            window.clearTimeout(digitTimer.current);
+            setDigits((prev) => {
+                const next = (prev + d).slice(-2);
+                const commit = (value: string) => {
+                    const n = Number(value);
+                    if (channelByNumber(n)) tuneTo(n);
+                    setDigits('');
+                };
+                if (next.length === 2) {
+                    window.setTimeout(() => commit(next), 250);
+                } else {
+                    digitTimer.current = window.setTimeout(() => commit(next), DIGIT_MS);
+                }
+                return next;
+            });
+        },
+        [tuneTo]
+    );
+    useEffect(() => () => window.clearTimeout(digitTimer.current), []);
+
+    const recall = useCallback(() => {
+        const last = lastChannel.current;
+        if (last != null) {
+            playClick();
+            tuneTo(last);
+        }
+    }, [tuneTo]);
+
+    const onKeyDown = (e: React.KeyboardEvent) => {
+        const target = e.target as HTMLElement;
+        if (target.tagName === 'INPUT' || e.metaKey || e.ctrlKey || e.altKey) return;
+        deckRef.current?.unlock();
+        if (guideOpen) {
+            if (e.key === 'g' || e.key === 'G') {
+                e.preventDefault();
+                closeGuide();
+            }
+            return;
+        }
+        if (!power) {
+            if (e.key === 'p' || e.key === 'P') {
+                e.preventDefault();
+                togglePower();
+            }
+            return;
+        }
+        const handled = (() => {
+            if (/^[0-9]$/.test(e.key)) return (pressDigit(e.key), true);
+            switch (e.key) {
+                case 'ArrowUp':
+                case 'PageUp':
+                    return (step(1), true);
+                case 'ArrowDown':
+                case 'PageDown':
+                    return (step(-1), true);
+                case 'ArrowRight':
+                case '+':
+                case '=':
+                    return (changeVolume(volume + 0.05), true);
+                case 'ArrowLeft':
+                case '-':
+                    return (changeVolume(volume - 0.05), true);
+                case 'm':
+                case 'M':
+                    return (toggleMute(), true);
+                case 'g':
+                case 'G':
+                    return (playClick(), setGuideOpen(true), true);
+                case 'i':
+                case 'I':
+                    return (showInfo(), true);
+                case 'l':
+                case 'L':
+                case 'Backspace':
+                    return (recall(), true);
+                case 'p':
+                case 'P':
+                    return (togglePower(), true);
+                case ' ':
+                    return (deckRef.current?.togglePause(), true);
+                default:
+                    return false;
+            }
+        })();
+        if (handled) e.preventDefault();
+    };
+
+    /* --- publish to the rest of the desktop ---------------------------- */
+
+    const programme = segment?.programme;
+    const label = programme ? programmeLabel(programme) : null;
+    useEffect(() => {
+        setTvState({
+            on: power,
+            channel: channel.number,
+            channelName: channel.name,
+            programme: label ?? (channel.kind ? channel.name : null),
+            mediaUrl: deck?.mediaUrl ?? null,
+            muted,
+        });
+    }, [power, channel, label, deck?.mediaUrl, muted]);
+    useEffect(() => () => clearTvState(), []);
+    useEffect(() => {
+        if (!power) return;
+        const id = window.setInterval(() => {
+            const d = deckRef.current;
+            if (d) setTvState({ positionSeconds: d.position().at });
+        }, 1000);
+        return () => window.clearInterval(id);
+    }, [power]);
+
+    /* --- what is on ---------------------------------------------------- */
+
+    const position = deckRef.current?.position() ?? { at: 0, length: 0 };
+    const next = upNextOf(channel, segment);
+    const isVideo = !!programme && (phase === 'playing' || phase === 'tuning');
+    const vcr = power && !!programme && !channel.kind && (phase === 'playing' || deck?.shifted);
+    const pipAvailable = deckRef.current?.canPictureInPicture() ?? false;
+
+    let nowTitle = channel.name;
+    let nowDetail = channel.tagline;
+    if (channel.kind) {
+        nowTitle = channel.kind === 'weather' ? 'Local Forecast' : channel.name;
+    } else if (programme) {
+        const ad = segment?.kind === 'ad';
+        nowTitle = ad ? 'Commercial break' : (programme.series ?? programme.title);
+        nowDetail = ad
+            ? programme.title
+            : [programme.series ? programme.title : null, programme.year]
+                  .filter(Boolean)
+                  .join(' · ');
+    } else if (segment) {
+        nowTitle = 'Station break';
+        nowDetail = next ? `Up next: ${programmeLabel(next.programme)}` : '';
+    }
+
+    const tapeTitle = channel.kind
+        ? channel.kind === 'testCard'
+            ? 'Test Card F'
+            : nowTitle
+        : programme
+          ? `${segment?.kind === 'ad' ? 'Commercial: ' : ''}${programmeLabel(programme)}${programme.year ? ` (${programme.year})` : ''}`
+          : phase === 'standby'
+            ? 'Please stand by'
+            : segment
+              ? 'Station break'
+              : 'Tuning…';
+    const progress = position.length ? clamp01(position.at / position.length) : 0;
+
+    /* --- the picture --------------------------------------------------- */
+
+    const card = (() => {
+        if (!power) return null;
+        if (phase === 'standby') return <StandByCard channel={channel} />;
+        if (phase === 'drawn') {
+            if (channel.kind === 'testCard') return <TestCard tone={tone} volume={audible} />;
+            if (channel.kind === 'listings')
+                return <ListingsChannel channels={CHANNELS} now={now} />;
+            if (channel.kind === 'weather')
+                return <WeatherChannel onReady={() => setWeatherReady(true)} />;
+            return null;
+        }
+        if (phase !== 'card' || !segment) return null;
+        switch (segment.kind) {
+            case 'ident':
+                return <IdentCard key={segment.startsAt} channel={channel} volume={audible} />;
+            case 'next':
+                return (
+                    <UpNextCard
+                        key={segment.startsAt}
+                        channel={channel}
+                        programme={segment.upNext?.programme}
+                        at={segment.upNext?.startsAt}
+                        short={segment.endsAt - segment.startsAt < 6000}
+                    />
+                );
+            case 'promo':
+                return <PromoCard key={segment.startsAt} channel={channel} now={now} />;
+            default:
+                return null;
+        }
+    })();
 
     return (
         <Window
@@ -520,64 +551,50 @@ const Television: React.FC<TelevisionProps> = ({
             closeWindow={onClose}
             onInteract={onInteract}
             minimizeWindow={onMinimize}
-            bottomLeftText={
-                power ? `CH ${channel.number} — ${channel.name}` : 'Standby'
-            }
+            bottomLeftText={power ? `CH ${channel.number} — ${channel.name}` : 'Standby'}
         >
-            <div style={styles.root}>
+            <TvKeyframes />
+            <div
+                ref={rootRef}
+                tabIndex={-1}
+                style={styles.root}
+                onKeyDown={onKeyDown}
+                onPointerDown={(e) => {
+                    deckRef.current?.unlock();
+                    const t = e.target as HTMLElement;
+                    if (
+                        !['INPUT', 'BUTTON', 'A'].includes(t.tagName) &&
+                        !t.closest('[role="grid"]')
+                    ) {
+                        rootRef.current?.focus({ preventScroll: true });
+                    }
+                }}
+            >
                 <div style={styles.body}>
                     {/* ---- set ---- */}
                     <div style={styles.setColumn}>
                         <div style={styles.cabinetTop}>
                             <span style={styles.brand}>NOSTALGIVISION</span>
-                            <span style={styles.model}>MODEL 95-XT</span>
+                            <span style={styles.model}>MODEL 95-XT · CABLE READY</span>
                         </div>
 
                         <div style={styles.tube}>
-                            <div style={styles.picture}>
-                                {!power && <div style={styles.dark} />}
+                            <div
+                                style={styles.picture}
+                                data-phase={power ? phase : 'off'}
+                                data-segment={segment?.kind ?? ''}
+                                data-channel={channel.number}
+                            >
+                                <div
+                                    ref={hostRef}
+                                    style={{
+                                        ...styles.videoHost,
+                                        opacity: power && isVideo ? 1 : 0,
+                                        filter: `brightness(${0.55 + brightness * 0.9})`,
+                                    }}
+                                />
 
-                                {power && isTestCard && (
-                                    <TestCard tone={tone} volume={volume} />
-                                )}
-
-                                {power && !isTestCard && mediaUrl && (
-                                    <video
-                                        key={tuneId}
-                                        ref={videoRef}
-                                        src={mediaUrl}
-                                        playsInline
-                                        onLoadedMetadata={onLoadedMetadata}
-                                        onEnded={onEnded}
-                                        onPlay={() => setPlaying(true)}
-                                        onPlaying={() => endTuning(tuneId)}
-                                        onPause={() => setPlaying(false)}
-                                        onError={() => {
-                                            // A tape the Archive has since
-                                            // withdrawn. Dead air until the
-                                            // slot ends, as a station would.
-                                            setFailed(true);
-                                            setTuning(false);
-                                        }}
-                                        style={{
-                                            ...styles.video,
-                                            filter: `brightness(${
-                                                0.55 + brightness * 0.9
-                                            })`,
-                                        }}
-                                    />
-                                )}
-
-                                {power && failed && !tuning && (
-                                    <div style={styles.noSignal}>
-                                        <span style={styles.noSignalText}>
-                                            NO SIGNAL
-                                        </span>
-                                        <span style={styles.noSignalSub}>
-                                            Try another channel
-                                        </span>
-                                    </div>
-                                )}
+                                {card && <div style={styles.cardLayer}>{card}</div>}
 
                                 {power && guideOpen && (
                                     <TvGuide
@@ -589,32 +606,52 @@ const Television: React.FC<TelevisionProps> = ({
                                     />
                                 )}
 
-                                {/* The tube itself, over whatever is showing. */}
+                                {power && <CrtScreen settings={CRT_TELEVISION} absolute />}
+
+                                {power && snowing && <StaticBurst intensity={staticLevel} />}
+                                {power && !snowing && deck?.stalled && (
+                                    <StaticBurst intensity={staticLevel * 0.35} />
+                                )}
+
+                                {/* The station's bug, the way 90s channels marked their picture. */}
+                                {power &&
+                                    phase === 'playing' &&
+                                    segment?.kind === 'programme' &&
+                                    !guideOpen && <span style={styles.bug}>{channel.call}</span>}
+
                                 {power && (
-                                    <CrtScreen
-                                        settings={CRT_TELEVISION}
-                                        absolute
+                                    <TvOsd
+                                        channel={channel}
+                                        showNumber={now < numberUntil || snowing}
+                                        digits={digits}
+                                        showBanner={now < bannerUntil && !guideOpen && !snowing}
+                                        segment={segment}
+                                        nowTitle={nowTitle}
+                                        nowDetail={nowDetail}
+                                        next={next}
+                                        position={position.at}
+                                        length={programme ? position.length : 0}
+                                        understudy={!!deck?.understudy}
+                                        volume={now < volumeUntil ? (muted ? 0 : volume) : null}
+                                        muted={muted}
+                                        forcedMute={!!deck?.forcedMute}
                                     />
                                 )}
 
-                                {power && tuning && (
-                                    <StaticBurst intensity={staticLevel} />
-                                )}
-
-                                {/* Corner bug, the way a channel identifies
-                                    itself a few seconds after you arrive. */}
-                                {power && !tuning && !guideOpen && (
-                                    <div style={styles.bug}>
-                                        <span style={styles.bugNumber}>
-                                            {String(channel.number).padStart(
-                                                2,
-                                                '0'
-                                            )}
-                                        </span>
-                                        <span style={styles.bugName}>
-                                            {channel.name}
-                                        </span>
-                                    </div>
+                                {!power && powerFx !== 'off' && <div style={styles.dark} />}
+                                {powerFx && (
+                                    <div
+                                        key={powerFx}
+                                        className="tv-moving"
+                                        onAnimationEnd={() => setPowerFx(null)}
+                                        style={{
+                                            ...styles.powerFx,
+                                            animation:
+                                                powerFx === 'off'
+                                                    ? 'tvPowerOff 0.42s ease-in forwards'
+                                                    : 'tvPowerOn 0.5s ease-out forwards',
+                                        }}
+                                    />
                                 )}
                             </div>
                         </div>
@@ -626,16 +663,11 @@ const Television: React.FC<TelevisionProps> = ({
                                 <div style={styles.tapeLabel}>
                                     <div style={styles.tapeTitleRow}>
                                         <span style={styles.tapeTitle}>
-                                            {nowShowing}
-                                            {slot?.programme.year
-                                                ? ` (${slot.programme.year})`
-                                                : ''}
+                                            {power ? tapeTitle : 'Standby'}
                                         </span>
-                                        {slot && (
-                                            // The uploader is credited on the
-                                            // tape's own page, not here.
+                                        {power && programme && (
                                             <a
-                                                href={detailsUrl(slot.programme)}
+                                                href={detailsUrl(programme)}
                                                 target="_blank"
                                                 rel="noopener noreferrer"
                                                 title="This tape's page at the Internet Archive"
@@ -645,47 +677,39 @@ const Television: React.FC<TelevisionProps> = ({
                                             </a>
                                         )}
                                     </div>
-                                    {slot ? (
-                                        <>
-                                            <div style={styles.progressRow}>
+                                    {power && programme ? (
+                                        <div style={styles.progressRow}>
+                                            <div
+                                                role="progressbar"
+                                                aria-label="Programme progress"
+                                                aria-valuemin={0}
+                                                aria-valuemax={Math.round(position.length)}
+                                                aria-valuenow={Math.round(position.at)}
+                                                aria-valuetext={`${clockTime(position.at)} of ${clockTime(position.length)}`}
+                                                style={styles.progressTrack}
+                                            >
                                                 <div
-                                                    role="progressbar"
-                                                    aria-label="Programme progress"
-                                                    aria-valuemin={0}
-                                                    aria-valuemax={Math.round(length)}
-                                                    aria-valuenow={Math.round(position)}
-                                                    aria-valuetext={`${clockTime(
-                                                        position
-                                                    )} of ${clockTime(length)}`}
-                                                    style={styles.progressTrack}
-                                                >
-                                                    <div
-                                                        style={{
-                                                            ...styles.progressFill,
-                                                            width: `${progress * 100}%`,
-                                                        }}
-                                                    />
-                                                </div>
-                                                <span style={styles.tapeTime}>
-                                                    {clockTime(position)} /{' '}
-                                                    {clockTime(length)}
-                                                </span>
+                                                    style={{
+                                                        ...styles.progressFill,
+                                                        width: `${progress * 100}%`,
+                                                    }}
+                                                />
                                             </div>
-                                            <span style={styles.tapeMeta}>
-                                                {upNext
-                                                    ? `NEXT ${timeOfDay(
-                                                          upNext.startsAt
-                                                      )} · ${upNext.programme.title}`
-                                                    : `CH ${channel.number}`}
+                                            <span style={styles.tapeTime}>
+                                                {clockTime(position.at)} /{' '}
+                                                {clockTime(position.length)}
                                             </span>
-                                        </>
-                                    ) : (
-                                        <span style={styles.tapeMeta}>
-                                            {isTestCard
-                                                ? 'COLOUR BARS · 1 kHz'
-                                                : `CH ${channel.number}`}
-                                        </span>
-                                    )}
+                                        </div>
+                                    ) : null}
+                                    <span style={styles.tapeMeta}>
+                                        {!power
+                                            ? 'Press POWER'
+                                            : channel.kind === 'testCard'
+                                              ? 'COLOUR BARS · 1 kHz'
+                                              : next
+                                                ? `NEXT ${timeOfDay(next.startsAt)} · ${programmeLabel(next.programme)}`
+                                                : `CH ${channel.number} · ${channel.tagline}`}
+                                    </span>
                                 </div>
                                 <div style={styles.reel} />
                             </div>
@@ -693,17 +717,20 @@ const Television: React.FC<TelevisionProps> = ({
                             <div style={styles.transport}>
                                 <DeckButton
                                     title={
-                                        shifted
+                                        deck?.shifted
                                             ? 'Rejoin the broadcast'
                                             : 'Watching the broadcast live'
                                     }
-                                    disabled={!power || !slot || !shifted}
-                                    onClick={goLive}
+                                    disabled={!power || !deck?.shifted}
+                                    onClick={() => {
+                                        playClick();
+                                        deckRef.current?.goLive();
+                                    }}
                                 >
                                     <span
                                         style={{
                                             ...styles.liveDot,
-                                            ...(power && slot && !shifted
+                                            ...(power && !deck?.shifted && phase !== 'standby'
                                                 ? styles.liveDotOn
                                                 : null),
                                         }}
@@ -712,51 +739,78 @@ const Television: React.FC<TelevisionProps> = ({
                                 </DeckButton>
                                 <DeckButton
                                     title="Back 15 seconds"
-                                    disabled={!power || isTestCard || !mediaUrl}
-                                    onClick={() => seek(-15)}
+                                    disabled={!vcr}
+                                    onClick={() => {
+                                        playClick();
+                                        deckRef.current?.seek(-15);
+                                    }}
                                 >
                                     ◀◀
                                 </DeckButton>
                                 <DeckButton
-                                    title={playing ? 'Pause' : 'Play'}
-                                    disabled={!power || isTestCard || !mediaUrl}
-                                    onClick={togglePlay}
+                                    title={deck?.paused ? 'Play' : 'Pause'}
+                                    disabled={!vcr}
                                     wide
+                                    onClick={() => {
+                                        playClick();
+                                        deckRef.current?.togglePause();
+                                    }}
                                 >
-                                    {playing ? '❚❚' : '▶'}
+                                    {deck?.paused ? '▶' : '❚❚'}
                                 </DeckButton>
                                 <DeckButton
                                     title="Forward 15 seconds"
-                                    disabled={!power || isTestCard || !mediaUrl}
-                                    onClick={() => seek(15)}
+                                    disabled={!vcr}
+                                    onClick={() => {
+                                        playClick();
+                                        deckRef.current?.seek(15);
+                                    }}
                                 >
                                     ▶▶
                                 </DeckButton>
-                                {isTestCard && (
+                                <DeckButton
+                                    title={
+                                        pipAvailable
+                                            ? 'Picture in Picture'
+                                            : 'Picture in Picture is unavailable in this browser'
+                                    }
+                                    disabled={!vcr || !pipAvailable}
+                                    wide
+                                    onClick={() => {
+                                        playClick();
+                                        deckRef.current?.togglePictureInPicture().catch(() => undefined);
+                                    }}
+                                >
+                                    PiP
+                                </DeckButton>
+                                {channel.kind === 'testCard' && (
                                     <DeckButton
                                         title="1 kHz reference tone"
                                         disabled={!power}
+                                        pressed={tone}
                                         onClick={() => {
                                             playClick();
                                             setTone((t) => !t);
                                         }}
                                     >
-                                        {tone ? 'TONE ■' : 'TONE'}
+                                        TONE
                                     </DeckButton>
                                 )}
                             </div>
                         </div>
 
                         {/* ---- knobs ---- */}
-                        <div style={styles.knobRow}>
+                        <div
+                            style={{
+                                ...styles.knobRow,
+                                ...(narrow ? styles.knobRowNarrow : null),
+                            }}
+                        >
                             <button
                                 type="button"
                                 onClick={togglePower}
-                                title={power ? 'Switch off' : 'Switch on'}
-                                style={{
-                                    ...styles.power,
-                                    ...(power ? styles.powerOn : null),
-                                }}
+                                title={power ? 'Switch off (P)' : 'Switch on (P)'}
+                                style={styles.power}
                             >
                                 <span
                                     style={{
@@ -769,17 +823,19 @@ const Television: React.FC<TelevisionProps> = ({
 
                             <div style={styles.chGroup}>
                                 <DeckButton
-                                    title="Channel down"
+                                    title="Channel down (↓)"
                                     disabled={!power}
                                     onClick={() => step(-1)}
                                 >
                                     ▼
                                 </DeckButton>
                                 <span style={styles.chReadout}>
-                                    {String(channel.number).padStart(2, '0')}
+                                    {digits
+                                        ? digits.padEnd(2, '-')
+                                        : String(channel.number).padStart(2, '0')}
                                 </span>
                                 <DeckButton
-                                    title="Channel up"
+                                    title="Channel up (↑)"
                                     disabled={!power}
                                     onClick={() => step(1)}
                                 >
@@ -792,7 +848,7 @@ const Television: React.FC<TelevisionProps> = ({
                                 ref={guideButtonRef}
                                 disabled={!power}
                                 aria-pressed={guideOpen}
-                                title="Programme guide"
+                                title="Programme guide (G)"
                                 onClick={() => {
                                     playClick();
                                     if (guideOpen) closeGuide();
@@ -806,18 +862,41 @@ const Television: React.FC<TelevisionProps> = ({
                             >
                                 GUIDE
                             </button>
+                            <button
+                                type="button"
+                                disabled={!power}
+                                title="What's on (I)"
+                                onClick={() => {
+                                    playClick();
+                                    showInfo();
+                                }}
+                                style={{
+                                    ...styles.power,
+                                    ...(!power ? deckStyles.buttonDisabled : null),
+                                }}
+                            >
+                                INFO
+                            </button>
+                            <button
+                                type="button"
+                                disabled={!power}
+                                aria-pressed={userMuted}
+                                title="Mute (M)"
+                                onClick={toggleMute}
+                                style={{
+                                    ...styles.power,
+                                    ...(userMuted ? styles.pressed : null),
+                                    ...(!power ? deckStyles.buttonDisabled : null),
+                                }}
+                            >
+                                MUTE
+                            </button>
 
                             <Knob
                                 label="VOLUME"
                                 value={volume}
                                 disabled={!power}
-                                onChange={(v) => {
-                                    setVolume(v);
-                                    const video = videoRef.current;
-                                    // Any deliberate volume change also lifts
-                                    // the mute autoplay may have forced.
-                                    if (video && v > 0) video.muted = false;
-                                }}
+                                onChange={changeVolume}
                             />
                             <Knob
                                 label="BRIGHT"
@@ -834,91 +913,88 @@ const Television: React.FC<TelevisionProps> = ({
                         </div>
                     </div>
 
-                    {/* ---- printed channel list ---- */}
-                    <div style={styles.guide}>
-                        <div style={styles.guideHead}>
-                            <span style={styles.guideTitle}>PROGRAMME GUIDE</span>
-                        </div>
-                        <div style={styles.guideList}>
-                            {CHANNELS.map((c) => {
-                                const active = c.number === channel.number;
-                                return (
-                                    <div
-                                        key={c.number}
-                                        role="button"
-                                        tabIndex={0}
-                                        title={c.tagline}
-                                        onClick={() => {
-                                            if (active) return;
-                                            playClick();
-                                            if (!power) setPower(true);
-                                            setChannelNumber(c.number);
-                                        }}
-                                        onKeyDown={(e) => {
-                                            if (e.key !== 'Enter' && e.key !== ' ')
-                                                return;
-                                            e.preventDefault();
-                                            if (!power) setPower(true);
-                                            setChannelNumber(c.number);
-                                        }}
-                                        style={{
-                                            ...styles.guideRow,
-                                            ...(active
-                                                ? styles.guideRowActive
-                                                : null),
-                                        }}
-                                    >
-                                        <span
+                    {/* ---- printed channel card ---- */}
+                    {!narrow && (
+                        <div style={styles.guide}>
+                            <div style={styles.guideHead}>
+                                <span style={styles.guideTitle}>CHANNEL LINEUP</span>
+                                <span style={styles.guideClock}>{timeOfDay(now)}</span>
+                            </div>
+                            <div style={styles.guideList}>
+                                {CHANNELS.map((c) => {
+                                    const active = c.number === channel.number;
+                                    return (
+                                        <div
+                                            key={c.number}
+                                            role="button"
+                                            tabIndex={0}
+                                            aria-current={active ? 'true' : undefined}
+                                            title={c.tagline}
+                                            onClick={() => {
+                                                if (active && power) return;
+                                                playClick();
+                                                tuneTo(c.number);
+                                            }}
+                                            onKeyDown={(e) => {
+                                                if (e.key !== 'Enter' && e.key !== ' ') return;
+                                                e.preventDefault();
+                                                e.stopPropagation();
+                                                tuneTo(c.number);
+                                            }}
                                             style={{
-                                                ...styles.guideNum,
-                                                ...(active
-                                                    ? styles.guideNumActive
-                                                    : null),
+                                                ...styles.guideRow,
+                                                ...(active ? styles.guideRowActive : null),
                                             }}
                                         >
-                                            {String(c.number).padStart(2, '0')}
-                                        </span>
-                                        <span style={styles.guideText}>
                                             <span
                                                 style={{
-                                                    ...styles.guideName,
-                                                    ...(active
-                                                        ? styles.guideNameActive
-                                                        : null),
+                                                    ...styles.guideNum,
+                                                    ...(active ? styles.guideNumActive : null),
                                                 }}
                                             >
-                                                {c.name}
+                                                {String(c.number).padStart(2, '0')}
                                             </span>
-                                            <span
-                                                style={{
-                                                    ...styles.guideTag,
-                                                    ...(active
-                                                        ? styles.guideTagActive
-                                                        : null),
-                                                }}
-                                            >
-                                                {c.tagline}
+                                            <span style={styles.guideText}>
+                                                <span
+                                                    style={{
+                                                        ...styles.guideName,
+                                                        ...(active ? styles.guideNameActive : null),
+                                                    }}
+                                                >
+                                                    {c.name}
+                                                </span>
+                                                <span
+                                                    style={{
+                                                        ...styles.guideTag,
+                                                        ...(active ? styles.guideTagActive : null),
+                                                    }}
+                                                >
+                                                    {nowLine(c, now)}
+                                                </span>
                                             </span>
-                                        </span>
-                                    </div>
-                                );
-                            })}
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                            <div style={styles.guideFoot}>
+                                <span style={styles.guideFootText}>
+                                    ↑↓ channel · 0–9 enter · ←→ volume · M mute · G guide · I info ·
+                                    L last
+                                </span>
+                                <span style={styles.guideFootText}>
+                                    Tapes from the Internet Archive, on its bandwidth.{' '}
+                                    <a
+                                        href="https://archive.org/donate"
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        style={styles.guideFootLink}
+                                    >
+                                        Donate
+                                    </a>
+                                </span>
+                            </div>
                         </div>
-                        <div style={styles.guideFoot}>
-                            <span style={styles.guideFootText}>
-                                Tapes from the Internet Archive, on its
-                                bandwidth.{' '}
-                                <a
-                                    href="https://archive.org/donate"
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    style={styles.guideFootLink}
-                                >
-                                    Donate
-                                </a>
-                            </span>
-                        </div>
-                    </div>
+                    )}
                 </div>
             </div>
         </Window>
@@ -936,11 +1012,16 @@ const PLASTIC = '#d8d2c6';
 const styles: StyleSheetCSS = {
     root: {
         flex: 1,
+        // `width: 0` as well as `minWidth: 0`: without it the set's minimum
+        // content width (about 780px) props the window's inner boxes open on
+        // a phone, and the right half of the set is clipped off-screen.
+        width: 0,
         minWidth: 0,
         flexDirection: 'column',
         boxSizing: 'border-box',
         background: Colors.lightGray,
         overflow: 'hidden',
+        outline: 'none',
     },
     body: { flex: 1, minHeight: 0, flexDirection: 'row' },
 
@@ -993,56 +1074,35 @@ const styles: StyleSheetCSS = {
         overflow: 'hidden',
         justifyContent: 'center',
         alignItems: 'center',
+        isolation: 'isolate',
     },
-    video: {
+    videoHost: { position: 'absolute', inset: 0, zIndex: 0 },
+    cardLayer: {
         position: 'absolute',
         inset: 0,
-        width: '100%',
-        height: '100%',
-        objectFit: 'contain',
-        background: '#000',
-    },
-    dark: { position: 'absolute', inset: 0, background: '#050505' },
-
-    noSignal: {
-        position: 'absolute',
-        inset: 0,
+        zIndex: 1,
         flexDirection: 'column',
-        justifyContent: 'center',
-        alignItems: 'center',
-        gap: 6,
     },
-    noSignalText: {
-        fontFamily: 'Millennium, monospace',
-        fontSize: 20,
-        letterSpacing: 3,
-        color: '#9aa4b0',
+    dark: { position: 'absolute', inset: 0, background: '#050505', zIndex: 30 },
+    powerFx: {
+        position: 'absolute',
+        inset: 0,
+        zIndex: 31,
+        background: '#e8f0ff',
+        pointerEvents: 'none',
+        transformOrigin: '50% 50%',
     },
-    noSignalSub: { fontFamily: 'MSSerif', fontSize: 10, color: '#5d666f' },
-
     bug: {
         position: 'absolute',
-        right: 10,
-        top: 8,
+        right: 14,
+        bottom: 12,
         zIndex: 8,
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 6,
-        padding: '3px 7px',
-        background: 'rgba(0,0,0,0.45)',
-        borderRadius: 2,
-    },
-    bugNumber: {
-        fontFamily: 'Millennium, monospace',
-        fontSize: 14,
-        color: '#f5c518',
-    },
-    bugName: {
-        fontFamily: 'MSSerif',
-        fontSize: 9,
+        fontFamily: 'MillenniumBold, Millennium, sans-serif',
+        fontSize: 11,
         letterSpacing: 1,
-        color: '#e8e8e8',
-        textTransform: 'uppercase',
+        color: 'rgba(255,255,255,0.5)',
+        textShadow: '1px 1px 0 rgba(0,0,0,0.5)',
+        pointerEvents: 'none',
     },
 
     deck: {
@@ -1141,20 +1201,21 @@ const styles: StyleSheetCSS = {
         marginTop: 8,
         flexDirection: 'row',
         alignItems: 'center',
-        gap: 10,
+        gap: 7,
         padding: '6px 8px',
         background: PLASTIC,
         border: '2px solid #fff',
         borderRightColor: '#8a8272',
         borderBottomColor: '#8a8272',
     },
+    knobRowNarrow: { flexWrap: 'wrap', rowGap: 6 },
     power: {
         display: 'flex',
         flexDirection: 'row',
         alignItems: 'center',
         gap: 5,
         flex: 'none',
-        padding: '5px 9px',
+        padding: '5px 7px',
         cursor: 'pointer',
         fontFamily: 'MSSerif',
         fontSize: 10,
@@ -1165,7 +1226,6 @@ const styles: StyleSheetCSS = {
         borderRightColor: Colors.darkGray,
         borderBottomColor: Colors.darkGray,
     },
-    powerOn: { color: '#101010' },
     // A latched button: the bevel turned inside out.
     pressed: {
         borderColor: Colors.darkGray,
@@ -1180,17 +1240,8 @@ const styles: StyleSheetCSS = {
         background: '#5a2020',
         flex: 'none',
     },
-    // A lit LED, not just a red dot — the glow is what reads as "on".
-    powerDotOn: {
-        background: '#ff3b30',
-        boxShadow: '0 0 5px #ff3b30',
-    },
-    chGroup: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 4,
-        flex: 'none',
-    },
+    powerDotOn: { background: '#ff3b30', boxShadow: '0 0 5px #ff3b30' },
+    chGroup: { flexDirection: 'row', alignItems: 'center', gap: 4, flex: 'none' },
     chReadout: {
         fontFamily: 'Millennium, monospace',
         fontSize: 18,
@@ -1214,6 +1265,9 @@ const styles: StyleSheetCSS = {
         padding: '5px 8px',
         background: '#000080',
         flex: 'none',
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'baseline',
     },
     guideTitle: {
         fontFamily: 'MSSerif',
@@ -1221,6 +1275,7 @@ const styles: StyleSheetCSS = {
         letterSpacing: 1,
         color: '#fff',
     },
+    guideClock: { fontFamily: 'MSSerif', fontSize: 10, color: '#f5c518' },
     guideList: {
         flex: 1,
         minHeight: 0,
@@ -1232,9 +1287,10 @@ const styles: StyleSheetCSS = {
         flexDirection: 'row',
         alignItems: 'flex-start',
         gap: 7,
-        padding: '5px 7px',
+        padding: '4px 7px',
         cursor: 'pointer',
         borderBottom: '1px solid #e2e2e2',
+        flex: 'none',
     },
     guideRowActive: { background: '#000080' },
     guideNum: {
@@ -1245,62 +1301,34 @@ const styles: StyleSheetCSS = {
         minWidth: 20,
     },
     guideNumActive: { color: '#f5c518' },
-    // `display: flex` is load-bearing: this is a <span>, and `src/App.css`'s
-    // `div { display: flex }` does not reach it, so without this the column
-    // direction is silently ignored and the name and tagline run together.
+    // `display: flex` is load-bearing: this is a <span>, which `div { display: flex }` does not reach.
     guideText: {
         display: 'flex',
         flexDirection: 'column',
         minWidth: 0,
         gap: 1,
+        flex: 1,
     },
     guideName: { fontFamily: 'MSSerif', fontSize: 11, color: '#000' },
     guideNameActive: { color: '#fff' },
-    guideTag: { fontFamily: 'MSSerif', fontSize: 9, color: '#555' },
+    guideTag: {
+        fontFamily: 'MSSerif',
+        fontSize: 9,
+        color: '#555',
+        whiteSpace: 'nowrap',
+        overflow: 'hidden',
+        textOverflow: 'ellipsis',
+    },
     guideTagActive: { color: '#b8c4e8' },
     guideFoot: {
         padding: '4px 8px',
         flex: 'none',
+        flexDirection: 'column',
+        gap: 3,
         borderTop: `1px solid ${Colors.darkGray}`,
     },
     guideFootText: { fontFamily: 'MSSerif', fontSize: 9, color: '#444' },
     guideFootLink: { color: '#000080' },
-};
-
-const testCardStyles: StyleSheetCSS = {
-    root: {
-        position: 'absolute',
-        inset: 0,
-        flexDirection: 'column',
-        background: '#101010',
-    },
-    bars: { flex: 3, minHeight: 0 },
-    lower: {
-        flex: 1,
-        minHeight: 0,
-        background: '#101010',
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
-    plate: {
-        flexDirection: 'column',
-        alignItems: 'center',
-        gap: 3,
-        padding: '5px 14px',
-        border: '1px solid #6a6a6a',
-    },
-    plateText: {
-        fontFamily: 'Millennium, monospace',
-        fontSize: 14,
-        letterSpacing: 3,
-        color: '#e8e8e8',
-    },
-    plateSub: {
-        fontFamily: 'MSSerif',
-        fontSize: 9,
-        letterSpacing: 1,
-        color: '#8a8a8a',
-    },
 };
 
 const knobStyles: StyleSheetCSS = {
@@ -1313,7 +1341,7 @@ const knobStyles: StyleSheetCSS = {
     },
     slider: {
         width: '100%',
-        minWidth: 40,
+        minWidth: 34,
         maxWidth: 92,
         height: 14,
         padding: 0,

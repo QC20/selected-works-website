@@ -1,312 +1,217 @@
 /**
  * What is on television.
  * ----------------------
- * The dial behind `applications/Television.tsx`. Channels are *queries*, not
- * playlists: each one names a collection on the Internet Archive, and
- * `tools/tv-schedule.js` turns that into hours of programmes, with the file to
- * play and its real running time, in `src/data/tvSchedule.json`. A hand-typed
- * playlist runs out, and a visitor notices the loop within about two minutes.
+ * The dial behind `applications/Television.tsx`: a 1995 cable package,
+ * programmed entirely from the Internet Archive's curated collections.
  *
- * The queries run when that tool runs, not in the visitor's browser. Run live,
- * the result was sorted by download count, which changes daily, so two people
- * on the same channel could be shown different programmes; and nothing in the
- * search result says how long a programme is, which a guide grid needs.
- * `tvSchedule.ts` is what reads the baked file.
+ * This file is channel *identity* — the number on the dial, the name in the
+ * guide, how the channel is laid out in time and what fills its breaks. Which
+ * tapes each channel plays lives in `tools/tv-lineup.js`, and
+ * `tools/tv-schedule.js` turns that into `src/data/tvSchedule.json`. After
+ * editing a channel's `slotMinutes` or `gap` here, run the tool again: both
+ * shape how programmes were packed into blocks.
  *
- * Three rules this file exists to enforce, all of them learned the hard way
- * while picking the collections:
+ * Three rules, all learned the hard way:
  *
- *   Curated collections only.  The Archive's biggest film collections are
- *   open upload with no moderation. Sorting VHS Vault by popularity returns a
- *   real televised suicide in the first three results, and adult tapes shortly
- *   after. None of that belongs on a portfolio, and no denylist is good enough
- *   to promise otherwise, so the unmoderated collections are simply not here.
- *   Everything in `CHANNELS` comes from a collection somebody curates:
- *   Prelinger's archival holdings, the Computer Chronicles' PBS run, the
- *   public-domain cartoon shelf, the educational-film shelf, and the
- *   off-air commercial tapes. `DENIED` below is a second net, not the first.
+ *   Curated, named tapes only.  The first two versions defined channels as
+ *   Archive *searches*. Searches drift, and the open-upload pool they reach is
+ *   unmoderated: they put a Quran recitation on "News Desk", Arabic dubs on
+ *   Computer Chronicles and a Spanish dub of a 2000s cartoon on "Cartoon
+ *   Network". Every tape is now named in the lineup by hand.
  *
- *   Period only.  Nothing later than 1999 is ever requested. A visitor who
- *   finds a 2015 upload on a Windows 95 desktop has caught the machine lying,
- *   and the whole conceit deflates. Collections that are wholly pre-1999 by
- *   nature (Prelinger, the cartoons) need no year clause; the ones that
- *   aren't carry one in the query itself.
+ *   Period only.  Nothing later than 1999 — the bake enforces it. A 2015
+ *   upload on a Windows 95 desktop is the machine caught lying.
  *
- *   No portfolio content.  The television is a place to *waste time*, not a
- *   second route into the CV. Jonas' own work is not on any channel here and
- *   should not be added to one — the showcase, the paintings and the DJ sets
- *   already have their own windows, and mixing them in would make the TV feel
- *   like an advert instead of a diversion.
+ *   No portfolio content.  The television is for wasting time, not a second
+ *   route into the CV. Jonas' own work has its own windows.
  */
 
-/** One programme, as the Archive describes it. */
-export interface Episode {
-    /** The Archive identifier — `archive.org/details/<id>` is its page. */
-    id: string;
-    title: string;
-    year?: number;
-}
+/** How the time a block has left over is spent. */
+export type BreakStyle =
+    /** A break after every programme: the right shape for half-hour shows. */
+    | 'between'
+    /** Items run back to back with only `gap` between them, and one break
+     *  closes the block: newsreels, Soundies, commercial reels. */
+    | 'end';
 
 export interface Channel {
-    /** Dial position. Shown in the corner bug and used to seed the schedule. */
+    /** Dial position. Shown on the OSD, the bug and the guide. */
     number: number;
     name: string;
+    /** Four characters at most, for the corner bug and the idents. */
+    call: string;
     /** One line, in the register of a listings magazine. */
     tagline: string;
+    /** The ident's colour. Every channel looks different for a second. */
+    colour: string;
     /**
-     * The Archive search this channel is. Absent on `testCard`, which is drawn
-     * locally and needs no network at all.
+     * Drawn by the set rather than played from a tape. The test card and the
+     * listings channel are rendered locally; the weather channel is the
+     * WeatherStar 4000+ recreation in a frame.
      */
-    query?: string;
-    /**
-     * Drawn by the client rather than streamed. Only the test card, and it is
-     * deliberately the only one — see the note on removing it below.
-     */
-    kind?: 'testCard';
-    /**
-     * Programmes the tool always tries first, ahead of the query's results.
-     * Named "fallback" from when they stood in for an unreachable Archive;
-     * now they are what keeps a channel on air if its query ever comes back
-     * empty.
-     */
-    fallback?: Episode[];
+    kind?: 'testCard' | 'listings' | 'weather';
+    /** Blocks start on multiples of this. Half an hour unless stated. */
+    slotMinutes?: number;
+    /** Seconds reserved after each programme, at least. Default 20. */
+    gap?: number;
+    breaks?: BreakStyle;
+    /** Whether breaks carry commercials. Public television's did not. */
+    ads?: boolean;
 }
 
 /**
- * Titles never worth showing, matched case-insensitively against the whole
- * title. The curated collections make this close to unnecessary, which is the
- * point — it is here to catch a stray upload into an otherwise clean
- * collection, not to make an unsafe collection safe. If you ever add a
- * collection that *needs* this list to be respectable, add the collection
- * somewhere else instead.
- */
-const DENIED =
-    /\b(suicide|shooting|execution|autopsy|graphic warning|nude|nudity|erotic|xxx|porn)\b/i;
-
-/**
- * THE TEST CARD — read this before deleting it.
- *
- * Channel 2 is the only channel drawn locally, and it is deliberately
- * self-contained so it can be removed in one edit: delete this constant, drop
- * the single entry from `CHANNELS`, and delete the `kind === 'testCard'` branch
- * in `Television.tsx`. Nothing else refers to it. It exists because a dial
- * whose lowest channel is dead air is more convincing than one that starts
- * with programming, and because it gives the set something honest to show
- * while a real channel is still loading.
+ * THE TEST CARD — channel 2, drawn locally, off the air for good. It is the
+ * honest bottom of the dial, and the thing the set shows when a tape cannot
+ * be reached at all.
  */
 export const TEST_CARD_CHANNEL: Channel = {
     number: 2,
     name: 'Test Card',
+    call: 'TEST',
     tagline: 'Transmission resumes at 06:00.',
+    colour: '#808080',
     kind: 'testCard',
 };
 
-/**
- * The five channels below are a deliberate exception to the "curated
- * collections only" rule at the top of this file, and it is worth being
- * explicit about why.
- *
- * Tom and Jerry, Cartoon Network and the Disney shorts do not exist in any
- * curated collection on the Archive — they are all uploads to the open pool.
- * The mitigation is that these queries are pinned to a *subject*, not to a
- * popularity sort over an open collection, which is what made VHS Vault
- * unusable: asking for "tom and jerry" returns Tom and Jerry. `DENIED` still
- * runs over every title, and the 1999 ceiling still applies.
- *
- * The honest summary: channels 3-16 are curated and safe by construction;
- * 17-21 are filtered rather than curated. If anything ever does slip through,
- * this is the block it came from.
- */
 export const CHANNELS: Channel[] = [
     TEST_CARD_CHANNEL,
     {
         number: 3,
-        name: 'Ad Break',
-        tagline: 'Off-air tape. Adverts, trailers and whatever surrounded them.',
-        query: 'collection:"classic_tv_commercials" AND mediatype:movies AND year:[1985 TO 1999]',
-        fallback: [
-            { id: 'vts-01-1_20200423_1708', title: 'Various Television Recordings', year: 1989 },
-            { id: 'TheHypnoticEyeEpisode6', title: 'The Hypnotic Eye, Episode 6', year: 1997 },
-            { id: 'wcco102091', title: 'WCCO Commercials', year: 1991 },
-        ],
+        name: 'Listings',
+        call: 'NVL',
+        tagline: "What's on, scrolling past, all day.",
+        colour: '#1a3ca8',
+        kind: 'listings',
     },
     {
         number: 4,
-        name: 'News Desk',
-        tagline: 'Local bulletins, as they went out.',
-        query: 'collection:"classic_tv_commercials" AND mediatype:movies AND (title:news OR subject:news)',
-        fallback: [
-            { id: 'wews-abc-news-brief-04-07-1991', title: 'WEWS ABC News Brief', year: 1991 },
-            { id: 'wews-newschannel-5-news-brief-12-23-1995', title: 'WEWS NewsChannel 5 NewsBrief', year: 1995 },
-        ],
+        name: 'Ad Break',
+        call: 'ADS',
+        tagline: 'Wall-to-wall commercials, 1948 to 1999.',
+        colour: '#d2381e',
+        gap: 1,
+        breaks: 'end',
+        ads: false,
     },
     {
         number: 5,
-        name: 'Station Break',
-        tagline: 'Idents, promos and bumpers. Nothing but the joins.',
-        query: 'collection:"classic_tv_commercials" AND mediatype:movies AND (title:"ID" OR title:promo OR title:bumper)',
-        fallback: [{ id: 'wews-id-1998', title: 'WEWS ID', year: 1998 }],
+        name: 'Cartoon Carnival',
+        call: 'TOON',
+        tagline: 'Popeye, Betty Boop, Superman and Felix.',
+        colour: '#f0a020',
+        gap: 8,
     },
     {
         number: 6,
-        name: 'Cartoon Carnival',
-        tagline: 'Popeye, Betty Boop and the rest of the public domain.',
-        query: 'collection:"classic_cartoons" AND mediatype:movies',
-        fallback: [
-            { id: 'popeye_patriotic_popeye', title: 'Patriotic Popeye', year: 1957 },
-            { id: 'BettyBoopCartoons', title: 'Betty Boop Cartoons' },
-            { id: 'FLIP_FROG-FIDDLESTICKS', title: 'Flip the Frog: Fiddlesticks', year: 1930 },
-            { id: 'woody_woodpecker_pantry_panic', title: 'Woody Woodpecker in Pantry Panic', year: 1941 },
-        ],
+        name: 'Slapstick',
+        call: 'SLAP',
+        tagline: 'Chaplin, Keaton, Lloyd. Things fall over.',
+        colour: '#b8862e',
+        gap: 10,
     },
     {
         number: 7,
-        name: 'Animation Station',
-        tagline: 'The stranger end of the cartoon shelf.',
-        query: 'collection:"more_animation" AND mediatype:movies',
-        fallback: [{ id: 'the_big_bad_wolf', title: 'The Big Bad Wolf' }],
+        name: 'Rerun Theatre',
+        call: 'RRN',
+        tagline: 'Ozzie, Harriet, Groucho and the Lone Ranger.',
+        colour: '#2f8f6a',
     },
     {
         number: 8,
         name: 'Computer Chronicles',
-        tagline: "Stewart Cheifet explains the future. It is beige.",
-        query: 'collection:"computerchronicles" AND mediatype:movies',
-        fallback: [
-            { id: 'CC517_commodore_64', title: 'Commodore 64' },
-            { id: 'virtualreali', title: 'Virtual Reality', year: 1992 },
-            { id: 'CC501_hypercard', title: 'Hypercard' },
-            { id: 'Amigaand1985', title: 'Amiga and Atari', year: 1985 },
-            { id: 'GaryKild', title: 'Gary Kildall Special' },
-        ],
+        call: 'PTV8',
+        tagline: 'Stewart Cheifet explains the future. It is beige.',
+        colour: '#2a6fd6',
+        // Public television: station breaks, no commercials.
+        ads: false,
     },
     {
         number: 9,
-        name: 'Social Guidance',
-        tagline: 'How to behave, according to a filmstrip.',
-        query: 'collection:"prelinger" AND (subject:"social guidance" OR subject:"etiquette" OR subject:"teenagers")',
-        fallback: [{ id: 'JoanAvoi1947', title: 'Joan Avoids a Cold', year: 1947 }],
+        name: 'Newsreel',
+        call: 'NEWS',
+        tagline: 'The week in pictures, 1929 to 1967.',
+        colour: '#4a4a4a',
+        gap: 3,
+        breaks: 'end',
     },
     {
         number: 10,
-        name: 'The Open Road',
-        tagline: 'Driver education, and the consequences of ignoring it.',
-        query: 'collection:"prelinger" AND (subject:"driver education" OR subject:"automobiles" OR subject:"safety")',
-        fallback: [{ id: 'YoureDri1940', title: "You're Driving 90 Horses" }],
+        name: 'Mission Control',
+        call: 'NASA',
+        tagline: 'Mercury, Apollo, Skylab and the Shuttle.',
+        colour: '#c03030',
+        ads: false,
     },
     {
         number: 11,
-        name: 'Industry on Parade',
-        tagline: 'Things being manufactured, at length.',
-        query: 'collection:"prelinger" AND (subject:"industry" OR subject:"manufacturing" OR subject:"advertising")',
-        fallback: [{ id: 'AboutBan1935', title: 'About Bananas', year: 1935 }],
+        name: 'Atomic Age',
+        call: 'ATOM',
+        tagline: 'Duck, cover, and the peaceful atom.',
+        colour: '#7aa63a',
+        gap: 15,
     },
     {
         number: 12,
-        name: 'Atomic Age',
-        tagline: 'Science, space and the peaceful atom.',
-        query: 'collection:"prelinger" AND (subject:"space" OR subject:"atomic" OR subject:"science")',
-        fallback: [{ id: 'FromtheG1954', title: 'From the Ground Up', year: 1954 }],
+        name: 'Social Guidance',
+        call: 'SGC',
+        tagline: 'How to behave, according to a filmstrip.',
+        colour: '#8a5ab0',
+        gap: 15,
     },
     {
         number: 13,
-        name: 'Home Economics',
-        tagline: 'The kitchen, taken extremely seriously.',
-        query: 'collection:"prelinger" AND (subject:"home economics" OR subject:"cooking" OR subject:"housekeeping")',
-        fallback: [{ id: 'EatforHe1954', title: 'Eat for Health', year: 1954 }],
+        name: 'Industry on Parade',
+        call: 'IND',
+        tagline: 'Things being manufactured, at length.',
+        colour: '#5a6e8a',
+        gap: 15,
     },
     {
         number: 14,
-        name: 'Classroom',
-        tagline: 'Educational films, shown to children who did not ask.',
-        query: 'collection:"educationalfilms" AND mediatype:movies',
-        fallback: [
-            { id: 'The_Old_Mill', title: 'The Old Mill', year: 1937 },
-            { id: 'HealthYo1953', title: 'Health: Your Posture', year: 1953 },
-        ],
+        name: 'The Open Road',
+        call: 'ROAD',
+        tagline: 'Driver education, and the consequences of ignoring it.',
+        colour: '#c86428',
+        gap: 15,
     },
     {
         number: 15,
-        name: 'Life Science',
-        tagline: 'Animals, weather, and the natural world.',
-        query: 'collection:"educationalfilms" AND (subject:science OR subject:nature OR subject:animals)',
-        fallback: [{ id: 'Whales_Dolphins_and_Men', title: 'Whales, Dolphins and Men', year: 1973 }],
+        name: 'Jukebox',
+        call: 'JBX',
+        tagline: 'Soundies: the music videos of 1942.',
+        colour: '#d23c8c',
+        gap: 4,
+        breaks: 'end',
     },
     {
         number: 16,
-        name: 'Health & Hygiene',
-        tagline: 'Wash your hands. There is a film about it.',
-        query: 'collection:"educationalfilms" AND (subject:health OR subject:hygiene OR subject:medicine)',
-        fallback: [{ id: 'Sleepfor1950', title: 'Sleep for Health', year: 1950 }],
+        name: 'The Late Show',
+        call: 'LATE',
+        tagline: 'Old movies, with the commercials.',
+        colour: '#3a2a6a',
     },
-
     {
         number: 17,
-        name: 'Tom & Jerry',
-        tagline: 'The cat has never once won and keeps trying.',
-        query: 'mediatype:movies AND (title:"tom and jerry" OR subject:"tom and jerry") AND NOT title:"magic ring"',
-        fallback: [
-            { id: 'TomAndJerry-TheMidnightSnack', title: 'The Midnight Snack', year: 1941 },
-        ],
-    },
-    {
-        number: 18,
-        name: 'Cartoon Network',
-        tagline: 'Bumpers, promos and whatever was on between them.',
-        query: 'mediatype:movies AND (title:"cartoon network" OR subject:"cartoon network") AND year:[1992 TO 1999]',
-        fallback: [
-            { id: 'cartoon-network-1997-promos', title: 'Cartoon Network Promo Break', year: 1997 },
-        ],
-    },
-    {
-        number: 19,
-        name: 'Disney Classics',
-        tagline: 'Silly Symphonies and the early shorts.',
-        query: 'mediatype:movies AND (subject:"walt disney" OR title:"silly symphon") AND year:[1920 TO 1960]',
-        fallback: [
-            { id: 'the_big_bad_wolf', title: 'The Big Bad Wolf' },
-            { id: 'SteamboatWillie', title: 'Steamboat Willie', year: 1928 },
-        ],
-    },
-    {
-        number: 20,
-        name: 'Evening News',
-        tagline: 'Nightly bulletins, from wherever the tape came from.',
-        query: 'mediatype:movies AND (title:"evening news" OR title:"nightly news" OR title:"news at") AND year:[1985 TO 1999]',
-        fallback: [
-            { id: 'wews-abc-news-brief-04-07-1991', title: 'WEWS ABC News Brief', year: 1991 },
-        ],
-    },
-    {
-        number: 21,
-        name: 'Newsreel',
-        tagline: 'Before television did the news, this did.',
-        query: 'collection:"universal_newsreels" AND mediatype:movies',
-        fallback: [
-            { id: 'universal_newsreels_1945', title: 'Universal Newsreel', year: 1945 },
-        ],
+        name: 'Weather Star',
+        call: 'WX',
+        tagline: 'The local forecast, every few minutes.',
+        colour: '#2a4ab8',
+        kind: 'weather',
     },
 ];
 
 export const channelByNumber = (n: number): Channel | undefined =>
     CHANNELS.find((c) => c.number === n);
 
-/* -------------------------------------------------------------------------
- * What `tools/tv-schedule.js` needs from here
- * ---------------------------------------------------------------------- */
+/** The channel a set switches on to the first time. */
+export const DEFAULT_CHANNEL = 8;
 
 /**
- * Derivative formats worth playing, best first.
- *
- * The 512Kb MPEG-4 leads deliberately: these are half-hour transfers of
- * twenty-year-old tape, and the "HiRes" derivative of one Computer Chronicles
- * episode is 168 MB. On a television the size of a desktop window, at the
- * resolution a CRT overlay is about to sit on top of, the small one is
- * indistinguishable and starts playing several seconds sooner.
+ * The weather channel is the WeatherStar 4000+, Matt Walsh's recreation of
+ * The Weather Channel's 1990s local forecast (github.com/netbymatt/ws4kp,
+ * MIT). It reads the US National Weather Service, so it can only forecast US
+ * places; Redmond, Washington is where this machine's operating system was
+ * written. Kiosk mode hides its own settings.
  */
-export const FORMATS = ['512Kb MPEG4', 'h.264', 'MPEG4', 'h.264 IA', 'WebM', 'Ogg Video'];
-
-/** True if a title should never be scheduled. See `DENIED` above. */
-export const isDenied = (title: string): boolean => DENIED.test(title);
-
-/** Nothing after the machine's own era, whatever the query said. */
-export const LATEST_YEAR = 1999;
+export const WEATHER_URL =
+    'https://weatherstar.netbymatt.com/?kiosk=true&latLonQuery=Redmond%2C+WA%2C+USA&latLon=%7B%22lat%22%3A47.674%2C%22lon%22%3A-122.1215%7D&units=us&scanLines=false&mediaVolume=0';

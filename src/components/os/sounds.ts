@@ -429,3 +429,81 @@ export function playPetTreat(): void {
     tone({ frequency: 1200, duration: 0.04, type: 'square', gain: 0.03 });
     tone({ frequency: 1600, duration: 0.06, type: 'square', gain: 0.03, delay: 0.05 });
 }
+
+/* -------------------------------------------------------------------------
+ * The television
+ * ---------------------------------------------------------------------- */
+
+/**
+ * The hiss of an untuned set, for as long as the snow is up.
+ *
+ * White noise through a band-pass, roughly where a small cabinet speaker
+ * lives, with a slow wobble so it does not sound like a test tone. Returns a
+ * function that fades it out; the set calls it the moment a picture arrives.
+ * `gain` is the set's own VOLUME knob, so a quiet television hisses quietly.
+ */
+export function startTvStatic(gain: number): () => void {
+    const ctx = audio();
+    if (!ctx || gain <= 0) return () => undefined;
+    const length = ctx.sampleRate * 2;
+    const buffer = ctx.createBuffer(1, length, ctx.sampleRate);
+    const data = buffer.getChannelData(0);
+    for (let i = 0; i < length; i++) data[i] = Math.random() * 2 - 1;
+    const source = ctx.createBufferSource();
+    source.buffer = buffer;
+    source.loop = true;
+
+    const band = ctx.createBiquadFilter();
+    band.type = 'bandpass';
+    band.frequency.value = 3200;
+    band.Q.value = 0.5;
+
+    const level = ctx.createGain();
+    const peak = Math.min(0.12, 0.05 + gain * 0.1) * Math.min(1, gain * 2.5);
+    level.gain.setValueAtTime(0.0001, ctx.currentTime);
+    level.gain.exponentialRampToValueAtTime(peak, ctx.currentTime + 0.03);
+
+    source.connect(band);
+    band.connect(level);
+    level.connect(ctx.destination);
+    source.start();
+
+    let stopped = false;
+    return () => {
+        if (stopped) return;
+        stopped = true;
+        const t = ctx.currentTime;
+        level.gain.cancelScheduledValues(t);
+        level.gain.setValueAtTime(level.gain.value || peak, t);
+        level.gain.exponentialRampToValueAtTime(0.0001, t + 0.18);
+        source.stop(t + 0.2);
+    };
+}
+
+/**
+ * A station ident's sting: three or four notes, a different tune for every
+ * channel, the way every station had one you could recognise from the
+ * kitchen. `seed` is the channel number.
+ */
+export function playTvJingle(seed: number, gain: number): void {
+    if (gain <= 0) return;
+    // A major pentatonic, so every channel's tune sounds intentional.
+    const scale = [523.25, 587.33, 659.25, 783.99, 880, 1046.5, 1174.66, 1318.51];
+    let s = seed * 2654435761;
+    const next = () => {
+        s = (s ^ (s >>> 13)) * 1274126177;
+        return ((s >>> 0) % 1000) / 1000;
+    };
+    const count = 3 + Math.floor(next() * 2);
+    const level = 0.015 + gain * 0.05;
+    let t = 0;
+    for (let i = 0; i < count; i++) {
+        const last = i === count - 1;
+        const f = scale[Math.floor(next() * scale.length)];
+        const d = last ? 0.5 : 0.14;
+        tone({ frequency: f, duration: d, type: 'triangle', gain: level, delay: t });
+        // A fifth underneath, quietly: a chord, not a beep.
+        tone({ frequency: f / 1.5, duration: d, type: 'sine', gain: level * 0.5, delay: t });
+        t += last ? 0 : 0.15;
+    }
+}

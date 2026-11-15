@@ -1,5 +1,23 @@
 [
   {
+    "head": "The television, rebuilt as a cable package",
+    "date": "2026-11-15",
+    "why": "Half the channels showed nothing. Each was an Internet Archive search, and searches drift: they put a Quran recitation on the news, Arabic dubs on Computer Chronicles and two-hour VHS rips on the adverts channel. Worse, the set played the files as uploaded, and a recent capture of an old tape can be 8 GB of 1080p for an hour of television, which no connection can stream from a library. The set now plays a hand-picked lineup of the Archive's own small copies, scheduled the way real stations were, and changes channel in half a second.",
+    "notes": [
+      "Sixteen channels with real identities: commercials, cartoons, slapstick, reruns, Computer Chronicles, newsreels, NASA, the Atomic Age, social guidance, industrial films, the open road, 1940s Soundies, the late movie, a scrolling listings channel and the weather",
+      "Every tape is named by hand and checked before it airs: it must exist, stream under 1.3 Mbit/s, carry sound, fit its channel and date from 1999 or earlier",
+      "Programmes start on the hour and half hour. The gaps are breaks: the channel's ident and jingle, real commercials from 1948 to 1999, and a card saying what is up next. Computer Chronicles is public television, so it has station breaks and no adverts",
+      "The channels either side of the one you are watching are kept buffered, so CH▲ and CH▼ change picture almost instantly. A far channel shows snow, with the hiss of an untuned set, until the tape arrives — never a black screen",
+      "The next programme loads during the break, so one programme cuts cleanly to the next",
+      "A tape that has gone missing is replaced by another programme from the same channel, the way a station would. If the Archive cannot be reached at all the set shows PLEASE STAND BY and keeps trying",
+      "Channel 3 is a scrolling listings channel in the style of the 1990s cable guide, with the time, a rotating promo and every channel's next ninety minutes",
+      "Channel 17 is the WeatherStar 4000+, Matt Walsh's recreation of The Weather Channel's local forecast, for Redmond, Washington",
+      "An on-screen display in green: the channel number, a volume bar, MUTE, and an info banner with what is on, how far in, and what is next",
+      "A remote's worth of keys: arrows for channel and volume, type a channel number, M to mute, G for the guide, I for info, L for the last channel",
+      "The set remembers its channel, volume, brightness and static between visits, and the power button collapses the picture to a line"
+    ]
+  },
+  {
     "head": "The pets, drawn properly",
     "date": "2026-11-14",
     "why": "The animals on the taskbar were about forty pixels long, which left two pixels for an eye and none for fur. They were built like animals but read like smudges, and beside the companions in other software they looked it. They are now drawn at twice the size, with a coat, a face, and the small motions that come from having a body.",
